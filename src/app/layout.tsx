@@ -8,7 +8,7 @@ import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "Docbox",
-  description: "Dropbox Clone",
+  description: "Docbox: Dropbox Clone",
 };
 
 export default function RootLayout({

@@ -1,4 +1,3 @@
-````markdown
 # Docbox
 
 Docbox is a modern file storage and management application built with Next.js 14, Firebase, and Clerk for authentication. The project emulates the core functionalities of Dropbox, enabling users to upload, manage, and store files securely. It features a responsive and intuitive interface powered by Shadcn UI components and Tailwind CSS.
@@ -26,9 +25,9 @@ Docbox is a modern file storage and management application built with Next.js 14
 
 ### Prerequisites
 
-- **Node.js**: Install the latest version.
-- **Firebase Project**: Set up Firebase with Firestore and Storage enabled.
-- **Clerk Account**: Create an account on Clerk for authentication.
+- **Node.js:** Install the latest version.
+- **Firebase Project:** Set up Firebase with Firestore and Storage enabled.
+- **Clerk Account:** Create an account on Clerk for authentication.
 
 ### Installation
 
@@ -38,7 +37,6 @@ Docbox is a modern file storage and management application built with Next.js 14
    git clone https://github.com/yourusername/docbox.git
    cd docbox
    ```
-````
 
 2. **Install dependencies:**
 
@@ -97,7 +95,3 @@ Contributions are welcome! Please open an issue or submit a pull request with yo
 ## License
 
 This project is licensed under the MIT License.
-
-```
-
-```

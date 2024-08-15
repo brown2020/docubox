@@ -1,33 +1,41 @@
 # Docbox
 
-Docbox is a modern file storage and management application built with Next.js 14, Firebase, and Clerk for authentication. The project emulates the core functionalities of Dropbox, enabling users to upload, manage, and store files securely. It features a responsive and intuitive interface powered by Shadcn UI components and Tailwind CSS.
+Docbox is a modern file storage and management application built with [Next.js 14](https://nextjs.org/), [Firebase](https://firebase.google.com/), and [Clerk](https://clerk.dev/) for authentication. Inspired by a tutorial from Sonny Sangha, this project emulates the core functionalities of Dropbox, enabling users to upload, manage, and store files securely. It features a responsive and intuitive interface powered by [Shadcn UI](https://shadcn.dev/) components and [Tailwind CSS](https://tailwindcss.com/).
 
 ## Features
 
 - **File Management:** Upload, rename, and delete files seamlessly.
-- **Firebase Integration:** Utilizes Firebase Firestore for metadata and Firebase Storage for files.
-- **User Authentication:** Secure login and session management with Clerk.
-- **Responsive Design:** Tailwind CSS ensures an adaptable layout for all devices.
-- **State Management:** Lightweight state management using Zustand.
-- **Drag-and-Drop:** Simplified file uploads with React Dropzone.
+- **Firebase Integration:** Utilizes [Firebase Firestore](https://firebase.google.com/docs/firestore) for metadata and [Firebase Storage](https://firebase.google.com/docs/storage) for files.
+- **User Authentication:** Secure login and session management with [Clerk](https://clerk.dev/).
+- **Responsive Design:** [Tailwind CSS](https://tailwindcss.com/) ensures an adaptable layout for all devices.
+- **State Management:** Lightweight state management using [Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction).
+- **Drag-and-Drop:** Simplified file uploads with [React Dropzone](https://react-dropzone.js.org/).
 
 ## Technologies Used
 
-- **Next.js 14:** Cutting-edge web framework with App Router support.
-- **Firebase:** Firestore and Storage for backend services.
-- **Clerk:** Authentication and session management.
-- **Zustand:** Efficient state management for React applications.
-- **Shadcn UI Components:** Modern, cohesive UI elements.
-- **Tailwind CSS:** Utility-first styling for a responsive design.
-- **React Dropzone:** Simplifies drag-and-drop file uploads.
+- **[Next.js 14](https://nextjs.org/):** Cutting-edge web framework with App Router support.
+- **[Firebase](https://firebase.google.com/):** Firestore and Storage for backend services.
+- **[Clerk](https://clerk.dev/):** Authentication and session management.
+- **[Zustand](https://docs.pmnd.rs/zustand/getting-started/introduction):** Efficient state management for React applications.
+- **[Shadcn UI](https://shadcn.dev/):** Modern, cohesive UI elements.
+- **[Tailwind CSS](https://tailwindcss.com/):** Utility-first styling for a responsive design.
+- **[React Dropzone](https://react-dropzone.js.org/):** Simplifies drag-and-drop file uploads.
+- **[Radix UI](https://www.radix-ui.com/):** Accessible UI components for React (used via `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-slot`).
+- **[Lucide React](https://lucide.dev/):** Beautiful & consistent icons for React.
+- **[React File Icon](https://www.npmjs.com/package/react-file-icon):** File type icons for React.
+- **[React Hot Toast](https://react-hot-toast.com/):** Toast notifications for React.
+- **[Tailwind Merge](https://github.com/dcastil/tailwind-merge):** Utility to merge Tailwind CSS classes.
+- **[Class Variance Authority](https://github.com/joe-bell/cva):** Utility for variant-driven component styling.
+- **[Pretty Bytes](https://www.npmjs.com/package/pretty-bytes):** Convert bytes to a human readable string.
+- **[TanStack React Table](https://tanstack.com/table/v8/docs/guide/introduction):** Headless UI for building tables and data grids.
 
 ## Getting Started
 
 ### Prerequisites
 
-- **Node.js:** Install the latest version.
-- **Firebase Project:** Set up Firebase with Firestore and Storage enabled.
-- **Clerk Account:** Create an account on Clerk for authentication.
+- **[Node.js](https://nodejs.org/):** Install the latest version.
+- **[Firebase Project](https://firebase.google.com/):** Set up Firebase with Firestore and Storage enabled.
+- **[Clerk Account](https://clerk.dev/):** Create an account on Clerk for authentication.
 
 ### Installation
 
@@ -87,6 +95,9 @@ NEXT_PUBLIC_FIREBASE_APPID=your_firebase_app_id
 - [Zustand Documentation](https://docs.pmnd.rs)
 - [Shadcn UI Documentation](https://shadcn.dev/docs)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [Radix UI Documentation](https://www.radix-ui.com/docs/primitives/overview/introduction)
+- [Lucide React Documentation](https://lucide.dev/docs/lucide-react)
+- [React Dropzone Documentation](https://react-dropzone.js.org/)
 
 ## Contributing
 

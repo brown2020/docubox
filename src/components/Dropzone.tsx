@@ -1,5 +1,5 @@
 "use client";
-import { parseFile } from "@/app/actions/parse";
+import { parseFile } from "@/actions/parse";
 import { db, storage } from "@/firebase";
 import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
@@ -19,7 +19,7 @@ type Props = {};
 export default function Dropzone({}: Props) {
   const maxSize = 20971520;
   const [loading, setLoading] = useState(false);
-  const {  user } = useUser();
+  const { user } = useUser();
 
   const onDrop = (acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {

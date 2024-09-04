@@ -1,4 +1,5 @@
 "use client";
+import { parseFile } from "@/app/actions/parse";
 import { db, storage } from "@/firebase";
 import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
@@ -18,7 +19,7 @@ type Props = {};
 export default function Dropzone({}: Props) {
   const maxSize = 20971520;
   const [loading, setLoading] = useState(false);
-  const { isLoaded, isSignedIn, user } = useUser();
+  const {  user } = useUser();
 
   const onDrop = (acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
@@ -39,6 +40,9 @@ export default function Dropzone({}: Props) {
     setLoading(true);
     const toastId = toast.loading("Uploading file...");
 
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    const data = await parseFile(formData);
     try {
       const docRef = await addDoc(collection(db, "users", user.id, "files"), {
         userId: user.id,
@@ -49,6 +53,7 @@ export default function Dropzone({}: Props) {
         size: selectedFile.size,
         type: selectedFile.type,
         lastModified: selectedFile.lastModified,
+        unstructuredFile: JSON.stringify(data, null, 2),
       });
 
       const imageRef = ref(storage, `users/${user.id}/files/${docRef.id}`);

@@ -8,8 +8,7 @@ import { useAuth } from "@clerk/nextjs";
 import { collection, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
 
-type Props = {};
-export default function Dashboard({}: Props) {
+export default function Dashboard() {
   const { userId } = useAuth();
   const [skeletonFiles, setSkeletonFiles] = useState<FileType[]>([]);
   const [loading, setLoading] = useState(true);

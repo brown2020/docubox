@@ -67,13 +67,8 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const {
-    fileId,
-    setFileId,
-    setFilename,
-    setIsDeleteModalOpen,
-    setIsRenameModalOpen,
-  } = useAppStore();
+  const { setFileId, setFilename, setIsDeleteModalOpen, setIsRenameModalOpen } =
+    useAppStore();
 
   const [isViewFileModalOpen, setIsViewFileModalOpen] = useState(false); // State for ViewFileModal
 

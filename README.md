@@ -42,7 +42,7 @@ Docbox is a modern file storage and management application built with [Next.js 1
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/yourusername/docbox.git
+   git clone https://github.com/brown2020/docbox.git
    cd docbox
    ```
 

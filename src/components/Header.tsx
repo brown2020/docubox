@@ -2,8 +2,7 @@ import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { ThemeToggler } from "./ThemeToggler";
 
-type Props = {};
-export default function Header({}: Props) {
+export default function Header() {
   return (
     <header className="h-14 flex items-center px-3 justify-between bg-slate-200 dark:bg-slate-600">
       <Link

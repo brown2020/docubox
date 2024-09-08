@@ -1,9 +1,7 @@
-import { UserButton } from "@clerk/nextjs";
 import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 
-type Props = {};
-export default function Home({}: Props) {
+export default function Home() {
   return (
     <div className="p-10 flex flex-col bg-white text-black dark:bg-slate-800 dark:text-white h-full gap-5">
       <div className="text-5xl font-bold">Welcome to Docbox</div>

@@ -14,11 +14,14 @@ import { Skeleton } from "../ui/skeleton";
 type Props = {
   skeletonFiles: FileType[];
 };
+
 export default function TableWrapper({ skeletonFiles }: Props) {
   const { user } = useUser();
   const [initialFiles, setInitialFiles] = useState<FileType[]>([]);
   const [sort, setSort] = useState<"asc" | "desc">("desc");
-  const [docs, loading, error] = useCollection(
+
+  // Use the 'useCollection' hook to fetch Firestore documents
+  const [docs] = useCollection(
     user &&
       query(
         collection(db, "users", user.id, "files"),

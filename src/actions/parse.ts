@@ -1,13 +1,32 @@
-// app/actions/parse.ts
 "use server";
 
 import { UnstructuredClient } from "unstructured-client";
 import { Strategy } from "unstructured-client/sdk/models/shared/index.js";
 
+interface Metadata {
+  filetype: string;
+  languages: string[];
+  page_number: number;
+  filename: string;
+  parent_id?: string; // Optional, not all elements have this
+}
+
+interface Element {
+  type: string;
+  element_id: string;
+  text: string;
+  metadata: Metadata;
+}
+
+interface Chunk {
+  heading: string | null;
+  content: Element[];
+}
+
 export async function parseFile(
   formData: FormData,
   isHighRes: boolean = false
-) {
+): Promise<Chunk[]> {
   const file = formData.get("file") as File;
 
   if (!file) {
@@ -53,22 +72,22 @@ export async function parseFile(
         throw new Error("No elements found in the response");
       }
 
-      const elements = response.elements;
+      const elements = response.elements as Element[];
       console.log("Number of elements received:", elements.length);
 
-      const chunks: any[] = [];
-      let currentChunk: any[] = [];
-      let currentHeading = null;
+      const chunks: Chunk[] = [];
+      let currentChunk: Element[] = [];
+      let currentHeading: string | null = null;
 
       for (const element of elements) {
         console.log("Processing element:", element);
 
-        if (element.category === "Heading") {
+        if (element.type === "Heading") {
           if (currentChunk.length > 0) {
             chunks.push({ heading: currentHeading, content: currentChunk });
           }
           currentChunk = [];
-          currentHeading = element.text;
+          currentHeading = element.text || null;
         } else {
           currentChunk.push(element);
         }

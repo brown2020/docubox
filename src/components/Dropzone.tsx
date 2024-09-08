@@ -15,8 +15,7 @@ import { useState } from "react";
 import DropzoneComponent from "react-dropzone";
 import toast from "react-hot-toast";
 
-type Props = {};
-export default function Dropzone({}: Props) {
+export default function Dropzone() {
   const maxSize = 20971520;
   const [loading, setLoading] = useState(false);
   const { user } = useUser();
@@ -58,7 +57,7 @@ export default function Dropzone({}: Props) {
 
       const imageRef = ref(storage, `users/${user.id}/files/${docRef.id}`);
 
-      uploadBytes(imageRef, selectedFile).then(async (snapshot) => {
+      uploadBytes(imageRef, selectedFile).then(async () => {
         const downloadUrl = await getDownloadURL(imageRef);
         await updateDoc(doc(db, "users", user.id, "files", docRef.id), {
           downloadUrl,

@@ -11,7 +11,7 @@ export const columns: ColumnDef<FileType>[] = [
   {
     accessorKey: "type",
     header: "Type",
-    cell: ({ renderValue, ...props }) => {
+    cell: ({ renderValue }) => {
       const type = renderValue() as string;
       const extension: string = type.split("/")[1];
       return (
@@ -19,7 +19,7 @@ export const columns: ColumnDef<FileType>[] = [
           <FileIcon
             extension={extension}
             labelColor={COLOR_EXTENSION_MAP[extension]}
-            // @ts-ignore
+            // @ts-expect-error: The 'defaultStyles' may not have a property for every possible extension.
             {...defaultStyles[extension]}
           />
         </div>
@@ -37,14 +37,14 @@ export const columns: ColumnDef<FileType>[] = [
   {
     accessorKey: "size",
     header: "Size",
-    cell: ({ renderValue, ...props }) => {
+    cell: ({ renderValue }) => {
       return <span>{prettyBytes(renderValue() as number)}</span>;
     },
   },
   {
     accessorKey: "downloadUrl",
     header: "Link",
-    cell: ({ renderValue, ...props }) => {
+    cell: ({ renderValue }) => {
       return (
         <Link
           href={renderValue() as string}

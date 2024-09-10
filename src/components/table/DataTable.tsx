@@ -1,12 +1,10 @@
 "use client";
-
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-
 import {
   Table,
   TableBody,
@@ -16,47 +14,16 @@ import {
   TableRow,
 } from "../ui/table";
 import { FileType } from "@/typings/filetype";
-import { PencilIcon, TrashIcon, FileTypeIcon } from "lucide-react";
+import { EyeIcon, PencilIcon, TrashIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { useAppStore } from "@/zustand/useAppStore";
 import { DeleteModal } from "../DeleteModal";
 import { RenameModal } from "../RenameModal";
-import { useState } from "react";
-
-// Modal component to show parsed text
-function ViewFileModal({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
-  if (!isOpen) return null;
-
-  return (
-    <div
-      className="fixed inset-0 flex items-center justify-center bg-white/20"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white p-6 rounded shadow-lg min-w-[500px]" // Ensure min-width is set to 'min-w-md' or equivalent
-        onClick={(e) => e.stopPropagation()} // Prevent click inside the modal from closing it
-      >
-        <h2 className="text-lg font-bold mb-4">File Content</h2>
-        <p>parsed text</p> {/* Placeholder for parsed text */}
-        <Button onClick={onClose} className="mt-4">
-          Close
-        </Button>
-      </div>
-    </div>
-  );
-}
-
+import { ShowParsedDataModel } from "../ShowParsedDataModel";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
-
 export function DataTable<TData, TValue>({
   columns,
   data,
@@ -66,47 +33,43 @@ export function DataTable<TData, TValue>({
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
-
-  const { setFileId, setFilename, setIsDeleteModalOpen, setIsRenameModalOpen } =
-    useAppStore();
-
-  const [isViewFileModalOpen, setIsViewFileModalOpen] = useState(false); // State for ViewFileModal
-
+  const {
+    setFileId,
+    setFilename,
+    setIsDeleteModalOpen,
+    setIsRenameModalOpen,
+    setUnstructuredFileData,
+    setIsShowParseDataModelOpen,
+  } = useAppStore();
   const openDeleteModal = (fileId: string) => {
     setFileId(fileId);
     setIsDeleteModalOpen(true);
-    console.log("delete", fileId);
   };
-
+  const openParseDataViewModal = (filedata: string) => {
+    setUnstructuredFileData(filedata);
+    setIsShowParseDataModelOpen(true);
+  };
   const openRenameModal = (fileId: string, filename: string) => {
     setFileId(fileId);
     setFilename(filename);
     setIsRenameModalOpen(true);
-    console.log("rename", fileId, filename);
   };
-
-  const openViewFileModal = () => {
-    setIsViewFileModalOpen(true);
-  };
-
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
+    <div className="rounded-lg border border-gray-200 shadow-md overflow-hidden">
+      <Table className="min-w-full divide-y divide-gray-200">
+        <TableHeader >
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                );
-              })}
+              {headerGroup.headers.map((header) => (
+                <TableHead key={header.id} className="text-left py-3 px-4 text-gray-700 font-semibold">
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                </TableHead>
+              ))}
             </TableRow>
           ))}
         </TableHeader>
@@ -115,19 +78,17 @@ export function DataTable<TData, TValue>({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
+                className="transition-shadow hover:bg-gray-50 hover:scale-[1.01]"
                 data-state={row.getIsSelected() && "selected"}
               >
                 <DeleteModal />
                 <RenameModal />
-                <ViewFileModal
-                  isOpen={isViewFileModalOpen}
-                  onClose={() => setIsViewFileModalOpen(false)}
-                />
+                <ShowParsedDataModel />
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
+                  <TableCell key={cell.id} className="py-2 px-4 text-gray-600">
                     {cell.column.id === "timestamp" ? (
                       <div className="flex flex-col">
-                        <div className="text-sm">
+                        <div className="text-sm font-medium">
                           {(cell.getValue() as Date).toLocaleDateString()}
                         </div>
                         <div className="text-xs text-gray-500">
@@ -136,48 +97,39 @@ export function DataTable<TData, TValue>({
                       </div>
                     ) : cell.column.id === "filename" ? (
                       <div
-                        onClick={() => {
-                          openRenameModal(
-                            (row.original as FileType).id,
-                            (row.original as FileType).filename
-                          );
-                        }}
-                        className="flex underline items-center text-blue-500 hover:cursor-pointer gap-2"
+                        onClick={() => openRenameModal((row.original as FileType).id, (row.original as FileType).filename)}
+                        className="flex items-center text-blue-600 hover:underline cursor-pointer gap-2"
                       >
                         <div>{cell.getValue() as string}</div>
-                        <PencilIcon size={15} className="ml-2 flex-shrink-0" />
+                        <PencilIcon size={15} className="ml-2" />
                       </div>
                     ) : (
                       flexRender(cell.column.columnDef.cell, cell.getContext())
                     )}
                   </TableCell>
                 ))}
-                <TableCell key={(row.original as FileType).id}>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant={"outline"}
-                      onClick={() => {
-                        openViewFileModal();
-                      }}
-                    >
-                      <FileTypeIcon size={20} />
-                    </Button>
-                    <Button
-                      variant={"outline"}
-                      onClick={() => {
-                        openDeleteModal((row.original as FileType).id);
-                      }}
-                    >
-                      <TrashIcon size={20} />
-                    </Button>
-                  </div>
+                <TableCell className="flex space-x-2 py-2 px-4">
+                  <Button
+                    variant={"outline"}
+                    onClick={() => openParseDataViewModal((row.original as FileType).unstructuredFile)}
+                    className="text-blue-500 hover:bg-blue-100"
+                  >
+                    <EyeIcon size={20} />
+                  </Button>
+                  <Button
+                    variant={"outline"}
+                    onClick={() => openDeleteModal((row.original as FileType).id)}
+                    className="text-red-500 hover:bg-red-100"
+                  >
+                    <TrashIcon size={20} />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
-                You have no files.
+              <TableCell colSpan={columns.length} className="h-24 text-center text-gray-600">
+                No files found.
               </TableCell>
             </TableRow>
           )}

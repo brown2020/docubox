@@ -2,6 +2,7 @@
 import { parseFile } from "@/actions/parse";
 import { db, storage } from "@/firebase";
 import { cn } from "@/lib/utils";
+import { Chunk } from "@/types/types";
 import { useUser } from "@clerk/nextjs";
 import {
   addDoc,
@@ -19,29 +20,33 @@ export default function Dropzone() {
   const maxSize = 20971520;
   const [loading, setLoading] = useState(false);
   const { user } = useUser();
-
-  const onDrop = (acceptedFiles: File[]) => {
-    acceptedFiles.forEach((file) => {
-      const reader = new FileReader();
-      reader.onabort = () => console.log("file reading was aborted");
-      reader.onerror = () => console.log("file reading has failed");
-      reader.onload = async () => {
-        await uploadPost(file);
-      };
-      reader.readAsArrayBuffer(file);
-    });
+  const onDrop = async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+    setLoading(true);
+    const formData = new FormData();
+    formData.append("file", acceptedFiles[0]);
+    try {
+      const data: Chunk[] = await parseFile(formData);
+      acceptedFiles.forEach((file) => {
+        const reader = new FileReader();
+        reader.onabort = () => console.log("file reading was aborted");
+        reader.onerror = () => console.log("file reading has failed");
+        reader.onload = async () => {
+          await uploadPost(data, file);
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    } catch (err) {
+      toast.error((err as Error).message || "An error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const uploadPost = async (selectedFile: File) => {
+  const uploadPost = async (unstructuredData: Chunk[], selectedFile: File) => {
     if (loading) return;
     if (!user) return;
-
     setLoading(true);
     const toastId = toast.loading("Uploading file...");
-
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-    const data = await parseFile(formData);
     try {
       const docRef = await addDoc(collection(db, "users", user.id, "files"), {
         userId: user.id,
@@ -52,11 +57,9 @@ export default function Dropzone() {
         size: selectedFile.size,
         type: selectedFile.type,
         lastModified: selectedFile.lastModified,
-        unstructuredFile: JSON.stringify(data, null, 2),
+        unstructuredFile: JSON.stringify(unstructuredData, null, 2),
       });
-
       const imageRef = ref(storage, `users/${user.id}/files/${docRef.id}`);
-
       uploadBytes(imageRef, selectedFile).then(async () => {
         const downloadUrl = await getDownloadURL(imageRef);
         await updateDoc(doc(db, "users", user.id, "files", docRef.id), {
@@ -64,8 +67,6 @@ export default function Dropzone() {
           docId: docRef.id,
         });
       });
-
-      console.log("Document written with ID: ", docRef.id);
       toast.success("File uploaded successfully!", { id: toastId });
     } catch (error) {
       console.log(error);
@@ -73,10 +74,8 @@ export default function Dropzone() {
     } finally {
       setLoading(false);
     }
-
     setLoading(false);
   };
-
   return (
     <DropzoneComponent minSize={0} maxSize={maxSize} onDrop={onDrop}>
       {({

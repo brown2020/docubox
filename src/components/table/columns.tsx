@@ -3,7 +3,6 @@
 import { FileType } from "@/typings/filetype";
 import { ColumnDef } from "@tanstack/react-table";
 import { FileIcon, defaultStyles } from "react-file-icon";
-import Link from "next/link";
 import prettyBytes from "pretty-bytes";
 import { COLOR_EXTENSION_MAP } from "@/constants";
 
@@ -41,19 +40,19 @@ export const columns: ColumnDef<FileType>[] = [
       return <span>{prettyBytes(renderValue() as number)}</span>;
     },
   },
-  {
-    accessorKey: "downloadUrl",
-    header: "Link",
-    cell: ({ renderValue }) => {
-      return (
-        <Link
-          href={renderValue() as string}
-          target="_blank"
-          className="underline text-blue-500 hover:text-blue-700"
-        >
-          Download
-        </Link>
-      );
-    },
-  },
+  // {
+  //   accessorKey: "downloadUrl",
+  //   header: "Link",
+  //   cell: ({ renderValue }) => {
+  //     return (
+  //       <Link
+  //         href={renderValue() as string}
+  //         target="_blank"
+  //         className="underline text-blue-500 hover:text-blue-700"
+  //       >
+  //         Download
+  //       </Link>
+  //     );
+  //   },
+  // },
 ];

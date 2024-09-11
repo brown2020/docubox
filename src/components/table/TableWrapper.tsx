@@ -39,6 +39,7 @@ export default function TableWrapper({ skeletonFiles }: Props) {
       downloadUrl: doc.data().downloadUrl || "",
       type: doc.data().type || "",
       size: doc.data().size || 0,
+      unstructuredFile: doc.data().unstructuredFile || "",
     }));
     setInitialFiles(files);
   }, [docs]);

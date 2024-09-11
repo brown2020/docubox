@@ -28,6 +28,7 @@ export default function Dashboard() {
           downloadUrl: doc.data().downloadUrl || "",
           type: doc.data().type || "",
           size: doc.data().size || 0,
+          unstructuredFile: doc.data().unstructuredFile || "",
         }));
         setSkeletonFiles(files);
       }

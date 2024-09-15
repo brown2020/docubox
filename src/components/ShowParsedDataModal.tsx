@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppStore } from "@/zustand/useAppStore";
 import Spinner from "./common/spinner";
 
-export function ShowParsedDataModel() {
+export function ShowParsedDataModal() {
   const {
     isShowParseDataModelOpen,
     setIsShowParseDataModelOpen,

@@ -39,6 +39,8 @@ export default function TableWrapper({ skeletonFiles }: Props) {
       downloadUrl: doc.data().downloadUrl || "",
       type: doc.data().type || "",
       size: doc.data().size || 0,
+      readableData: doc.data().readableData,
+      summary: doc.data().summary,
       unstructuredFile: doc.data().unstructuredFile || "",
     }));
     setInitialFiles(files);
@@ -55,8 +57,7 @@ export default function TableWrapper({ skeletonFiles }: Props) {
           {skeletonFiles.map((file) => (
             <div
               key={file.id}
-              className="flex items-center space-x-4 p-4 w-full"
-            >
+              className="flex items-center space-x-4 p-4 w-full">
               <Skeleton className="h-12 w-12" />
               <Skeleton className="h-12 w-full" />
             </div>
@@ -76,8 +77,7 @@ export default function TableWrapper({ skeletonFiles }: Props) {
       <Button
         variant={"outline"}
         onClick={() => setSort(sort === "desc" ? "asc" : "desc")}
-        className="ml-auto w-fit"
-      >
+        className="ml-auto w-fit">
         Sort By {sort === "desc" ? "Oldest" : "Newest"}
       </Button>
       <DataTable columns={columns} data={initialFiles} />

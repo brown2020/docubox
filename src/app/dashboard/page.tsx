@@ -28,6 +28,8 @@ export default function Dashboard() {
           downloadUrl: doc.data().downloadUrl || "",
           type: doc.data().type || "",
           size: doc.data().size || 0,
+          readableData: doc.data().readableData || "",
+          summary: doc.data().summary || "",
           unstructuredFile: doc.data().unstructuredFile || "",
         }));
         setSkeletonFiles(files);
@@ -44,7 +46,9 @@ export default function Dashboard() {
 
   return (
     <div>
-      <Dropzone />
+      <div className="container mx-auto">
+        <Dropzone />
+      </div>
       <TableWrapper skeletonFiles={skeletonFiles} />
     </div>
   );

@@ -24,10 +24,9 @@ export default function RootLayout({
             attribute="class"
             defaultTheme="system"
             enableSystem
-            disableTransitionOnChange
-          >
+            disableTransitionOnChange>
+            <Header />
             <div className="flex flex-col h-full">
-              <Header />
               <div className="flex-1">{children}</div>
               <Footer />
             </div>

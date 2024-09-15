@@ -1,120 +1,162 @@
 "use client";
+
+import { useRef, useState } from "react";
+
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/firebase";
+import { useUser } from "@clerk/nextjs";
+
 import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
-import { Chunk, Element } from "@/types/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { useAppStore } from "@/zustand/useAppStore";
-import { useState } from "react";
-const extractReadableText = (data: Chunk[] | null) => {
-    if (!data) return null;
-    // Flatten the content from all chunks
-    const contentArray = data.flatMap(chunk => chunk.content);
-    return (
-        <div>
-            {contentArray.map((item: Element) => (
-                <div key={item.element_id} className="mb-2">
-                    {/* Display metadata fields if available */}
-                    {item.metadata && (
-                        <>
-                            {item.metadata.filename && (
-                                <div>
-                                    <strong className="text-blue-600">Filename:</strong> {item.metadata.filename}
-                                </div>
-                            )}
-                            {item.metadata.email_message_id && (
-                                <div>
-                                    <strong className="text-blue-600">Email Message ID:</strong> {item.metadata.email_message_id}
-                                </div>
-                            )}
-                            {item.metadata.sent_from && item.metadata.sent_from.length > 0 && (
-                                <div>
-                                    <strong className="text-blue-600">Sent From:</strong> {item.metadata.sent_from.join(', ')}
-                                </div>
-                            )}
-                            {item.metadata.sent_to && item.metadata.sent_to.length > 0 && (
-                                <div>
-                                    <strong className="text-blue-600">Sent To:</strong> {item.metadata.sent_to.join(', ')}
-                                </div>
-                            )}
-                            {item.metadata.subject && (
-                                <div>
-                                    <strong className="text-blue-600">Subject:</strong> {item.metadata.subject}
-                                </div>
-                            )}
-                            {item.metadata.page_number && (
-                                <div>
-                                    <strong className="text-blue-600">Page Number:</strong> {item.metadata.page_number}
-                                </div>
-                            )}
-                            {item.metadata.filetype && (
-                                <div>
-                                    <strong className="text-blue-600">File Type:</strong> {item.metadata.filetype}
-                                </div>
-                            )}
-                            {item.metadata.languages && item.metadata.languages.length > 0 && (
-                                <div>
-                                    <strong className="text-blue-600">Languages:</strong> {item.metadata.languages.join(', ')}
-                                </div>
-                            )}
-                        </>
-                    )}
-                    {/* Display element text */}
-                    <div>
-                        <strong className="text-blue-600">{item.type}:</strong> {item.text}
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-};
+import Spinner from "./common/spinner";
+
 export function ShowParsedDataModel() {
-    const { isShowParseDataModelOpen, setIsShowParseDataModelOpen, unstructuredFileData } =
-        useAppStore();
-    const [showRawJson, setShowRawJson] = useState(true);
-    const toggleDataFormat = () => {
-        setShowRawJson(!showRawJson);
-    };
-    return (
-        <Dialog
-            open={isShowParseDataModelOpen}
-            onOpenChange={(isOpen) => setIsShowParseDataModelOpen(isOpen)}
-        >
-            <DialogContent className="w-full max-w-5xl p-6 bg-white rounded-lg shadow-md">
-                <DialogHeader>
-                    <DialogTitle className="text-xl font-semibold">Parsed Data</DialogTitle>
-                </DialogHeader>
-                <div className="overflow-auto h-[50vh] mb-4 p-4 bg-gray-50 rounded-lg">
-                    {showRawJson ? (
-                        <pre className="whitespace-pre-wrap text-sm text-gray-800">{unstructuredFileData}</pre>
-                    ) : (
-                        <div>
-                            {unstructuredFileData ? extractReadableText(JSON.parse(unstructuredFileData)) : ""}
-                        </div>
-                    )}
-                </div>
-                <DialogFooter className="flex justify-end space-x-2 py-3">
-                    <Button
-                        size="sm"
-                        className="px-4"
-                        variant="ghost"
-                        onClick={() => setIsShowParseDataModelOpen(false)}
-                    >
-                        Close
-                    </Button>
-                    <Button
-                        size="sm"
-                        className="px-4"
-                        onClick={toggleDataFormat}
-                    >
-                        {showRawJson ? "Show Readable Format" : "Show Raw JSON"}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
+  const {
+    isShowParseDataModelOpen,
+    setIsShowParseDataModelOpen,
+    unstructuredFileData,
+    fileParsedReadable,
+  } = useAppStore();
+  const { user } = useUser();
+
+  const isAIAlreadyCalled = useRef(false);
+  const [loading, setLoading] = useState(false);
+
+  const [readableHtml, setReadableHtml] = useState();
+  const [summary, setSummary] = useState("");
+
+  const fetchAIResponse = async (tab: "readable" | "summary") => {
+    if (
+      !fileParsedReadable ||
+      !unstructuredFileData ||
+      isAIAlreadyCalled.current ||
+      (tab === "readable" && fileParsedReadable.readableData) ||
+      (tab === "summary" && fileParsedReadable.summary)
+    ) {
+      return;
+    }
+
+    isAIAlreadyCalled.current = true;
+    setLoading(true);
+    try {
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: unstructuredFileData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const result = await response.json();
+      const { html, summary } = JSON.parse(result);
+
+      html && setReadableHtml(html);
+      summary && setSummary(summary);
+      fileParsedReadable &&
+        updateRecord(fileParsedReadable.docId, html, summary);
+    } catch (error) {
+      isAIAlreadyCalled.current = false;
+      console.error("Error parsing data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateRecord = async (
+    docId: string,
+    html: string | undefined,
+    summary: string | undefined
+  ) => {
+    if (!user) {
+      return;
+    }
+    await updateDoc(doc(db, "users", user.id, "files", docId), {
+      readableData: html ?? null,
+      summary: summary ?? null,
+    });
+  };
+
+  return (
+    <Dialog
+      open={isShowParseDataModelOpen}
+      onOpenChange={(isOpen) => setIsShowParseDataModelOpen(isOpen)}>
+      <DialogContent className="w-full max-w-5xl p-6 rounded-lg shadow-md bg-slate-200 dark:bg-slate-600">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold">
+            Parsed Data
+          </DialogTitle>
+        </DialogHeader>
+        <Tabs defaultValue="raw">
+          <div className="flex justify-center my-2">
+            <TabsList>
+              <TabsTrigger value="raw">Raw Data</TabsTrigger>
+              <TabsTrigger
+                value="readable"
+                onClick={() => fetchAIResponse("readable")}>
+                Readable format
+              </TabsTrigger>
+              <TabsTrigger
+                value="summery"
+                onClick={() => fetchAIResponse("summary")}>
+                Summery
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          <div className="overflow-auto h-[50vh] mb-4 p-4 bg-gray-50 rounded-lg">
+            <TabsContent value="raw">
+              <pre className="whitespace-pre-wrap text-sm text-gray-800">
+                {unstructuredFileData}
+              </pre>
+            </TabsContent>
+            <TabsContent value="readable">
+              {loading ? (
+                <div className="flex justify-center"><Spinner size="50" /></div>
+              ) : (
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html:
+                      readableHtml ||
+                      fileParsedReadable?.readableData ||
+                      "Can't display anything yet.",
+                    }}
+                    className="text-gray-800"
+                />
+              )}
+            </TabsContent>
+            <TabsContent value="summery" className="text-gray-800">
+              {loading ? (
+                <Spinner size="50" />
+              ) : (
+                summary ||
+                fileParsedReadable?.summary ||
+                "Cant't display anything yet."
+              )}
+            </TabsContent>
+          </div>
+        </Tabs>
+        <DialogFooter className="flex justify-end space-x-2 py-3">
+          <Button
+            size="sm"
+            className="px-4"
+            variant="ghost"
+            onClick={() => setIsShowParseDataModelOpen(false)}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }

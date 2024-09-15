@@ -92,7 +92,8 @@ export function ShowParsedDataModel() {
   return (
     <Dialog
       open={isShowParseDataModelOpen}
-      onOpenChange={(isOpen) => setIsShowParseDataModelOpen(isOpen)}>
+      onOpenChange={(isOpen) => setIsShowParseDataModelOpen(isOpen)}
+    >
       <DialogContent className="w-full max-w-5xl p-6 rounded-lg shadow-md bg-slate-200 dark:bg-slate-600">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
@@ -105,13 +106,15 @@ export function ShowParsedDataModel() {
               <TabsTrigger value="raw">Raw Data</TabsTrigger>
               <TabsTrigger
                 value="readable"
-                onClick={() => fetchAIResponse("readable")}>
+                onClick={() => fetchAIResponse("readable")}
+              >
                 Readable format
               </TabsTrigger>
               <TabsTrigger
-                value="summery"
-                onClick={() => fetchAIResponse("summary")}>
-                Summery
+                value="summary"
+                onClick={() => fetchAIResponse("summary")}
+              >
+                Summary
               </TabsTrigger>
             </TabsList>
           </div>
@@ -123,7 +126,9 @@ export function ShowParsedDataModel() {
             </TabsContent>
             <TabsContent value="readable">
               {loading ? (
-                <div className="flex justify-center"><Spinner size="50" /></div>
+                <div className="flex justify-center">
+                  <Spinner size="50" />
+                </div>
               ) : (
                 <div
                   dangerouslySetInnerHTML={{
@@ -131,12 +136,12 @@ export function ShowParsedDataModel() {
                       readableHtml ||
                       fileParsedReadable?.readableData ||
                       "Can't display anything yet.",
-                    }}
-                    className="text-gray-800"
+                  }}
+                  className="text-gray-800"
                 />
               )}
             </TabsContent>
-            <TabsContent value="summery" className="text-gray-800">
+            <TabsContent value="summary" className="text-gray-800">
               {loading ? (
                 <Spinner size="50" />
               ) : (
@@ -152,7 +157,8 @@ export function ShowParsedDataModel() {
             size="sm"
             className="px-4"
             variant="ghost"
-            onClick={() => setIsShowParseDataModelOpen(false)}>
+            onClick={() => setIsShowParseDataModelOpen(false)}
+          >
             Close
           </Button>
         </DialogFooter>

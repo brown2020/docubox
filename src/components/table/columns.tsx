@@ -4,7 +4,8 @@ import { FileType } from "@/typings/filetype";
 import { ColumnDef } from "@tanstack/react-table";
 import { FileIcon, defaultStyles } from "react-file-icon";
 import prettyBytes from "pretty-bytes";
-import { COLOR_EXTENSION_MAP } from "@/constants";
+import { COLOR_EXTENSION_MAP, UNCOMMON_EXTENSIONS_MAP } from "@/constants";
+import Link from "next/link";
 
 export const columns: ColumnDef<FileType>[] = [
   {
@@ -16,10 +17,14 @@ export const columns: ColumnDef<FileType>[] = [
       return (
         <div className="w-10">
           <FileIcon
-            extension={extension}
-            labelColor={COLOR_EXTENSION_MAP[extension]}
+            extension={UNCOMMON_EXTENSIONS_MAP[extension] || extension}
+            labelColor={
+              COLOR_EXTENSION_MAP[
+                UNCOMMON_EXTENSIONS_MAP[extension] || extension
+              ]
+            }
             // @ts-expect-error: The 'defaultStyles' may not have a property for every possible extension.
-            {...defaultStyles[extension]}
+            {...defaultStyles[UNCOMMON_EXTENSIONS_MAP[extension] || extension]}
           />
         </div>
       );
@@ -40,19 +45,18 @@ export const columns: ColumnDef<FileType>[] = [
       return <span>{prettyBytes(renderValue() as number)}</span>;
     },
   },
-  // {
-  //   accessorKey: "downloadUrl",
-  //   header: "Link",
-  //   cell: ({ renderValue }) => {
-  //     return (
-  //       <Link
-  //         href={renderValue() as string}
-  //         target="_blank"
-  //         className="underline text-blue-500 hover:text-blue-700"
-  //       >
-  //         Download
-  //       </Link>
-  //     );
-  //   },
-  // },
+  {
+    accessorKey: "downloadUrl",
+    header: "Link",
+    cell: ({ renderValue }) => {
+      return (
+        <Link
+          href={renderValue() as string}
+          target="_blank"
+          className="underline text-blue-500 hover:text-blue-700">
+          Download
+        </Link>
+      );
+    },
+  }
 ];

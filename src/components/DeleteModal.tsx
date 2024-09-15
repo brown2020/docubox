@@ -44,10 +44,10 @@ export function DeleteModal() {
       open={isDeleteModalOpen}
       onOpenChange={(isOpen) => setIsDeleteModalOpen(isOpen)}
     >
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-slate-200 dark:bg-slate-600">
         <DialogHeader>
           <DialogTitle>Are you sure you want to delete?</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="bg-slate-200 dark:bg-slate-600">
             This action cannot be undone. This will permanently delete your
             file!
           </DialogDescription>

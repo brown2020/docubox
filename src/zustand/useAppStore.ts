@@ -13,6 +13,18 @@ interface AppStore {
   setFilename: (filename: string) => void;
   unstructuredFileData: string;
   setUnstructuredFileData: (unstructuredFileData: string) => void;
+  fileParsedReadable:
+    | {
+        docId: string;
+        readableData: string;
+        summary: string;
+      }
+    | undefined;
+  setFileParsedReadable: (data: {
+    docId: string;
+    readableData: string;
+    summary: string;
+  }) => void;
 }
 export const useAppStore = create<AppStore>((set) => ({
   isDeleteModalOpen: false,
@@ -28,8 +40,15 @@ export const useAppStore = create<AppStore>((set) => ({
   setFileId: (fileId: string) => set({ fileId }),
   filename: "",
   setFilename: (filename: string) => set({ filename }),
-  
+
   unstructuredFileData: "",
   setUnstructuredFileData: (unstructuredFileData: string) =>
     set({ unstructuredFileData }),
+
+  fileParsedReadable: undefined,
+  setFileParsedReadable: (data: {
+    docId: string;
+    readableData: string;
+    summary: string;
+  }) => set({ fileParsedReadable: data }),
 }));

@@ -19,7 +19,7 @@ import { Button } from "../ui/button";
 import { useAppStore } from "@/zustand/useAppStore";
 import { DeleteModal } from "../DeleteModal";
 import { RenameModal } from "../RenameModal";
-import { ShowParsedDataModel } from "../ShowParsedDataModel";
+import { ShowParsedDataModal } from "../ShowParsedDataModal";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -65,7 +65,7 @@ export function DataTable<TData, TValue>({
   };
   return (
     <div className="rounded-lg border border-gray-200 shadow-md overflow-hidden">
-      {isShowParseDataModelOpen && <ShowParsedDataModel />}
+      {isShowParseDataModelOpen && <ShowParsedDataModal />}
 
       <Table className="min-w-full divide-y divide-gray-200">
         <TableHeader>
@@ -74,7 +74,8 @@ export function DataTable<TData, TValue>({
               {headerGroup.headers.map((header) => (
                 <TableHead
                   key={header.id}
-                  className="text-left py-3 px-4 font-semibold text-gray-500 dark:text-white">
+                  className="text-left py-3 px-4 font-semibold text-gray-500 dark:text-white"
+                >
                   {header.isPlaceholder
                     ? null
                     : flexRender(
@@ -92,11 +93,15 @@ export function DataTable<TData, TValue>({
               <TableRow
                 key={row.id}
                 className="transition-shadow"
-                data-state={row.getIsSelected() && "selected"}>
+                data-state={row.getIsSelected() && "selected"}
+              >
                 <DeleteModal />
                 <RenameModal />
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="py-2 px-4 text-gray-600 dark:text-white">
+                  <TableCell
+                    key={cell.id}
+                    className="py-2 px-4 text-gray-600 dark:text-white"
+                  >
                     {cell.column.id === "timestamp" ? (
                       <div className="flex flex-col">
                         <div className="text-sm font-medium">
@@ -114,7 +119,8 @@ export function DataTable<TData, TValue>({
                             (row.original as FileType).filename
                           )
                         }
-                        className="flex items-center text-blue-600 hover:underline cursor-pointer gap-2">
+                        className="flex items-center text-blue-600 hover:underline cursor-pointer gap-2"
+                      >
                         <div>{cell.getValue() as string}</div>
                         <PencilIcon size={15} className="ml-2" />
                       </div>
@@ -135,7 +141,8 @@ export function DataTable<TData, TValue>({
                         (row.original as FileType).summary
                       );
                     }}
-                    className="text-blue-500 hover:bg-blue-100">
+                    className="text-blue-500 hover:bg-blue-100"
+                  >
                     <EyeIcon size={20} />
                   </Button>
                   <Button
@@ -143,7 +150,8 @@ export function DataTable<TData, TValue>({
                     onClick={() =>
                       openDeleteModal((row.original as FileType).id)
                     }
-                    className="text-red-500 hover:bg-red-100">
+                    className="text-red-500 hover:bg-red-100"
+                  >
                     <TrashIcon size={20} />
                   </Button>
                 </TableCell>
@@ -153,7 +161,8 @@ export function DataTable<TData, TValue>({
             <TableRow>
               <TableCell
                 colSpan={columns.length}
-                className="h-24 text-center text-gray-600">
+                className="h-24 text-center text-gray-600"
+              >
                 No files found.
               </TableCell>
             </TableRow>

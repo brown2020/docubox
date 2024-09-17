@@ -9,4 +9,5 @@ export type FileType = {
   unstructuredFile: string;
   readableData: string;
   summary: string;
+  tags: string[];
 };

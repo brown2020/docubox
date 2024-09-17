@@ -18,33 +18,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { useAppStore } from "@/zustand/useAppStore";
 import Spinner from "./common/spinner";
+import { Chunk, Element } from "@/types/types";
 
 export function ShowParsedDataModal() {
   const {
     isShowParseDataModelOpen,
     setIsShowParseDataModelOpen,
     unstructuredFileData,
-    fileParsedReadable,
+    fileSummary,
   } = useAppStore();
   const { user } = useUser();
 
   const isAIAlreadyCalled = useRef(false);
   const [loading, setLoading] = useState(false);
 
-  const [readableHtml, setReadableHtml] = useState();
+  const [parsedData, setParsedData] = useState<Chunk[] | null>(null);
   const [summary, setSummary] = useState("");
 
-  const fetchAIResponse = async (tab: "readable" | "summary") => {
+  const fetchSummary = async () => {
     if (
-      !fileParsedReadable ||
+      !fileSummary ||
       !unstructuredFileData ||
       isAIAlreadyCalled.current ||
-      (tab === "readable" && fileParsedReadable.readableData) ||
-      (tab === "summary" && fileParsedReadable.summary)
+      (fileSummary.summary)
     ) {
       return;
     }
-
     isAIAlreadyCalled.current = true;
     setLoading(true);
     try {
@@ -60,13 +59,11 @@ export function ShowParsedDataModal() {
         throw new Error("Network response was not ok");
       }
 
-      const result = await response.json();
-      const { html, summary } = JSON.parse(result);
+      const summary = await response.json();
 
-      html && setReadableHtml(html);
       summary && setSummary(summary);
-      fileParsedReadable &&
-        updateRecord(fileParsedReadable.docId, html, summary);
+      fileSummary &&
+        updateRecord(fileSummary.docId,  summary);
     } catch (error) {
       isAIAlreadyCalled.current = false;
       console.error("Error parsing data:", error);
@@ -75,16 +72,41 @@ export function ShowParsedDataModal() {
     }
   };
 
+  const extractReadableText = (data: Chunk[] | null) => {
+    // Function to extract readable text from JSON
+    if (!data) return null;
+
+    const contentArray = data[0]?.content || [];
+    return contentArray
+      .filter(
+        (item: Element) =>
+          item.type === "Title" ||
+          item.type === "NarrativeText" ||
+          item.type === "EmailAddress" ||
+          item.type === "UncategorizedText"
+      )
+      .map((item: Element) => (
+        <div key={item.element_id} className="mb-2">
+          <strong>{item.type}:</strong> {item.text}
+        </div>
+      ));
+  };
+
+  const fetchReadableFormat = async () => {
+    if (!unstructuredFileData) {
+      return;
+    }
+    setParsedData(JSON.parse(unstructuredFileData))
+  };
+
   const updateRecord = async (
     docId: string,
-    html: string | undefined,
     summary: string | undefined
   ) => {
     if (!user) {
       return;
     }
     await updateDoc(doc(db, "users", user.id, "files", docId), {
-      readableData: html ?? null,
       summary: summary ?? null,
     });
   };
@@ -106,13 +128,13 @@ export function ShowParsedDataModal() {
               <TabsTrigger value="raw">Raw Data</TabsTrigger>
               <TabsTrigger
                 value="readable"
-                onClick={() => fetchAIResponse("readable")}
+                onClick={() => fetchReadableFormat()}
               >
                 Readable format
               </TabsTrigger>
               <TabsTrigger
                 value="summary"
-                onClick={() => fetchAIResponse("summary")}
+                onClick={() => fetchSummary()}
               >
                 Summary
               </TabsTrigger>
@@ -124,21 +146,15 @@ export function ShowParsedDataModal() {
                 {unstructuredFileData}
               </pre>
             </TabsContent>
-            <TabsContent value="readable">
+            <TabsContent value="readable" className="text-gray-800">
               {loading ? (
                 <div className="flex justify-center">
                   <Spinner size="50" />
                 </div>
               ) : (
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html:
-                      readableHtml ||
-                      fileParsedReadable?.readableData ||
-                      "Can't display anything yet.",
-                  }}
-                  className="text-gray-800"
-                />
+                <div className="bg-gray-100 p-4 rounded-lg">
+              {extractReadableText(parsedData)}
+            </div>
               )}
             </TabsContent>
             <TabsContent value="summary" className="text-gray-800">
@@ -146,7 +162,7 @@ export function ShowParsedDataModal() {
                 <Spinner size="50" />
               ) : (
                 summary ||
-                fileParsedReadable?.summary ||
+                fileSummary?.summary ||
                 "Cant't display anything yet."
               )}
             </TabsContent>

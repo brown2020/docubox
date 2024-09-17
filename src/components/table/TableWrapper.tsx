@@ -5,11 +5,12 @@ import { Button } from "../ui/button";
 import { DataTable } from "./DataTable";
 import { columns } from "./columns";
 import { useUser } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
-import { collection, orderBy, query } from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
+import { collection, orderBy, query, where } from "firebase/firestore";
 import { db } from "@/firebase";
 import { useCollection } from "react-firebase-hooks/firestore";
 import { Skeleton } from "../ui/skeleton";
+import { Input } from "../ui/input";
 
 type Props = {
   skeletonFiles: FileType[];
@@ -19,21 +20,27 @@ export default function TableWrapper({ skeletonFiles }: Props) {
   const { user } = useUser();
   const [initialFiles, setInitialFiles] = useState<FileType[]>([]);
   const [sort, setSort] = useState<"asc" | "desc">("desc");
+  const [input, setInput] = useState<string>("")
 
   // Use the 'useCollection' hook to fetch Firestore documents
-  const [docs] = useCollection(
-    user &&
-      query(
-        collection(db, "users", user.id, "files"),
-        orderBy("timestamp", sort)
-      )
-  );
+  const [docs] = useCollection(user && query(
+    collection(db, "users", user.id, "files"),
+    orderBy("timestamp", sort)
+  ));
+
+  const filteredFiles: FileType[] = useMemo(() => {
+    if (!input) return initialFiles
+    return initialFiles.filter((file) =>
+      file.tags.some((tag) => tag.toLowerCase().includes(input.toLowerCase()))
+    );
+  }, [input, initialFiles])
 
   useEffect(() => {
     if (!docs) return;
     const files = docs.docs.map((doc) => ({
       id: doc.id || "",
       filename: doc.data().filename || doc.id || "",
+      tags: doc.data().tags,
       fullName: doc.data().fullName || doc.id || "",
       timestamp: new Date(doc.data().timestamp?.seconds * 1000) || undefined,
       downloadUrl: doc.data().downloadUrl || "",
@@ -74,13 +81,20 @@ export default function TableWrapper({ skeletonFiles }: Props) {
 
   return (
     <div className="flex flex-col space-y-5 pb-10 px-4">
+      <div className="flex">
+        <Input
+          className="w-64"
+          placeholder="Search tags"
+          onChange={(e) => setInput(e.target.value)}
+        />
       <Button
         variant={"outline"}
         onClick={() => setSort(sort === "desc" ? "asc" : "desc")}
         className="ml-auto w-fit">
         Sort By {sort === "desc" ? "Oldest" : "Newest"}
       </Button>
-      <DataTable columns={columns} data={initialFiles} />
+      </div>
+      <DataTable columns={columns} data={filteredFiles} />
     </div>
   );
 }

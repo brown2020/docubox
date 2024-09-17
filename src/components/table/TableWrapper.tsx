@@ -6,7 +6,7 @@ import { DataTable } from "./DataTable";
 import { columns } from "./columns";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useMemo, useState } from "react";
-import { collection, orderBy, query, where } from "firebase/firestore";
+import { collection, orderBy, query } from "firebase/firestore";
 import { db } from "@/firebase";
 import { useCollection } from "react-firebase-hooks/firestore";
 import { Skeleton } from "../ui/skeleton";
@@ -20,27 +20,32 @@ export default function TableWrapper({ skeletonFiles }: Props) {
   const { user } = useUser();
   const [initialFiles, setInitialFiles] = useState<FileType[]>([]);
   const [sort, setSort] = useState<"asc" | "desc">("desc");
-  const [input, setInput] = useState<string>("")
+  const [input, setInput] = useState<string>("");
 
   // Use the 'useCollection' hook to fetch Firestore documents
-  const [docs] = useCollection(user && query(
-    collection(db, "users", user.id, "files"),
-    orderBy("timestamp", sort)
-  ));
+  const [docs] = useCollection(
+    user &&
+      query(
+        collection(db, "users", user.id, "files"),
+        orderBy("timestamp", sort)
+      )
+  );
 
   const filteredFiles: FileType[] = useMemo(() => {
-    if (!input) return initialFiles
-    return initialFiles.filter((file) =>
-      file.tags.some((tag) => tag.toLowerCase().includes(input.toLowerCase()))
+    if (!input) return initialFiles;
+    return initialFiles.filter(
+      (file) =>
+        Array.isArray(file.tags) &&
+        file.tags.some((tag) => tag.toLowerCase().includes(input.toLowerCase()))
     );
-  }, [input, initialFiles])
+  }, [input, initialFiles]);
 
   useEffect(() => {
     if (!docs) return;
     const files = docs.docs.map((doc) => ({
       id: doc.id || "",
       filename: doc.data().filename || doc.id || "",
-      tags: doc.data().tags,
+      tags: doc.data().tags || [], // Ensure tags is an array
       fullName: doc.data().fullName || doc.id || "",
       timestamp: new Date(doc.data().timestamp?.seconds * 1000) || undefined,
       downloadUrl: doc.data().downloadUrl || "",
@@ -64,7 +69,8 @@ export default function TableWrapper({ skeletonFiles }: Props) {
           {skeletonFiles.map((file) => (
             <div
               key={file.id}
-              className="flex items-center space-x-4 p-4 w-full">
+              className="flex items-center space-x-4 p-4 w-full"
+            >
               <Skeleton className="h-12 w-12" />
               <Skeleton className="h-12 w-full" />
             </div>
@@ -87,12 +93,13 @@ export default function TableWrapper({ skeletonFiles }: Props) {
           placeholder="Search tags"
           onChange={(e) => setInput(e.target.value)}
         />
-      <Button
-        variant={"outline"}
-        onClick={() => setSort(sort === "desc" ? "asc" : "desc")}
-        className="ml-auto w-fit">
-        Sort By {sort === "desc" ? "Oldest" : "Newest"}
-      </Button>
+        <Button
+          variant={"outline"}
+          onClick={() => setSort(sort === "desc" ? "asc" : "desc")}
+          className="ml-auto w-fit"
+        >
+          Sort By {sort === "desc" ? "Oldest" : "Newest"}
+        </Button>
       </div>
       <DataTable columns={columns} data={filteredFiles} />
     </div>

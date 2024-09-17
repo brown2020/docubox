@@ -11,18 +11,18 @@ interface AppStore {
   setFileId: (fileId: string) => void;
   filename: string;
   setFilename: (filename: string) => void;
+  tags: string[];
+  setTags: (tags: string[]) => void;
   unstructuredFileData: string;
   setUnstructuredFileData: (unstructuredFileData: string) => void;
-  fileParsedReadable:
+  fileSummary:
     | {
         docId: string;
-        readableData: string;
         summary: string;
       }
     | undefined;
-  setFileParsedReadable: (data: {
+  setFileSummary: (data: {
     docId: string;
-    readableData: string;
     summary: string;
   }) => void;
 }
@@ -39,16 +39,17 @@ export const useAppStore = create<AppStore>((set) => ({
   fileId: null,
   setFileId: (fileId: string) => set({ fileId }),
   filename: "",
+  tags: [],
+  setTags: (tags: string[]) => set({ tags: tags }),
   setFilename: (filename: string) => set({ filename }),
 
   unstructuredFileData: "",
   setUnstructuredFileData: (unstructuredFileData: string) =>
     set({ unstructuredFileData }),
 
-  fileParsedReadable: undefined,
-  setFileParsedReadable: (data: {
+  fileSummary: undefined,
+  setFileSummary: (data: {
     docId: string;
-    readableData: string;
     summary: string;
-  }) => set({ fileParsedReadable: data }),
+  }) => set({ fileSummary: data }),
 }));

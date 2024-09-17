@@ -19,9 +19,11 @@ export default function Dashboard() {
         const docsResults = await getDocs(
           collection(db, "users", userId, "files")
         );
-        const files: FileType[] = docsResults.docs.map((doc) => ({
+        const files: FileType[] = docsResults.docs.map((doc) => {
+          return {
           id: doc.id || "",
           filename: doc.data().filename || doc.id || "",
+          tags: doc.data().tags,
           fullName: doc.data().fullName || doc.id || "",
           timestamp:
             new Date(doc.data().timestamp?.seconds * 1000) || undefined,
@@ -31,7 +33,8 @@ export default function Dashboard() {
           readableData: doc.data().readableData || "",
           summary: doc.data().summary || "",
           unstructuredFile: doc.data().unstructuredFile || "",
-        }));
+        }
+        });
         setSkeletonFiles(files);
       }
       setLoading(false);

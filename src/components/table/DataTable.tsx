@@ -36,12 +36,13 @@ export function DataTable<TData, TValue>({
   const {
     setFileId,
     setFilename,
+    setTags,
     setIsDeleteModalOpen,
     setIsRenameModalOpen,
     setUnstructuredFileData,
     setIsShowParseDataModelOpen,
     isShowParseDataModelOpen,
-    setFileParsedReadable,
+    setFileSummary,
   } = useAppStore();
   const openDeleteModal = (fileId: string) => {
     setFileId(fileId);
@@ -50,17 +51,16 @@ export function DataTable<TData, TValue>({
   const openParseDataViewModal = (
     docId: string,
     filedata: string,
-    readableData: string,
     summary: string
   ) => {
-    console.log(docId, readableData, summary);
     setUnstructuredFileData(filedata);
-    setFileParsedReadable({ docId, readableData, summary });
+    setFileSummary({ docId, summary });
     setIsShowParseDataModelOpen(true);
   };
-  const openRenameModal = (fileId: string, filename: string) => {
+  const openRenameModal = (fileId: string, filename: string, tags: string[] = []) => {
     setFileId(fileId);
     setFilename(filename);
+    setTags(tags);
     setIsRenameModalOpen(true);
   };
   return (
@@ -116,7 +116,9 @@ export function DataTable<TData, TValue>({
                         onClick={() =>
                           openRenameModal(
                             (row.original as FileType).id,
-                            (row.original as FileType).filename
+                            (row.original as FileType).filename,
+                            (row.original as FileType).tags
+
                           )
                         }
                         className="flex items-center text-blue-600 hover:underline cursor-pointer gap-2"
@@ -133,11 +135,9 @@ export function DataTable<TData, TValue>({
                   <Button
                     variant={"outline"}
                     onClick={() => {
-                      console.log(row.original);
                       openParseDataViewModal(
                         (row.original as FileType).id,
                         (row.original as FileType).unstructuredFile,
-                        (row.original as FileType).readableData,
                         (row.original as FileType).summary
                       );
                     }}

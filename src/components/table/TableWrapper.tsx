@@ -1,26 +1,36 @@
-"use client";
+"use client"
 
-import { FileType } from "@/typings/filetype";
-import { Button } from "../ui/button";
-import { DataTable } from "./DataTable";
-import { columns } from "./columns";
-import { useUser } from "@clerk/nextjs";
-import { useEffect, useMemo, useState } from "react";
-import { collection, orderBy, query } from "firebase/firestore";
-import { db } from "@/firebase";
-import { useCollection } from "react-firebase-hooks/firestore";
-import { Skeleton } from "../ui/skeleton";
-import { Input } from "../ui/input";
+import { FileType } from "@/typings/filetype"
+import { Button } from "../ui/button"
+import { DataTable } from "./DataTable"
+import { columns } from "./columns"
+import { useUser } from "@clerk/nextjs"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { collection, orderBy, query, where } from "firebase/firestore"
+import { db } from "@/firebase"
+import { useCollection } from "react-firebase-hooks/firestore"
+import { Skeleton } from "../ui/skeleton"
+import { Input } from "../ui/input"
+import { Grid, List } from "lucide-react"
+import { GridView } from "../grid/GridView"
+import { useAppStore } from "@/zustand/useAppStore"
 
 type Props = {
-  skeletonFiles: FileType[];
-};
+  skeletonFiles: FileType[]
+}
 
 export default function TableWrapper({ skeletonFiles }: Props) {
-  const { user } = useUser();
-  const [initialFiles, setInitialFiles] = useState<FileType[]>([]);
-  const [sort, setSort] = useState<"asc" | "desc">("desc");
-  const [input, setInput] = useState<string>("");
+  const { user } = useUser()
+  const [initialFiles, setInitialFiles] = useState<FileType[]>([])
+  const [sort, setSort] = useState<"asc" | "desc">("desc")
+  const [input, setInput] = useState<string>("")
+  const [view, setView] = useState<"grid" | "list">("grid")
+
+  const { setFolderId, setIsCreateFolderModalOpen, folderId } = useAppStore()
+  console.log(initialFiles)
+  const openCreateFolderModal = () => {
+    setIsCreateFolderModalOpen(true)
+  }
 
   // Use the 'useCollection' hook to fetch Firestore documents
   const [docs] = useCollection(
@@ -29,19 +39,19 @@ export default function TableWrapper({ skeletonFiles }: Props) {
         collection(db, "users", user.id, "files"),
         orderBy("timestamp", sort)
       )
-  );
-
+  )
   const filteredFiles: FileType[] = useMemo(() => {
-    if (!input) return initialFiles;
+    if (!input) return initialFiles
     return initialFiles.filter(
       (file) =>
         Array.isArray(file.tags) &&
-        file.tags.some((tag) => tag.toLowerCase().includes(input.toLowerCase()))
-    );
-  }, [input, initialFiles]);
+        file.tags.some((tag) => tag.toLowerCase().includes(input.toLowerCase())) &&
+        file.folderId === folderId
+    )
+  }, [input, initialFiles])
 
   useEffect(() => {
-    if (!docs) return;
+    if (!docs) return
     const files = docs.docs.map((doc) => ({
       id: doc.id || "",
       filename: doc.data().filename || doc.id || "",
@@ -51,12 +61,16 @@ export default function TableWrapper({ skeletonFiles }: Props) {
       downloadUrl: doc.data().downloadUrl || "",
       type: doc.data().type || "",
       size: doc.data().size || 0,
-      readableData: doc.data().readableData,
       summary: doc.data().summary,
       unstructuredFile: doc.data().unstructuredFile || "",
-    }));
-    setInitialFiles(files);
-  }, [docs]);
+    }))
+    setInitialFiles(files)
+  }, [docs])
+
+  const viewHandler = useCallback(() => {
+    if (view === "list") setView("grid")
+    else setView("list")
+  }, [view])
 
   if (docs?.docs.length === undefined)
     return (
@@ -83,25 +97,41 @@ export default function TableWrapper({ skeletonFiles }: Props) {
           )}
         </div>
       </div>
-    );
+    )
 
   return (
     <div className="flex flex-col space-y-5 pb-10 px-4">
-      <div className="flex">
-        <Input
+      <div className="flex border-b pb-2">
+        <Button onClick={openCreateFolderModal}>
+          Add New Folder
+        </Button>
+       
+        <div className="flex gap-2 ml-auto">
+           <Input
           className="w-64"
           placeholder="Search tags"
           onChange={(e) => setInput(e.target.value)}
         />
-        <Button
-          variant={"outline"}
-          onClick={() => setSort(sort === "desc" ? "asc" : "desc")}
-          className="ml-auto w-fit"
-        >
-          Sort By {sort === "desc" ? "Oldest" : "Newest"}
-        </Button>
+          <Button
+            variant={"outline"}
+            onClick={() => setSort(sort === "desc" ? "asc" : "desc")}
+            className="ml-auto w-fit"
+          >
+            Sort By {sort === "desc" ? "Oldest" : "Newest"}
+          </Button>
+          <Button variant={"outline"} className="w-fit" onClick={viewHandler}>
+            {view === "list" ? <Grid /> : <List />}
+          </Button>
+        </div>
       </div>
-      <DataTable columns={columns} data={filteredFiles} />
+      {view === "list" && (
+        <DataTable
+          columns={columns}
+          data={filteredFiles}
+          setData={setInitialFiles}
+        />
+      )}
+      {view === "grid" && <GridView data={filteredFiles} />}
     </div>
-  );
+  )
 }

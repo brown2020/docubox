@@ -20,7 +20,9 @@ export interface Metadata {
       | "PageNumber"
       | "Image"
       | "Heading"
-      | "Date"
+      | "Header"
+      | "Table"
+      | "Footer"; // New Footer type
     element_id: string;
     text: string;
     metadata: Metadata;

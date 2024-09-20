@@ -69,8 +69,8 @@ export default function Dropzone() {
         type: selectedFile.type,
         lastModified: selectedFile.lastModified,
         unstructuredFile: JSON.stringify(unstructuredData, null, 2),
-        readableData: null,
         summary: null,
+        folderId: null
       });
 
       const imageRef = ref(

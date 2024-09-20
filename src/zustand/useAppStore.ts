@@ -7,12 +7,18 @@ interface AppStore {
   setIsRenameModalOpen: (isRenameModalOpen: boolean) => void;
   isShowParseDataModelOpen: boolean;
   setIsShowParseDataModelOpen: (isShowParseDataModelOpen: boolean) => void;
+  isCreateFolderModalOpen: boolean;
+  setIsCreateFolderModalOpen: (isRenameModalOpen: boolean) => void;
   fileId: string | null;
   setFileId: (fileId: string) => void;
   filename: string;
   setFilename: (filename: string) => void;
   tags: string[];
   setTags: (tags: string[]) => void;
+  isFolder: boolean;
+  setIsFolder: (isFolder: boolean) => void;
+  folderId: string | null;
+  setFolderId: (folderId: string) => void;
   unstructuredFileData: string;
   setUnstructuredFileData: (unstructuredFileData: string) => void;
   fileSummary:
@@ -38,6 +44,8 @@ export const useAppStore = create<AppStore>((set) => ({
     set({ isShowParseDataModelOpen }),
   fileId: null,
   setFileId: (fileId: string) => set({ fileId }),
+  isCreateFolderModalOpen: false,
+  setIsCreateFolderModalOpen: (isCreateFolderModalOpen: boolean) => set({ isCreateFolderModalOpen }),
   filename: "",
   tags: [],
   setTags: (tags: string[]) => set({ tags: tags }),
@@ -48,6 +56,10 @@ export const useAppStore = create<AppStore>((set) => ({
     set({ unstructuredFileData }),
 
   fileSummary: undefined,
+  isFolder: false,
+  setIsFolder: (isFolder: boolean = false) => set({ isFolder }),
+  folderId: null,
+  setFolderId: (folderId: string) => set({ folderId }),
   setFileSummary: (data: {
     docId: string;
     summary: string;

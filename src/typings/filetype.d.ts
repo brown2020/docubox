@@ -7,7 +7,7 @@ export type FileType = {
   type: string;
   size: number;
   unstructuredFile: string;
-  readableData: string;
   summary: string;
   tags: string[];
+  folderId?: string;
 };

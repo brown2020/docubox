@@ -1,5 +1,6 @@
 "use client";
 
+import Spinner from "@/components/common/spinner";
 import Dropzone from "@/components/Dropzone";
 import TableWrapper from "@/components/table/TableWrapper";
 import { db } from "@/firebase";
@@ -30,7 +31,6 @@ export default function Dashboard() {
           downloadUrl: doc.data().downloadUrl || "",
           type: doc.data().type || "",
           size: doc.data().size || 0,
-          readableData: doc.data().readableData || "",
           summary: doc.data().summary || "",
           unstructuredFile: doc.data().unstructuredFile || "",
         }
@@ -44,7 +44,11 @@ export default function Dashboard() {
   }, [userId]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Spinner size={"30"} />
+      </div>
+    );
   }
 
   return (

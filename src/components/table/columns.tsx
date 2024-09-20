@@ -6,6 +6,7 @@ import { FileIcon, defaultStyles } from "react-file-icon";
 import prettyBytes from "pretty-bytes";
 import { COLOR_EXTENSION_MAP, UNCOMMON_EXTENSIONS_MAP } from "@/constants";
 import Link from "next/link";
+import { FolderOpen } from "lucide-react";
 
 export const columns: ColumnDef<FileType>[] = [
   {
@@ -13,6 +14,14 @@ export const columns: ColumnDef<FileType>[] = [
     header: "Type",
     cell: ({ renderValue }) => {
       const type = renderValue() as string;
+      console.log('TYPE: ', type);
+      if (type === 'folder') {
+        return (
+          <div className="w-10">
+            <FolderOpen size={40} />
+        </div>
+        )
+      }
       const extension: string = type.split("/")[1];
       return (
         <div className="w-10">

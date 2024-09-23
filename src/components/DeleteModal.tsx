@@ -12,21 +12,59 @@ import {
 import { db } from "@/firebase";
 import { useAppStore } from "@/zustand/useAppStore";
 import { useUser } from "@clerk/nextjs";
-import { deleteDoc, doc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, increment, query, updateDoc, where } from "firebase/firestore";
+import { deleteObject, getStorage, ref } from "firebase/storage"
 import toast from "react-hot-toast";
 
 export function DeleteModal() {
   const { user } = useUser();
-  const { isDeleteModalOpen, setIsDeleteModalOpen, fileId, setFileId } =
+  const { isDeleteModalOpen, setIsDeleteModalOpen, fileId, setFileId, folderId, setFolderId, isFolder, setIsFolder } =
     useAppStore();
+  const storage = getStorage()
+
+  async function deleteFolderContents(folderId: string, userId: string) {
+    const filesCollectionRef = collection(db, `users/${userId}/files`);
+    
+    // Query to get all files and subfolders inside the current folder
+    const q = query(filesCollectionRef, where("folderId", "==", folderId));
+    const querySnapshot = await getDocs(q);
+    // Loop through the documents (files and folders) in the folder
+    const deletePromises = querySnapshot.docs.map(async (document) => {
+      const data = document.data();
+      debugger
+      // If it's a folder, recursively delete its contents
+      if (data.type === "folder") {
+        await deleteFolderContents(data.id, userId);
+      }
+      debugger
+      if (data.downloadUrl) {
+        const fileRef = ref(storage, data.downloadURL);
+        await deleteObject(fileRef);
+      }
+
+      // Delete the file or folder itself
+      await deleteDoc(doc(db, `users/${userId}/files/`, data.id));
+    });
+
+    // Wait for all deletions to complete
+    await Promise.all(deletePromises);
+  }
   async function deleteFile() {
     if (!user || !fileId) return;
 
-    const toastId = toast.loading("Deleting file...");
+    const toastId = toast.loading("Deleting file/folder...");
 
     try {
+      if (folderId) {
+        await deleteFolderContents(fileId, user.id);
+        await updateDoc(doc(db, "users", user.id, "files", folderId), {
+          numberOfItems: increment(-1)
+        });
+        setFolderId(null)
+      }
       const docRef = doc(db, `users/${user.id}/files/`, fileId); 
       await deleteDoc(docRef);
+      
       toast.success("File deleted from storage!", { id: toastId });
       toast.success("File deleted successfully!", { id: toastId });
       setIsDeleteModalOpen(false);

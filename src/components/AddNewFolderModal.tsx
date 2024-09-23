@@ -12,7 +12,7 @@ import {
 import { db } from "@/firebase";
 import { useAppStore } from "@/zustand/useAppStore";
 import { useUser } from "@clerk/nextjs";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, doc, increment, serverTimestamp, updateDoc } from "firebase/firestore";
 
 import { useState } from "react";
 import { Input } from "./ui/input";
@@ -23,7 +23,7 @@ export function AddNewFolderModal() {
   const { user } = useUser();
   const [input, setInput] = useState("");
 
-  const { isCreateFolderModalOpen, setIsCreateFolderModalOpen, filename, folderId } =
+  const { isCreateFolderModalOpen, setIsCreateFolderModalOpen, folderId } =
     useAppStore();
   
   async function createFolder() {
@@ -33,7 +33,6 @@ export function AddNewFolderModal() {
     try {
       await addDoc(collection(db, "users", user.id, "files"), {
         filename: input,
-        isFolder: true,
         folderId,
         userId: user.id,
         timestamp: serverTimestamp(),
@@ -45,6 +44,12 @@ export function AddNewFolderModal() {
         unstructuredFile: null,
         summary: null,
       });
+
+      if (folderId) {
+        await updateDoc(doc(db, "users", user.id, "files", folderId), {
+          numberOfItems: increment(1)
+          });
+      }
 
       toast.success("Folder created successfully!", { id: toastId });
     } catch (error) {
@@ -70,7 +75,7 @@ export function AddNewFolderModal() {
           </DialogDescription>
           <Input
             id="link"
-            defaultValue={filename}
+            defaultValue={''}
             onChange={(e) => setInput(e.target.value)}
             onKeyDownCapture={(e) => {
               if (e.key === "Enter") createFolder();
@@ -94,8 +99,8 @@ export function AddNewFolderModal() {
             className="px-3 flex-1"
             onClick={() => createFolder()}
           >
-            <span className="sr-only">Update</span>
-            <span>Update</span>
+            <span className="sr-only">Save</span>
+            <span>Save</span>
           </Button>
         </DialogFooter>
       </DialogContent>

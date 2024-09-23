@@ -6,14 +6,18 @@ import { DataTable } from "./DataTable"
 import { columns } from "./columns"
 import { useUser } from "@clerk/nextjs"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { collection, orderBy, query, where } from "firebase/firestore"
+import { collection, doc, increment, orderBy, query, updateDoc } from "firebase/firestore"
 import { db } from "@/firebase"
 import { useCollection } from "react-firebase-hooks/firestore"
 import { Skeleton } from "../ui/skeleton"
 import { Input } from "../ui/input"
-import { Grid, List } from "lucide-react"
+import { ChevronLeft, Grid, List } from "lucide-react"
 import { GridView } from "../grid/GridView"
 import { useAppStore } from "@/zustand/useAppStore"
+import { DndProvider } from "react-dnd"
+import { HTML5Backend } from "react-dnd-html5-backend"
+import { AddNewFolderModal } from "../AddNewFolderModal"
+import { usePathname, useSearchParams, useRouter } from "next/navigation"
 
 type Props = {
   skeletonFiles: FileType[]
@@ -24,10 +28,12 @@ export default function TableWrapper({ skeletonFiles }: Props) {
   const [initialFiles, setInitialFiles] = useState<FileType[]>([])
   const [sort, setSort] = useState<"asc" | "desc">("desc")
   const [input, setInput] = useState<string>("")
-  const [view, setView] = useState<"grid" | "list">("grid")
+  const [view, setView] = useState<"grid" | "list">("list")
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const { replace } = useRouter()
 
   const { setFolderId, setIsCreateFolderModalOpen, folderId } = useAppStore()
-  console.log(initialFiles)
   const openCreateFolderModal = () => {
     setIsCreateFolderModalOpen(true)
   }
@@ -40,22 +46,59 @@ export default function TableWrapper({ skeletonFiles }: Props) {
         orderBy("timestamp", sort)
       )
   )
-  const filteredFiles: FileType[] = useMemo(() => {
-    if (!input) return initialFiles
-    return initialFiles.filter(
-      (file) =>
-        Array.isArray(file.tags) &&
-        file.tags.some((tag) => tag.toLowerCase().includes(input.toLowerCase())) &&
-        file.folderId === folderId
-    )
-  }, [input, initialFiles])
+
+  function calculateFolderSize(folderId: string) {
+    const docs = initialFiles.filter(file => file.folderId === folderId);
+
+    let totalSize = 0;
+
+    // Loop through all items in the folder
+    for (const data of docs) {
+      if (data.type === "folder") {
+        // Recursively calculate the size of the nested folder
+        const folderSize = calculateFolderSize(data.id);
+        totalSize += folderSize;
+      } else {
+        // Add the size of the file to the total
+        totalSize += data.size || 0;
+      } 
+    }
+    return totalSize;
+  }
+
+  const filesList: FileType[] = useMemo(() => {
+    let files: FileType[] = [...initialFiles];
+
+    // Filter files by folderId
+    files = files.filter((file) => file.folderId === folderId);
+
+    // If input exists, filter by tags as well
+    if (input) {
+      files = files.filter(
+        (file) =>
+          Array.isArray(file.tags) &&
+          file.tags.some((tag) =>
+            tag.toLowerCase().includes(input.toLowerCase())
+          )
+      );
+    }
+
+    // Map through the filtered files and calculate folder size if needed
+    return files.map((file) => {
+      if (file.type === "folder") {
+        file.size = calculateFolderSize(file.id);
+      }
+      return { ...file };
+    });
+  }, [input, initialFiles, folderId, calculateFolderSize]);
+
 
   useEffect(() => {
     if (!docs) return
     const files = docs.docs.map((doc) => ({
       id: doc.id || "",
       filename: doc.data().filename || doc.id || "",
-      tags: doc.data().tags || [], // Ensure tags is an array
+      tags: doc.data().tags || [],
       fullName: doc.data().fullName || doc.id || "",
       timestamp: new Date(doc.data().timestamp?.seconds * 1000) || undefined,
       downloadUrl: doc.data().downloadUrl || "",
@@ -63,6 +106,7 @@ export default function TableWrapper({ skeletonFiles }: Props) {
       size: doc.data().size || 0,
       summary: doc.data().summary,
       unstructuredFile: doc.data().unstructuredFile || "",
+      folderId: doc.data().folderId,
     }))
     setInitialFiles(files)
   }, [docs])
@@ -71,6 +115,40 @@ export default function TableWrapper({ skeletonFiles }: Props) {
     if (view === "list") setView("grid")
     else setView("list")
   }, [view])
+
+  const moveFileHandler = useCallback(
+    async (userId: string, docId: string, folderId: string) => {
+      const existingDoc = initialFiles.find(file => file.id === docId);
+
+      if (existingDoc) {
+        if (existingDoc?.folderId) {
+        await updateDoc(doc(db, "users", userId, "files", existingDoc.folderId), {
+          numberOfItems: increment(-1)
+          });
+      }
+
+      await updateDoc(doc(db, "users", userId, "files", docId), {
+        folderId,
+        numberOfItems: increment(1)
+      })
+      }
+    },[initialFiles])
+
+  const goBack = () => {
+    const parentFolderId = initialFiles.find((i) => i.id === folderId)?.folderId
+    const params = new URLSearchParams(searchParams)
+    if (parentFolderId) {
+      params.set("activeFolder", parentFolderId)
+    } else {
+      params.delete("activeFolder")
+    }
+    replace(`${pathname}?${params.toString()}`)
+  }
+
+  useEffect(() => {
+    const activeFolderId = searchParams.get("activeFolder")
+    setFolderId(activeFolderId ?? null)
+  }, [searchParams])
 
   if (docs?.docs.length === undefined)
     return (
@@ -101,17 +179,20 @@ export default function TableWrapper({ skeletonFiles }: Props) {
 
   return (
     <div className="flex flex-col space-y-5 pb-10 px-4">
-      <div className="flex border-b pb-2">
-        <Button onClick={openCreateFolderModal}>
-          Add New Folder
-        </Button>
-       
+      <div className="flex border-b pb-2 items-center gap-2">
+        {searchParams.get("activeFolder") ? (
+          <ChevronLeft onClick={goBack} className="cursor-pointer" />
+        ) : (
+          <></>
+        )}
+        <Button onClick={openCreateFolderModal}>Add New Folder</Button>
+
         <div className="flex gap-2 ml-auto">
-           <Input
-          className="w-64"
-          placeholder="Search tags"
-          onChange={(e) => setInput(e.target.value)}
-        />
+          <Input
+            className="w-64"
+            placeholder="Search tags"
+            onChange={(e) => setInput(e.target.value)}
+          />
           <Button
             variant={"outline"}
             onClick={() => setSort(sort === "desc" ? "asc" : "desc")}
@@ -124,14 +205,19 @@ export default function TableWrapper({ skeletonFiles }: Props) {
           </Button>
         </div>
       </div>
-      {view === "list" && (
-        <DataTable
-          columns={columns}
-          data={filteredFiles}
-          setData={setInitialFiles}
-        />
-      )}
-      {view === "grid" && <GridView data={filteredFiles} />}
+      <DndProvider backend={HTML5Backend}>
+        {view === "list" && (
+          <DataTable
+            columns={columns}
+            data={filesList}
+            moveFileHandler={moveFileHandler}
+          />
+        )}
+        {view === "grid" && (
+          <GridView moveFileHandler={moveFileHandler} data={filesList} />
+        )}
+      </DndProvider>
+      <AddNewFolderModal />
     </div>
   )
 }

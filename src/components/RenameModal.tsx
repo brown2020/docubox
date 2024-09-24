@@ -39,7 +39,7 @@ export function RenameModal() {
 
     const toastId = toast.loading("updating file...");
     try {
-      const res = await updateDoc(doc(db, "users", user.id, "files", fileId), {
+      await updateDoc(doc(db, "users", user.id, "files", fileId), {
         filename: input,
         tags
       });

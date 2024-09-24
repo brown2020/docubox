@@ -12,7 +12,7 @@ import {
 import { db } from "@/firebase";
 import { useAppStore } from "@/zustand/useAppStore";
 import { useUser } from "@clerk/nextjs";
-import { collection, deleteDoc, doc, getDoc, getDocs, increment, query, updateDoc, where } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { deleteObject, getStorage, ref } from "firebase/storage"
 import { usePathname } from "next/navigation";
 import toast from "react-hot-toast";

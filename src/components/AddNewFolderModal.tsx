@@ -12,7 +12,7 @@ import {
 import { db } from "@/firebase";
 import { useAppStore } from "@/zustand/useAppStore";
 import { useUser } from "@clerk/nextjs";
-import { addDoc, collection, doc, increment, serverTimestamp, updateDoc } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 import { useState } from "react";
 import { Input } from "./ui/input";

@@ -5,7 +5,6 @@ import { ColumnDef } from "@tanstack/react-table"
 import { FileIcon, defaultStyles } from "react-file-icon"
 import prettyBytes from "pretty-bytes"
 import { COLOR_EXTENSION_MAP, UNCOMMON_EXTENSIONS_MAP } from "@/constants"
-import Link from "next/link"
 import { FolderOpen } from "lucide-react"
 
 export const columns: ColumnDef<FileType>[] = [

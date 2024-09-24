@@ -5,12 +5,14 @@ import { TableRow } from "../ui/table"
 type Props = {
   id: string
   hasTableRow?: boolean
+  isTrashItem?: boolean
 }
 
 export const File: FunctionComponent<PropsWithChildren<Props>> = ({
   children,
   id,
   hasTableRow = true,
+  isTrashItem = false,
 }) => {
   const element = useRef<HTMLTableRowElement>(null)
   const [{ isDragging }, drag] = useDrag(() => ({
@@ -29,19 +31,19 @@ export const File: FunctionComponent<PropsWithChildren<Props>> = ({
     if (element) {
       drag(element)
     }
-  }, [element])
+  }, [element, drag])
 
   return (
     <>
       {hasTableRow ? (
         <TableRow
           className={`opacity-${opacity} w-full cursor-grab`}
-          ref={element}
+          ref={isTrashItem ? undefined : element}
         >
           {children}
         </TableRow>
       ) : (
-        <div ref={element}>{children}</div>
+        <div ref={isTrashItem ? undefined : element}>{children}</div>
       )}
     </>
   )

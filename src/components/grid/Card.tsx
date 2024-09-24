@@ -40,13 +40,15 @@ export const Card: FunctionComponent<Props> = ({
                 <EllipsisVertical />
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem
+                {
+                  data.type !== 'folder' && <DropdownMenuItem
                   onClick={() =>
                     openViewModal(data.id, data.unstructuredFile, data.summary)
                   }
                 >
                   View
                 </DropdownMenuItem>
+                }
                 <DropdownMenuItem
                   onClick={() =>
                     openRenameModal(data.id, data.filename, data.tags)

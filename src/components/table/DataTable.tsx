@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "../ui/table"
 import { FileType } from "@/typings/filetype"
-import { EyeIcon, PencilIcon, TrashIcon } from "lucide-react"
+import { EyeIcon, PencilIcon, TrashIcon, UndoIcon } from "lucide-react"
 import { Button } from "../ui/button"
 import { useAppStore } from "@/zustand/useAppStore"
 import { DeleteModal } from "../DeleteModal"
@@ -24,16 +24,20 @@ import { File } from "./File"
 import { Folder } from "./Folder"
 import { useUser } from "@clerk/nextjs"
 import Link from "next/link"
+import { db } from "@/firebase"
+import { doc, updateDoc } from "firebase/firestore"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   moveFileHandler: (userId: string, docId: string, folderId: string) => void
+  isTrashView?: boolean
 }
 export function DataTable<TData, TValue>({
   columns,
   data,
   moveFileHandler,
+  isTrashView,
 }: DataTableProps<TData, TValue>) {
   const { user } = useUser()
   const table = useReactTable({
@@ -86,6 +90,14 @@ export function DataTable<TData, TValue>({
 
   const onDrop = (docId: string, folderId: string) => {
     if (user) moveFileHandler(user?.id, docId, folderId)
+  }
+
+  const restoreDeletedFile = async (fileId: string) => {
+    if (user) {
+      await updateDoc(doc(db, "users", user.id, "files", fileId), {
+        deletedAt: null,
+      })
+    }
   }
 
   return (
@@ -168,19 +180,31 @@ export function DataTable<TData, TValue>({
                       </TableCell>
                     ))}
                     <TableCell className="flex space-x-2 py-2 px-4 justify-end">
-                      <Button
-                        variant={"outline"}
-                        onClick={() => {
-                          openParseDataViewModal(
-                            (row.original as FileType).id,
-                            (row.original as FileType).unstructuredFile,
-                            (row.original as FileType).summary
-                          )
-                        }}
-                        className="text-blue-500 hover:bg-blue-100"
-                      >
-                        <EyeIcon size={20} />
-                      </Button>
+                      {isTrashView ? (
+                        <Button
+                          variant={"outline"}
+                          onClick={() => {
+                            restoreDeletedFile((row.original as FileType).id)
+                          }}
+                          className="text-blue-500 hover:bg-blue-100"
+                        >
+                          <UndoIcon size={20} />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant={"outline"}
+                          onClick={() => {
+                            openParseDataViewModal(
+                              (row.original as FileType).id,
+                              (row.original as FileType).unstructuredFile,
+                              (row.original as FileType).summary
+                            )
+                          }}
+                          className="text-blue-500 hover:bg-blue-100"
+                        >
+                          <EyeIcon size={20} />
+                        </Button>
+                      )}
                       <Button
                         variant={"outline"}
                         onClick={() =>
@@ -202,6 +226,7 @@ export function DataTable<TData, TValue>({
                     key={"folder" + row.id}
                     data-state={row.getIsSelected() && "selected"}
                     onDrop={onDrop}
+                    isTrashItem={isTrashView}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
@@ -243,21 +268,34 @@ export function DataTable<TData, TValue>({
                       key={"actions"}
                       className="flex space-x-2 py-2 px-4 justify-end"
                     >
-                      {row.getValue("type") !== "folder" && (
+                      {isTrashView ? (
                         <Button
                           variant={"outline"}
                           onClick={() => {
-                            openParseDataViewModal(
-                              (row.original as FileType).id,
-                              (row.original as FileType).unstructuredFile,
-                              (row.original as FileType).summary
-                            )
+                            restoreDeletedFile((row.original as FileType).id)
                           }}
                           className="text-blue-500 hover:bg-blue-100"
                         >
-                          <EyeIcon size={20} />
+                          <UndoIcon size={20} />
                         </Button>
+                      ) : (
+                        row.getValue("type") !== "folder" && (
+                          <Button
+                            variant={"outline"}
+                            onClick={() => {
+                              openParseDataViewModal(
+                                (row.original as FileType).id,
+                                (row.original as FileType).unstructuredFile,
+                                (row.original as FileType).summary
+                              )
+                            }}
+                            className="text-blue-500 hover:bg-blue-100"
+                          >
+                            <EyeIcon size={20} />
+                          </Button>
+                        )
                       )}
+
                       <Button
                         variant={"outline"}
                         onClick={() =>

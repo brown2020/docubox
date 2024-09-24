@@ -10,4 +10,5 @@ export type FileType = {
   summary: string;
   tags: string[];
   folderId?: string;
+  deletedAt: Date | null;
 };

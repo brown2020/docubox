@@ -73,14 +73,9 @@ export default function Dropzone() {
         lastModified: selectedFile.lastModified,
         unstructuredFile: JSON.stringify(unstructuredData, null, 2),
         summary: null,
+        deletedAt: null,
         folderId
       });
-
-      if (folderId) {
-        await updateDoc(doc(db, "users", user.id, "files", docRef.id), {
-          numberOfItems: increment(1)
-          });
-      }
 
       const imageRef = ref(
         storage,

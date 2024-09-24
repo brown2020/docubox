@@ -43,13 +43,8 @@ export function AddNewFolderModal() {
         lastModified: serverTimestamp(),
         unstructuredFile: null,
         summary: null,
+        deletedAt: null,
       });
-
-      if (folderId) {
-        await updateDoc(doc(db, "users", user.id, "files", folderId), {
-          numberOfItems: increment(1)
-          });
-      }
 
       toast.success("Folder created successfully!", { id: toastId });
     } catch (error) {

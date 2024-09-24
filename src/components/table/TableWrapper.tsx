@@ -6,7 +6,7 @@ import { DataTable } from "./DataTable"
 import { columns } from "./columns"
 import { useUser } from "@clerk/nextjs"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { collection, doc, increment, orderBy, query, updateDoc } from "firebase/firestore"
+import { collection, doc, increment, orderBy, query, updateDoc, where } from "firebase/firestore"
 import { db } from "@/firebase"
 import { useCollection } from "react-firebase-hooks/firestore"
 import { Skeleton } from "../ui/skeleton"
@@ -33,21 +33,33 @@ export default function TableWrapper({ skeletonFiles }: Props) {
   const pathname = usePathname()
   const { replace } = useRouter()
 
+  const isTrashPageActive = pathname.includes('trash');
+
   const { setFolderId, setIsCreateFolderModalOpen, folderId } = useAppStore()
   const openCreateFolderModal = () => {
     setIsCreateFolderModalOpen(true)
   }
 
   // Use the 'useCollection' hook to fetch Firestore documents
+
+  const _where = isTrashPageActive
+    ? where("deletedAt", "!=", null)  // Fetch files where deletedAt is not null
+    : where("deletedAt", "==", null);  // Fetch files where deletedAt is null
+
+  const _orderBy = isTrashPageActive
+    ? orderBy("deletedAt", sort)  // Sort by deletedAt if it's a trash page
+    : orderBy("timestamp", sort);  // Sort by timestamp otherwise
+
   const [docs] = useCollection(
     user &&
-      query(
-        collection(db, "users", user.id, "files"),
-        orderBy("timestamp", sort)
-      )
-  )
+    query(
+      collection(db, "users", user.id, "files"),
+      _where,
+      _orderBy,
+    )
+  );
 
-  function calculateFolderSize(folderId: string) {
+  const calculateFolderSize = useCallback((folderId: string) => {
     const docs = initialFiles.filter(file => file.folderId === folderId);
 
     let totalSize = 0;
@@ -61,15 +73,15 @@ export default function TableWrapper({ skeletonFiles }: Props) {
       } else {
         // Add the size of the file to the total
         totalSize += data.size || 0;
-      } 
+      }
     }
     return totalSize;
-  }
+  }, [initialFiles])
 
   const filesList: FileType[] = useMemo(() => {
     let files: FileType[] = [...initialFiles];
 
-    // Filter files by folderId
+    // Filter files by folderId && deletedAt
     files = files.filter((file) => file.folderId === folderId);
 
     // If input exists, filter by tags as well
@@ -107,6 +119,7 @@ export default function TableWrapper({ skeletonFiles }: Props) {
       summary: doc.data().summary,
       unstructuredFile: doc.data().unstructuredFile || "",
       folderId: doc.data().folderId,
+      deletedAt: doc.data().deletedAt
     }))
     setInitialFiles(files)
   }, [docs])
@@ -118,21 +131,19 @@ export default function TableWrapper({ skeletonFiles }: Props) {
 
   const moveFileHandler = useCallback(
     async (userId: string, docId: string, folderId: string) => {
+
+      if (isTrashPageActive) {
+        return;
+      }
+
       const existingDoc = initialFiles.find(file => file.id === docId);
 
       if (existingDoc) {
-        if (existingDoc?.folderId) {
-        await updateDoc(doc(db, "users", userId, "files", existingDoc.folderId), {
-          numberOfItems: increment(-1)
-          });
+        await updateDoc(doc(db, "users", userId, "files", docId), {
+          folderId,
+        })
       }
-
-      await updateDoc(doc(db, "users", userId, "files", docId), {
-        folderId,
-        numberOfItems: increment(1)
-      })
-      }
-    },[initialFiles])
+    }, [initialFiles, isTrashPageActive])
 
   const goBack = () => {
     const parentFolderId = initialFiles.find((i) => i.id === folderId)?.folderId
@@ -180,12 +191,15 @@ export default function TableWrapper({ skeletonFiles }: Props) {
   return (
     <div className="flex flex-col space-y-5 pb-10 px-4">
       <div className="flex border-b pb-2 items-center gap-2">
-        {searchParams.get("activeFolder") ? (
-          <ChevronLeft onClick={goBack} className="cursor-pointer" />
-        ) : (
-          <></>
+
+        {!isTrashPageActive && (
+          <>
+            {searchParams.get("activeFolder") && (
+              <ChevronLeft onClick={goBack} className="cursor-pointer" />
+            )}
+            <Button onClick={openCreateFolderModal}>Add New Folder</Button>
+          </>
         )}
-        <Button onClick={openCreateFolderModal}>Add New Folder</Button>
 
         <div className="flex gap-2 ml-auto">
           <Input
@@ -211,10 +225,11 @@ export default function TableWrapper({ skeletonFiles }: Props) {
             columns={columns}
             data={filesList}
             moveFileHandler={moveFileHandler}
+            isTrashView={isTrashPageActive}
           />
         )}
         {view === "grid" && (
-          <GridView moveFileHandler={moveFileHandler} data={filesList} />
+          <GridView moveFileHandler={moveFileHandler} data={filesList} isTrashView={isTrashPageActive} />
         )}
       </DndProvider>
       <AddNewFolderModal />

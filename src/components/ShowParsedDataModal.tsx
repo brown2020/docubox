@@ -180,7 +180,7 @@ export function ShowParsedDataModal() {
             Parsed Data
           </DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="raw">
+        <Tabs defaultValue="raw" className=" overflow-hidden">
           <div className="flex justify-center my-2">
             <TabsList>
               <TabsTrigger value="raw">Raw Data</TabsTrigger>
@@ -198,9 +198,9 @@ export function ShowParsedDataModal() {
               </TabsTrigger>
             </TabsList>
           </div>
-          <div className="overflow-auto h-[50vh] mb-4 p-4 bg-gray-50 rounded-lg">
-            <TabsContent value="raw">
-              <pre className="whitespace-pre-wrap text-sm text-gray-800">
+          <div className="overflow-auto h-[50vh] mb-4 p-4 bg-gray-50 rounded-lg w-full">
+            <TabsContent value="raw" className="w-full">
+              <pre className="whitespace-pre-wrap text-sm text-gray-800 w-full">
                 {unstructuredFileData}
               </pre>
             </TabsContent>

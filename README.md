@@ -1,6 +1,6 @@
-# Docbox
+# Docubox
 
-Docbox is a modern file storage and management application built with [Next.js 14](https://nextjs.org/), [Firebase](https://firebase.google.com/), and [Clerk](https://clerk.dev/) for authentication. Inspired by a tutorial from Sonny Sangha, this project emulates the core functionalities of Dropbox, enabling users to upload, manage, and store files securely. It features a responsive and intuitive interface powered by [Shadcn UI](https://shadcn.dev/) components and [Tailwind CSS](https://tailwindcss.com/).
+Docubox is a modern file storage and management application built with [Next.js 14](https://nextjs.org/), [Firebase](https://firebase.google.com/), and [Clerk](https://clerk.dev/) for authentication. Inspired by a tutorial from Sonny Sangha, this project emulates the core functionalities of Dropbox, enabling users to upload, manage, and store files securely. It features a responsive and intuitive interface powered by [Shadcn UI](https://shadcn.dev/) components and [Tailwind CSS](https://tailwindcss.com/).
 
 ## Features
 
@@ -42,8 +42,8 @@ Docbox is a modern file storage and management application built with [Next.js 1
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/brown2020/docbox.git
-   cd docbox
+   git clone https://github.com/brown2020/docubox.git
+   cd docubox
    ```
 
 2. **Install dependencies:**

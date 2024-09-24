@@ -19,7 +19,6 @@ interface AppStore {
   setIsFolder: (isFolder: boolean) => void;
   folderId: string | null;
   setFolderId: (folderId: string | null) => void;
-  numberOfItems: number;
   unstructuredFileData: string;
   setUnstructuredFileData: (unstructuredFileData: string) => void;
   fileSummary:
@@ -61,7 +60,6 @@ export const useAppStore = create<AppStore>((set) => ({
   setIsFolder: (isFolder: boolean = false) => set({ isFolder }),
   folderId: null,
   setFolderId: (folderId: string | null) => set({ folderId }),
-  numberOfItems: 0,
   setFileSummary: (data: {
     docId: string;
     summary: string;

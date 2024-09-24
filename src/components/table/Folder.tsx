@@ -13,6 +13,7 @@ export type DustbinProps = {
   id: string
   onDrop: (docId: string, folderId: string) => void
   hasTableRow?: boolean
+  isTrashItem?: boolean
 }
 
 export type DustbinState = {
@@ -25,6 +26,7 @@ export const Folder: FunctionComponent<PropsWithChildren<DustbinProps>> = ({
   onDrop,
   children,
   hasTableRow = true,
+  isTrashItem = false
 }) => {
   const elementRef = useRef<HTMLTableRowElement>(null)
   const searchParams = useSearchParams()
@@ -72,23 +74,23 @@ export const Folder: FunctionComponent<PropsWithChildren<DustbinProps>> = ({
 
       drag(elementRef)
     }
-  }, [elementRef])
+  }, [elementRef, drag, drop])
 
   const opacity = isDragging ? 0.5 : 1
 
   return hasTableRow ? (
     <TableRow
       className={`opacity-${opacity} w-full  cursor-pointer`}
-      onDoubleClick={openFolder}
-      ref={elementRef}
+      onDoubleClick={isTrashItem ? undefined : openFolder}
+      ref={isTrashItem ? undefined : elementRef}
     >
       {children}
     </TableRow>
   ) : (
     <div
       className={`opacity-${opacity}  cursor-grab hover:bg-black/10 dark:hover:bg-white/10 rounded-lg`}
-      onDoubleClick={openFolder}
-      ref={elementRef}
+      onDoubleClick={isTrashItem ? undefined : openFolder}
+      ref={isTrashItem ? undefined : elementRef}
     >
       {children}
     </div>

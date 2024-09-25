@@ -17,6 +17,7 @@ import DropzoneComponent from "react-dropzone";
 import toast from "react-hot-toast";
 import Spinner from "./common/spinner";
 import { Progress } from "./ui/progress-bar";
+import { useAppStore } from "@/zustand/useAppStore";
 
 export default function Dropzone() {
   const maxSize = 20971520;
@@ -24,6 +25,7 @@ export default function Dropzone() {
   const [uploadProgress, setUploadProgress] = useState("0");
   const [processing, setProcessing] = useState(false);
   const { user } = useUser();
+  const { folderId } = useAppStore()
 
   const onDrop = async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -69,8 +71,9 @@ export default function Dropzone() {
         type: selectedFile.type,
         lastModified: selectedFile.lastModified,
         unstructuredFile: JSON.stringify(unstructuredData, null, 2),
-        readableData: null,
         summary: null,
+        deletedAt: null,
+        folderId
       });
 
       const imageRef = ref(

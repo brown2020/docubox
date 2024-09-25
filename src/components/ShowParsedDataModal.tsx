@@ -73,23 +73,81 @@ export function ShowParsedDataModal() {
   };
 
   const extractReadableText = (data: Chunk[] | null) => {
-    // Function to extract readable text from JSON
-    if (!data) return null;
+    if (!data) return <p>No content to display.</p>;
 
     const contentArray = data[0]?.content || [];
-    return contentArray
-      .filter(
-        (item: Element) =>
-          item.type === "Title" ||
-          item.type === "NarrativeText" ||
-          item.type === "EmailAddress" ||
-          item.type === "UncategorizedText"
-      )
-      .map((item: Element) => (
-        <div key={item.element_id} className="mb-2">
-          <strong>{item.type}:</strong> {item.text}
+    if (contentArray.length === 0)
+      return <p>No readable content found in the file.</p>;
+
+    // Group elements by their parent ID, if applicable
+    const groupedContent = contentArray.reduce((acc, item) => {
+      const parentId = item.metadata.parent_id || "root"; // "root" for elements without a parent
+      if (!acc[parentId]) {
+        acc[parentId] = [];
+      }
+      acc[parentId].push(item);
+      return acc;
+    }, {} as Record<string, Element[]>);
+
+    // Render the grouped elements
+    return Object.keys(groupedContent).map((parentId) => {
+      const elements = groupedContent[parentId];
+      return (
+        <div key={parentId} className="grouped-content">
+          {elements.map((item) => {
+            switch (item.type) {
+              case "Title":
+              case "NarrativeText":
+                return (
+                  <div key={item.element_id} className="mb-2">
+                    <strong>{item.type}:</strong> {item.text}
+                  </div>
+                );
+
+              case "UncategorizedText":
+                // Ignore elements that are just numbers if PageNumber is also present
+                if (/^\d+$/.test(item.text || "")) {
+                  return null;
+                }
+                return (
+                  <div key={item.element_id} className="mb-2 text-gray-500">
+                    <strong>Uncategorized:</strong> {item.text}
+                  </div>
+                );
+
+              case "Header":
+              case "Footer":
+                return (
+                  <div key={item.element_id} className="mb-2 font-bold text-lg">
+                    {item.text} ({item.type})
+                  </div>
+                );
+
+              case "PageNumber":
+                return (
+                  <div key={item.element_id} className="mb-2">
+                    <strong>Page:</strong> {item.text}
+                  </div>
+                );
+
+              case "Image":
+                return (
+                  <div key={item.element_id} className="mb-2">
+                    <strong>Image:</strong> {item.text || "No descriptive text"}
+                  </div>
+                );
+
+              default:
+                return (
+                  <div key={item.element_id} className="mb-2">
+                    <strong>{item.type}:</strong> {item.text || "N/A"}
+                  </div>
+                );
+            }
+          })}
         </div>
-      ));
+      );
+    });
   };
 
   const fetchReadableFormat = async () => {
@@ -122,7 +180,7 @@ export function ShowParsedDataModal() {
             Parsed Data
           </DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="raw">
+        <Tabs defaultValue="raw" className=" overflow-hidden">
           <div className="flex justify-center my-2">
             <TabsList>
               <TabsTrigger value="raw">Raw Data</TabsTrigger>
@@ -140,9 +198,9 @@ export function ShowParsedDataModal() {
               </TabsTrigger>
             </TabsList>
           </div>
-          <div className="overflow-auto h-[50vh] mb-4 p-4 bg-gray-50 rounded-lg">
-            <TabsContent value="raw">
-              <pre className="whitespace-pre-wrap text-sm text-gray-800">
+          <div className="overflow-auto h-[50vh] mb-4 p-4 bg-gray-50 rounded-lg w-full">
+            <TabsContent value="raw" className="w-full">
+              <pre className="whitespace-pre-wrap text-sm text-gray-800 w-full">
                 {unstructuredFileData}
               </pre>
             </TabsContent>

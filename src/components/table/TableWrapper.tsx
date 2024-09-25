@@ -159,7 +159,7 @@ export default function TableWrapper({ skeletonFiles }: Props) {
   useEffect(() => {
     const activeFolderId = searchParams.get("activeFolder")
     setFolderId(activeFolderId ?? null)
-  }, [searchParams])
+  }, [searchParams, setFolderId])
 
   if (docs?.docs.length === undefined)
     return (

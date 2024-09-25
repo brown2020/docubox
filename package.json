@@ -9,8 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^0.0.61",
-    "@clerk/nextjs": "^5.6.0",
+    "@ai-sdk/openai": "^0.0.62",
+    "@clerk/nextjs": "^5.6.2",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-dropdown-menu": "^2.1.1",
     "@radix-ui/react-progress": "^1.1.0",
@@ -18,12 +18,12 @@
     "@radix-ui/react-tabs": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.1.2",
     "@tanstack/react-table": "^8.20.5",
-    "ai": "^3.3.44",
+    "ai": "^3.4.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "firebase": "^10.13.2",
     "immutability-helper": "^3.1.1",
-    "lucide-react": "^0.441.0",
+    "lucide-react": "^0.446.0",
     "next": "^14.2.13",
     "next-themes": "^0.3.0",
     "pretty-bytes": "^6.1.1",
@@ -37,19 +37,19 @@
     "react-hot-toast": "^2.4.1",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
-    "unstructured-client": "^0.17.0",
+    "unstructured-client": "^0.17.1",
     "zustand": "^4.5.5"
   },
   "devDependencies": {
-    "@types/node": "^22.5.5",
-    "@types/react": "^18.3.8",
+    "@types/node": "^22.7.1",
+    "@types/react": "^18.3.9",
     "@types/react-dom": "^18.3.0",
     "@types/react-file-icon": "^1.0.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.13",
     "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.12",
+    "tailwindcss": "^3.4.13",
     "typescript": "^5.6.2"
   }
 }

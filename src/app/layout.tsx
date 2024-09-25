@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
-  title: "Docbox",
+  title: "Docubox",
   description: "Store your documents in the cloud. Inspired by Dropbox.",
 };
 

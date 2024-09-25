@@ -7,15 +7,15 @@ type TagInputProps = {
 const TagInput: FunctionComponent<TagInputProps> = ({ tags, setTags }) => {
   const [inputValue, setInputValue] = useState('');
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      addTag(inputValue);
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter' || event.key === ',') {
+      event.preventDefault();
+      addTag(inputValue.trim());
     }
   };
 
-  const handleChange = (e) => {
-    setInputValue(e.target.value);
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(event.target.value);
   };
 
   const addTag = (tag: string) => {

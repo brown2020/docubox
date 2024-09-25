@@ -12,72 +12,70 @@ import {
 import { db } from "@/firebase";
 import { useAppStore } from "@/zustand/useAppStore";
 import { useUser } from "@clerk/nextjs";
-import { doc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Input } from "./ui/input";
 
 import toast from "react-hot-toast";
-import TagInput from "./ui/tagInput";
 
-export function RenameModal() {
+export function AddNewFolderModal() {
   const { user } = useUser();
   const [input, setInput] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
 
-  const { isRenameModalOpen, setIsRenameModalOpen, fileId, filename, tags: tagsList } =
+  const { isCreateFolderModalOpen, setIsCreateFolderModalOpen, folderId } =
     useAppStore();
   
-  useEffect(() => {
-    if (fileId) {
-      setTags(tagsList);
-    }
-  }, [fileId, setTags, tagsList])
-  
-  async function renameFile() {
-    if (!user || !fileId || (!input && !tags)) return;
+  async function createFolder() {
+    if (!user) return;
 
-    const toastId = toast.loading("updating file...");
+    const toastId = toast.loading("creating folder...");
     try {
-      await updateDoc(doc(db, "users", user.id, "files", fileId), {
+      await addDoc(collection(db, "users", user.id, "files"), {
         filename: input,
-        tags
+        folderId,
+        userId: user.id,
+        timestamp: serverTimestamp(),
+        type: 'folder',
+        fullName: user.fullName,
+        profileImg: user.imageUrl,
+        size: 0,
+        lastModified: serverTimestamp(),
+        unstructuredFile: null,
+        summary: null,
+        deletedAt: null,
       });
-      toast.success("File updated successfully!", { id: toastId });
+
+      toast.success("Folder created successfully!", { id: toastId });
     } catch (error) {
       console.log(error);
-      toast.error("Error updating file!", { id: toastId });
+      toast.error("Error creating folder!", { id: toastId });
     } finally {
       setInput("");
-      setIsRenameModalOpen(false);
+      setIsCreateFolderModalOpen(false);
     }
   }
 
   return (
     <Dialog
-      open={isRenameModalOpen}
-      onOpenChange={(isOpen) => setIsRenameModalOpen(isOpen)}
+      open={isCreateFolderModalOpen}
+      onOpenChange={(isOpen) => setIsCreateFolderModalOpen(isOpen)}
     >
       <DialogContent className="sm:max-w-md bg-slate-200 dark:bg-slate-600">
         <DialogHeader>
-          <DialogTitle className="pb-2">File Update</DialogTitle>
+          <DialogTitle className="pb-2">Create Folder</DialogTitle>
 
           <DialogDescription>
-            Filename
+            Folder Name
           </DialogDescription>
           <Input
             id="link"
-            defaultValue={filename}
+            defaultValue={''}
             onChange={(e) => setInput(e.target.value)}
             onKeyDownCapture={(e) => {
-              if (e.key === "Enter") renameFile();
+              if (e.key === "Enter") createFolder();
             }}
           />
-
-          <DialogDescription>
-            Tags
-          </DialogDescription>
-          <TagInput tags={tags} setTags={setTags} />
         </DialogHeader>
 
         <DialogFooter className="flex space-x-2 py-3">
@@ -85,7 +83,7 @@ export function RenameModal() {
             size="sm"
             className="px-3 flex-1"
             variant={"ghost"}
-            onClick={() => setIsRenameModalOpen(false)}
+            onClick={() => setIsCreateFolderModalOpen(false)}
           >
             <span className="sr-only">Cancel</span>
             <span>Cancel</span>
@@ -94,10 +92,10 @@ export function RenameModal() {
             type="submit"
             size={"sm"}
             className="px-3 flex-1"
-            onClick={() => renameFile()}
+            onClick={() => createFolder()}
           >
-            <span className="sr-only">Update</span>
-            <span>Update</span>
+            <span className="sr-only">Save</span>
+            <span>Save</span>
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -109,9 +109,9 @@ export function DataTable<TData, TValue>({
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
+              {headerGroup.headers.map((header, index) => (
                 <TableHead
-                  key={header.id}
+                  key={`header-${index}${header.id}`}
                   className="text-left py-3 px-4 font-semibold text-gray-500 dark:text-white"
                 >
                   {header.isPlaceholder
@@ -128,8 +128,7 @@ export function DataTable<TData, TValue>({
         <TableBody>
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <>
-                {row.getValue("type") !== "folder" ? (
+              row.getValue("type") !== "folder" ? (
                   <File
                     id={row.getValue("id")}
                     key={"file" + row.id}
@@ -311,8 +310,7 @@ export function DataTable<TData, TValue>({
                       </Button>
                     </TableCell>
                   </Folder>
-                )}
-              </>
+                )
             ))
           ) : (
             <TableRow key={"no Found"}>

@@ -51,7 +51,7 @@ export function ShowParsedDataModal() {
     isAIAlreadyCalled.current = true
     setLoading(true)
     try {
-      const summary = await generateSummary(apiKey, unstructuredFileData)
+      const summary = await generateSummary(useCredits ? null : apiKey, unstructuredFileData)
       summary && setSummary(summary)
       fileSummary && updateRecord(fileSummary.docId, summary || "")
       if (!!summary) {

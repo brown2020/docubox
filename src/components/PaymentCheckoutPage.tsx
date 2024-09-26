@@ -24,9 +24,20 @@ export default function PaymentCheckoutPage({ amount }: Props) {
     async function initializePayment() {
       try {
         const secret = await createPaymentIntent(convertToSubcurrency(amount));
-        if (secret) setClientSecret(secret);
-      } catch (error) {
-        setErrorMessage("Failed to initialize payment. Please try again.");
+        if (secret) {
+          setClientSecret(secret);
+        }
+      } catch (error: unknown) {
+        // Ensure type-safe error handling
+        if (error instanceof Error) {
+          setErrorMessage(
+            error.message || "Failed to initialize payment. Please try again."
+          );
+        } else {
+          setErrorMessage(
+            "An unknown error occurred while initializing payment."
+          );
+        }
       }
     }
 
@@ -43,15 +54,16 @@ export default function PaymentCheckoutPage({ amount }: Props) {
     setLoading(true);
 
     try {
-      // Confirm the Payment
+      // Confirm the Payment Element is submitted
       const { error: submitError } = await elements.submit();
       if (submitError) {
-        setErrorMessage(submitError.message || "Payment failed");
+        setErrorMessage(submitError.message || "Payment submission failed");
         setLoading(false);
         return;
       }
 
-      const { error } = await stripe.confirmPayment({
+      // Confirm the Payment
+      const paymentResult = await stripe.confirmPayment({
         elements,
         clientSecret,
         confirmParams: {
@@ -59,20 +71,25 @@ export default function PaymentCheckoutPage({ amount }: Props) {
         },
       });
 
-      if (error) {
-        // This point is only reached if there's an immediate error when
-        // confirming the payment. Show the error to the user
-        // For example, the card was declined
-        setErrorMessage(error.message || "Payment failed");
-        console.log("Payment failed:", error.message);
+      if (paymentResult.error) {
+        // Log and display the error message in a type-safe way
+        setErrorMessage(paymentResult.error.message || "Payment failed");
+        console.error("Payment failed:", paymentResult.error.message);
       } else {
-        console.log("Payment successful!!!!!!!!!");
-        // The payment UI automatically closes with a success animation
-        // User is redirected to the return_url
+        console.log("Payment successful!");
+        // Handle successful payment, e.g., show success message or redirect
       }
-    } catch (error) {
-      setErrorMessage("Payment validation failed. Please try again.");
-      console.error("Payment validation error:", error);
+    } catch (err: unknown) {
+      // Ensure type-safe error handling
+      if (err instanceof Error) {
+        setErrorMessage(
+          err.message || "Payment validation failed. Please try again."
+        );
+        console.error("Payment validation error:", err.message);
+      } else {
+        setErrorMessage("An unknown error occurred. Please try again.");
+        console.error("Unexpected error:", err);
+      }
     }
 
     setLoading(false);
@@ -81,7 +98,7 @@ export default function PaymentCheckoutPage({ amount }: Props) {
   if (!clientSecret || !stripe || !elements) {
     return (
       <div className="flex items-center justify-center max-w-6xl h-36 mx-auto w-full">
-        <Spinner size={'50'} />
+        <Spinner size={"50"} />
       </div>
     );
   }

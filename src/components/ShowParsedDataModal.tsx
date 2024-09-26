@@ -1,26 +1,26 @@
-"use client"
+"use client";
 
-import { useRef, useState } from "react"
-import { doc, updateDoc } from "firebase/firestore"
-import { db } from "@/firebase"
-import { useUser } from "@clerk/nextjs"
+import { useRef, useState } from "react";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/firebase";
+import { useUser } from "@clerk/nextjs";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { useAppStore } from "@/zustand/useAppStore"
-import Spinner from "./common/spinner"
-import { Chunk, Element } from "@/types/types"
-import { generateSummary } from "@/actions/generateSummary"
-import useProfileStore from "@/zustand/useProfileStore"
-import { creditsToMinus } from "@/utils/credits"
+import { useAppStore } from "@/zustand/useAppStore";
+import Spinner from "./common/spinner";
+import { Chunk, Element } from "@/types/types";
+import { generateSummary } from "@/actions/generateSummary";
+import useProfileStore from "@/zustand/useProfileStore";
+import { creditsToMinus } from "@/utils/credits";
 
 export function ShowParsedDataModal() {
   const {
@@ -28,17 +28,17 @@ export function ShowParsedDataModal() {
     setIsShowParseDataModelOpen,
     unstructuredFileData,
     fileSummary,
-  } = useAppStore()
-  const { user } = useUser()
-  const isAIAlreadyCalled = useRef(false)
-  const [loading, setLoading] = useState(false)
+  } = useAppStore();
+  const { user } = useUser();
+  const isAIAlreadyCalled = useRef(false);
+  const [loading, setLoading] = useState(false);
 
-  const [parsedData, setParsedData] = useState<Chunk[] | null>(null)
-  const [summary, setSummary] = useState("")
-  const useCredits = useProfileStore((state) => state.profile.useCredits)
-  const apiKey = useProfileStore((state) => state.profile.openai_api_key)
-  const currentCredits = useProfileStore((state) => state.profile.credits)
-  const minusCredits = useProfileStore((state) => state.minusCredits)
+  const [parsedData, setParsedData] = useState<Chunk[] | null>(null);
+  const [summary, setSummary] = useState("");
+  const useCredits = useProfileStore((state) => state.profile.useCredits);
+  const apiKey = useProfileStore((state) => state.profile.openai_api_key);
+  const currentCredits = useProfileStore((state) => state.profile.credits);
+  const minusCredits = useProfileStore((state) => state.minusCredits);
 
   const fetchSummary = async () => {
     if (
@@ -47,48 +47,62 @@ export function ShowParsedDataModal() {
       isAIAlreadyCalled.current ||
       fileSummary.summary
     ) {
-      return
+      return;
     }
-    isAIAlreadyCalled.current = true
+    isAIAlreadyCalled.current = true;
     try {
-      if(useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI || 4))) return
-      setLoading(true)
-      const summary = await generateSummary(useCredits ? null : apiKey, unstructuredFileData)
-      summary && setSummary(summary)
-      fileSummary && updateRecord(fileSummary.docId, summary || "")
-      if (!!summary) {
-        if (useCredits) {
-          await minusCredits(creditsToMinus("open-ai"))
-        }
+      if (
+        useCredits &&
+        currentCredits <
+          Number(process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI || 4)
+      )
+        return;
+
+      setLoading(true);
+      const summary = await generateSummary(
+        useCredits ? null : apiKey,
+        unstructuredFileData
+      );
+
+      if (summary) {
+        setSummary(summary);
+      }
+
+      if (fileSummary) {
+        await updateRecord(fileSummary.docId, summary || "");
+      }
+
+      if (summary && useCredits) {
+        await minusCredits(creditsToMinus("open-ai"));
       }
     } catch (error) {
-      isAIAlreadyCalled.current = false
-      console.error("Error parsing data:", error)
+      isAIAlreadyCalled.current = false;
+      console.error("Error parsing data:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const extractReadableText = (data: Chunk[] | null) => {
-    if (!data) return <p>No content to display.</p>
+    if (!data) return <p>No content to display.</p>;
 
-    const contentArray = data[0]?.content || []
+    const contentArray = data[0]?.content || [];
     if (contentArray.length === 0)
-      return <p>No readable content found in the file.</p>
+      return <p>No readable content found in the file.</p>;
 
     // Group elements by their parent ID, if applicable
     const groupedContent = contentArray.reduce((acc, item) => {
-      const parentId = item.metadata.parent_id || "root" // "root" for elements without a parent
+      const parentId = item.metadata.parent_id || "root"; // "root" for elements without a parent
       if (!acc[parentId]) {
-        acc[parentId] = []
+        acc[parentId] = [];
       }
-      acc[parentId].push(item)
-      return acc
-    }, {} as Record<string, Element[]>)
+      acc[parentId].push(item);
+      return acc;
+    }, {} as Record<string, Element[]>);
 
     // Render the grouped elements
     return Object.keys(groupedContent).map((parentId) => {
-      const elements = groupedContent[parentId]
+      const elements = groupedContent[parentId];
       return (
         <div key={parentId} className="grouped-content">
           {elements.map((item) => {
@@ -99,18 +113,18 @@ export function ShowParsedDataModal() {
                   <div key={item.element_id} className="mb-2">
                     <strong>{item.type}:</strong> {item.text}
                   </div>
-                )
+                );
 
               case "UncategorizedText":
                 // Ignore elements that are just numbers if PageNumber is also present
                 if (/^\d+$/.test(item.text || "")) {
-                  return null
+                  return null;
                 }
                 return (
                   <div key={item.element_id} className="mb-2 text-gray-500">
                     <strong>Uncategorized:</strong> {item.text}
                   </div>
-                )
+                );
 
               case "Header":
               case "Footer":
@@ -118,50 +132,50 @@ export function ShowParsedDataModal() {
                   <div key={item.element_id} className="mb-2 font-bold text-lg">
                     {item.text} ({item.type})
                   </div>
-                )
+                );
 
               case "PageNumber":
                 return (
                   <div key={item.element_id} className="mb-2">
                     <strong>Page:</strong> {item.text}
                   </div>
-                )
+                );
 
               case "Image":
                 return (
                   <div key={item.element_id} className="mb-2">
                     <strong>Image:</strong> {item.text || "No descriptive text"}
                   </div>
-                )
+                );
 
               default:
                 return (
                   <div key={item.element_id} className="mb-2">
                     <strong>{item.type}:</strong> {item.text || "N/A"}
                   </div>
-                )
+                );
             }
           })}
         </div>
-      )
-    })
-  }
+      );
+    });
+  };
 
   const fetchReadableFormat = async () => {
     if (!unstructuredFileData) {
-      return
+      return;
     }
-    setParsedData(JSON.parse(unstructuredFileData))
-  }
+    setParsedData(JSON.parse(unstructuredFileData));
+  };
 
   const updateRecord = async (docId: string, summary: string | undefined) => {
     if (!user) {
-      return
+      return;
     }
     await updateDoc(doc(db, "users", user.id, "files", docId), {
       summary: summary ?? null,
-    })
-  }
+    });
+  };
 
   return (
     <Dialog
@@ -229,5 +243,5 @@ export function ShowParsedDataModal() {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

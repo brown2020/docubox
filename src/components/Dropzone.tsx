@@ -29,6 +29,7 @@ export default function Dropzone() {
   const { user } = useUser()
   const { folderId } = useAppStore()
   const useCredits = useProfileStore((state) => state.profile.useCredits)
+  const currentCredits = useProfileStore((state) => state.profile.credits)
   const minusCredits = useProfileStore((state) => state.minusCredits)
 
   const onDrop = async (acceptedFiles: File[]) => {
@@ -38,12 +39,14 @@ export default function Dropzone() {
 
     const formData = new FormData()
     formData.append("file", acceptedFiles[0])
-    if (useCredits) {
-      await minusCredits(creditsToMinus("unstructured"))
-    }
 
     try {
+      if(useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_UNSTRUCTURED || 4))) return
       const data: Chunk[] = await parseFile(formData)
+
+      if (useCredits) {
+        await minusCredits(creditsToMinus("unstructured"))
+      }
 
       acceptedFiles.forEach((file) => {
         const reader = new FileReader()

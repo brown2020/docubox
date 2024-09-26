@@ -37,6 +37,7 @@ export function ShowParsedDataModal() {
   const [summary, setSummary] = useState("")
   const useCredits = useProfileStore((state) => state.profile.useCredits)
   const apiKey = useProfileStore((state) => state.profile.openai_api_key)
+  const currentCredits = useProfileStore((state) => state.profile.credits)
   const minusCredits = useProfileStore((state) => state.minusCredits)
 
   const fetchSummary = async () => {
@@ -49,8 +50,9 @@ export function ShowParsedDataModal() {
       return
     }
     isAIAlreadyCalled.current = true
-    setLoading(true)
     try {
+      if(useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI || 4))) return
+      setLoading(true)
       const summary = await generateSummary(useCredits ? null : apiKey, unstructuredFileData)
       summary && setSummary(summary)
       fileSummary && updateRecord(fileSummary.docId, summary || "")

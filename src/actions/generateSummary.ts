@@ -3,7 +3,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
 
 
-export const generateSummary = async (apiKey: string, data: any) => {
+export const generateSummary = async (apiKey: string | null, data: string) => {
   try {
     const systemPrompt = "You are a helpful translation assistant. Your job is to generate a summary of the provided json data. Without any introduction, provide an answer that is concise, informative, and 100 words or less.";
     const userPrompt = `Provided JSON data:\n${JSON.stringify(data)}`;

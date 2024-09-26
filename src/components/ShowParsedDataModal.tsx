@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { useUser } from "@clerk/nextjs";
@@ -19,6 +18,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppStore } from "@/zustand/useAppStore";
 import Spinner from "./common/spinner";
 import { Chunk, Element } from "@/types/types";
+import { generateSummary } from "@/actions/generateSummary";
+import useProfileStore from "@/zustand/useProfileStore";
+import { creditsToMinus } from "@/utils/credits";
 
 export function ShowParsedDataModal() {
   const {
@@ -28,42 +30,51 @@ export function ShowParsedDataModal() {
     fileSummary,
   } = useAppStore();
   const { user } = useUser();
-
   const isAIAlreadyCalled = useRef(false);
   const [loading, setLoading] = useState(false);
 
   const [parsedData, setParsedData] = useState<Chunk[] | null>(null);
   const [summary, setSummary] = useState("");
+  const useCredits = useProfileStore((state) => state.profile.useCredits);
+  const apiKey = useProfileStore((state) => state.profile.openai_api_key);
+  const currentCredits = useProfileStore((state) => state.profile.credits);
+  const minusCredits = useProfileStore((state) => state.minusCredits);
 
   const fetchSummary = async () => {
     if (
       !fileSummary ||
       !unstructuredFileData ||
       isAIAlreadyCalled.current ||
-      (fileSummary.summary)
+      fileSummary.summary
     ) {
       return;
     }
     isAIAlreadyCalled.current = true;
-    setLoading(true);
     try {
-      const response = await fetch("/api/ai", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: unstructuredFileData,
-      });
+      if (
+        useCredits &&
+        currentCredits <
+          Number(process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI || 4)
+      )
+        return;
 
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
+      setLoading(true);
+      const summary = await generateSummary(
+        useCredits ? null : apiKey,
+        unstructuredFileData
+      );
+
+      if (summary) {
+        setSummary(summary);
       }
 
-      const summary = await response.json();
+      if (fileSummary) {
+        await updateRecord(fileSummary.docId, summary || "");
+      }
 
-      summary && setSummary(summary);
-      fileSummary &&
-        updateRecord(fileSummary.docId,  summary);
+      if (summary && useCredits) {
+        await minusCredits(creditsToMinus("open-ai"));
+      }
     } catch (error) {
       isAIAlreadyCalled.current = false;
       console.error("Error parsing data:", error);
@@ -154,13 +165,10 @@ export function ShowParsedDataModal() {
     if (!unstructuredFileData) {
       return;
     }
-    setParsedData(JSON.parse(unstructuredFileData))
+    setParsedData(JSON.parse(unstructuredFileData));
   };
 
-  const updateRecord = async (
-    docId: string,
-    summary: string | undefined
-  ) => {
+  const updateRecord = async (docId: string, summary: string | undefined) => {
     if (!user) {
       return;
     }
@@ -190,10 +198,7 @@ export function ShowParsedDataModal() {
               >
                 Readable format
               </TabsTrigger>
-              <TabsTrigger
-                value="summary"
-                onClick={() => fetchSummary()}
-              >
+              <TabsTrigger value="summary" onClick={() => fetchSummary()}>
                 Summary
               </TabsTrigger>
             </TabsList>
@@ -211,8 +216,8 @@ export function ShowParsedDataModal() {
                 </div>
               ) : (
                 <div className="bg-gray-100 p-4 rounded-lg">
-              {extractReadableText(parsedData)}
-            </div>
+                  {extractReadableText(parsedData)}
+                </div>
               )}
             </TabsContent>
             <TabsContent value="summary" className="text-gray-800">

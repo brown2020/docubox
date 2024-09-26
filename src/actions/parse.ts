@@ -16,6 +16,9 @@ export async function parseFile(
   console.log("File data loaded. Byte length:", fileData.byteLength);
   const apiKey = process.env.UNSTRUCTURED_API_KEY || "";
   const apiURL = process.env.UNSTRUCTURED_API_URL || "";
+
+  console.log({apiKey: process.env.OPENAI_API_KEY,})
+
   const client = new UnstructuredClient({
     security: {
       apiKeyAuth: apiKey,

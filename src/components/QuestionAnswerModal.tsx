@@ -22,7 +22,7 @@ export const QuestionAnswerModal = () => {
       open={isQuestionAnswerModalOpen}
       onOpenChange={setQuestionAnswerModalOpen}
     >
-      <DialogContent className="w-full max-w-5xl">
+      <DialogContent className="w-full max-w-5xl bg-slate-200 dark:bg-slate-600">
         <DialogHeader>
           <DialogTitle>Q&A Session</DialogTitle>
           <DialogDescription>
@@ -32,9 +32,10 @@ export const QuestionAnswerModal = () => {
         <div className="">
           <Chat fileId={fileId} />
         </div>
-        <DialogFooter className="sm:justify-start">
+        <DialogFooter className="sm:justify-end">
           <DialogClose asChild>
-            <Button type="button" variant="secondary">
+            <Button type="button" className="px-4"
+            variant="ghost">
               Close
             </Button>
           </DialogClose>

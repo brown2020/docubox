@@ -201,9 +201,6 @@ export function ShowParsedDataModal() {
               <TabsTrigger value="summary" onClick={() => fetchSummary()}>
                 Summary
               </TabsTrigger>
-              <TabsTrigger value="chat">
-                Ask a Question of the Documents
-              </TabsTrigger>
             </TabsList>
           </div>
           <div className="overflow-auto h-[70vh] p-4 bg-gray-50 rounded-lg w-full">

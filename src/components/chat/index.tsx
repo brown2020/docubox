@@ -49,8 +49,6 @@ export const Chat = ({ fileId }: IChatProps) => {
 
       const data = docSnap.data();
 
-      console.log({ data });
-
       const qaRecords = data?.qaRecords || [];
 
       setHistory(qaRecords);
@@ -70,6 +68,7 @@ export const Chat = ({ fileId }: IChatProps) => {
         qaRecords: _records
       })
     } catch (error) {
+      console.log(error);
       throw Error("Something went wrong while updating QA Records");
     }
   }
@@ -84,6 +83,7 @@ export const Chat = ({ fileId }: IChatProps) => {
         setHistory(updatedRecords);
         setGeneratedContent("");
       } catch (error) {
+        console.log(error)
 
       }
     }
@@ -140,12 +140,11 @@ export const Chat = ({ fileId }: IChatProps) => {
       setHistory([...history]);
       toast.success("Record is removed.")
     } catch (error) {
-
+      console.log(error);
     } finally {
       setDeleting(false);
     }
-  }
-
+  };
   return (
     <div style={{ height: '65dvh' }} className="flex flex-col gap-2">
       <div className="flex-grow border rounded-md bg-slate-100 max-h-[65dvh] overflow-y-auto px-5 pt-5 pb-2">
@@ -165,9 +164,9 @@ export const Chat = ({ fileId }: IChatProps) => {
         )}
 
       </div>
-      <div className="flex gap-x-3 items-center">
-        <Textarea placeholder="Type your question here." className="resize-none" value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} />
-        <Button variant="outline" size="icon" onClick={handleAsk} disabled={isGenerating}>
+      <div className="flex gap-x-3 items-center ">
+        <Textarea placeholder="Type your question here." className="resize-none bg-slate-200 dark:bg-slate-600" value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} />
+        <Button variant="outline" size="icon" className="bg-slate-200 dark:bg-slate-600 border-gray-400" onClick={handleAsk} disabled={isGenerating || newQuestion.length === 0}>
           {isGenerating ? <LoaderCircleIcon className="animate-spin" size={18} /> : <ArrowUp size={18} />}
         </Button>
       </div>

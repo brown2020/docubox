@@ -54,7 +54,7 @@ export function ShowParsedDataModal() {
       if (
         useCredits &&
         currentCredits <
-          Number(process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI || 4)
+        Number(process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI || 4)
       )
         return;
 
@@ -201,9 +201,12 @@ export function ShowParsedDataModal() {
               <TabsTrigger value="summary" onClick={() => fetchSummary()}>
                 Summary
               </TabsTrigger>
+              <TabsTrigger value="chat">
+                Ask a Question of the Documents
+              </TabsTrigger>
             </TabsList>
           </div>
-          <div className="overflow-auto h-[50vh] mb-4 p-4 bg-gray-50 rounded-lg w-full">
+          <div className="overflow-auto h-[70vh] p-4 bg-gray-50 rounded-lg w-full">
             <TabsContent value="raw" className="w-full">
               <pre className="whitespace-pre-wrap text-sm text-gray-800 w-full">
                 {unstructuredFileData}
@@ -229,6 +232,7 @@ export function ShowParsedDataModal() {
                 "Cant't display anything yet."
               )}
             </TabsContent>
+          
           </div>
         </Tabs>
         <DialogFooter className="flex justify-end space-x-2 py-3">

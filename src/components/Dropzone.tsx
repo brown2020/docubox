@@ -20,6 +20,7 @@ import { Progress } from "./ui/progress-bar"
 import { useAppStore } from "@/zustand/useAppStore"
 import useProfileStore from "@/zustand/useProfileStore"
 import { creditsToMinus } from "@/utils/credits"
+import { uploadToRagie } from "@/actions/ragieActions"
 
 export default function Dropzone() {
   const maxSize = 20971520
@@ -41,7 +42,7 @@ export default function Dropzone() {
     formData.append("file", acceptedFiles[0])
 
     try {
-      if(useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_UNSTRUCTURED || 4))) return
+      if (useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_UNSTRUCTURED || 4))) return
       const data: Chunk[] = await parseFile(formData)
 
       if (useCredits) {
@@ -84,6 +85,8 @@ export default function Dropzone() {
         summary: null,
         deletedAt: null,
         folderId,
+        uploadedToRagie: false,
+        ragieFileId: null,
       })
 
       const imageRef = ref(
@@ -106,7 +109,9 @@ export default function Dropzone() {
           await updateDoc(doc(db, "users", user.id, "files", docRef.id), {
             downloadUrl,
             docId: docRef.id,
-          })
+          });
+
+          await _uploadToRagie(user.id, { id: docRef.id, downloadUrl, filename: selectedFile.name })
         }
       )
 
@@ -119,6 +124,25 @@ export default function Dropzone() {
     }
     setLoading(false)
   }
+
+  // Function to upload a document to Ragie using server action
+  const _uploadToRagie = async (userId: string, document: { id: string; downloadUrl: string; filename: string }) => {
+    try {
+      const response = await uploadToRagie(document.id, document.downloadUrl, document.filename); // Call server action
+      console.log("Uploaded to Ragie:", response);
+      // Update Firestore with the Ragie upload status
+      await updateDoc(doc(db, "users", userId, "files", document.id), {
+        uploadedToRagie: true,
+        ragieFileId: response.id
+      });
+
+    } catch (error) {
+      console.error("Error uploading to Ragie: ", error);
+    } finally {
+
+    }
+  };
+
   return (
     <DropzoneComponent minSize={0} maxSize={maxSize} onDrop={onDrop}>
       {({

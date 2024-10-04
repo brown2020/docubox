@@ -119,7 +119,9 @@ export default function TableWrapper({ skeletonFiles }: Props) {
       summary: doc.data().summary,
       unstructuredFile: doc.data().unstructuredFile || "",
       folderId: doc.data().folderId,
-      deletedAt: doc.data().deletedAt
+      deletedAt: doc.data().deletedAt,
+      uploadedToRagie: doc.data().uploadedToRagie,
+      ragieFileId: doc.data().ragieFileId
     }))
     setInitialFiles(files)
   }, [docs])

@@ -11,4 +11,6 @@ export type FileType = {
   tags: string[];
   folderId?: string;
   deletedAt: Date | null;
+  uploadedToRagie: boolean;
+  ragieFileId: string | null;
 };

@@ -1,4 +1,4 @@
-import { BotMessageSquareIcon, LoaderCircleIcon, Trash2Icon, UserIcon } from "lucide-react";
+import { BotMessageSquareIcon, Trash2Icon, UserIcon } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
 import { AnswerWrapper } from "./AnswerWrapper";
 import { Button } from "../ui/button";
@@ -13,7 +13,7 @@ interface IProps {
 export const QARecord = ({ question, answer, isDeleting, onDelete }: IProps) => {
 
   return (
-    <Card className="mb-5">
+    <Card className="mb-5 bg-slate-200 dark:bg-slate-600">
       <CardHeader></CardHeader>
       <CardContent className="space-y-3">
 
@@ -33,7 +33,7 @@ export const QARecord = ({ question, answer, isDeleting, onDelete }: IProps) => 
         </div>
       </CardContent>
       {onDelete && (
-        <CardFooter className="flex justify-end">
+        <CardFooter className="flex justify-end ">
           <Button variant="outline" size="icon" onClick={onDelete} disabled={isDeleting}>
             <Trash2Icon size={18} className="text-red-500" />
           </Button>

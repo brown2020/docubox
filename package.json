@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^0.0.62",
+    "@ai-sdk/openai": "^0.0.66",
     "@clerk/nextjs": "^5.6.2",
     "@next/env": "^14.2.13",
     "@radix-ui/react-avatar": "^1.1.1",
@@ -28,7 +28,7 @@
     "firebase": "^10.13.2",
     "firebase-admin": "^12.5.0",
     "immutability-helper": "^3.1.1",
-    "lucide-react": "^0.446.0",
+    "lucide-react": "^0.447.0",
     "next": "^14.2.13",
     "next-themes": "^0.3.0",
     "pretty-bytes": "^6.1.1",
@@ -40,14 +40,14 @@
     "react-file-icon": "^1.5.0",
     "react-firebase-hooks": "^5.1.1",
     "react-hot-toast": "^2.4.1",
-    "react-markdown": "^8.0.7",
+    "react-markdown": "^9.0.1",
     "react-syntax-highlighter": "^15.5.0",
-    "remark-gfm": "^3.0.1",
-    "remark-math": "^5.1.1",
-    "stripe": "^16.12.0",
+    "remark-gfm": "^4.0.0",
+    "remark-math": "^6.0.0",
+    "stripe": "^17.1.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
-    "unstructured-client": "^0.17.1",
+    "unstructured-client": "^0.18.0",
     "zustand": "^4.5.5"
   },
   "devDependencies": {

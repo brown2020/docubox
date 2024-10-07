@@ -74,25 +74,25 @@ export const GridView: FunctionComponent<Props> = ({
       {data.map((i) =>
         i.type !== "folder" ? (
           <File
-            id={i.id}
-            key={i.id}
+            id={i.docId}
+            key={i.docId}
             hasTableRow={false}
             isTrashItem={isTrashView}
           >
             <Card
-              key={i.id}
+              key={i.docId}
               data={i}
               openRenameModal={openRenameModal}
               openViewModal={openParseDataViewModal}
               openDeleteModal={() =>
-                openDeleteModal(i.id, i.folderId, i.type === "folder")
+                openDeleteModal(i.docId, i.folderId, i.type === "folder")
               }
             />
           </File>
         ) : (
           <Folder
-            id={i.id}
-            key={i.id}
+            id={i.docId}
+            key={i.docId}
             onDrop={(docId: string, folderId: string) =>
               onDrop(docId, folderId)
             }
@@ -100,12 +100,12 @@ export const GridView: FunctionComponent<Props> = ({
             isTrashItem={isTrashView}
           >
             <Card
-              key={i.id}
+              key={i.docId}
               data={i}
               openRenameModal={openRenameModal}
               openViewModal={openParseDataViewModal}
               openDeleteModal={() =>
-                openDeleteModal(i.id, i.folderId, i.type === "folder")
+                openDeleteModal(i.docId, i.folderId, i.type === "folder")
               }
             />
           </Folder>

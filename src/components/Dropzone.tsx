@@ -1,8 +1,6 @@
 "use client"
-import { parseFile } from "@/actions/parse"
 import { db, storage } from "@/firebase"
 import { cn } from "@/lib/utils"
-import { Chunk } from "@/types/types"
 import { useUser } from "@clerk/nextjs"
 import {
   addDoc,
@@ -41,8 +39,8 @@ export default function Dropzone() {
     formData.append("file", acceptedFiles[0])
 
     try {
-      if(useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_UNSTRUCTURED || 4))) return
-      const data: Chunk[] = await parseFile(formData)
+      if (useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_UNSTRUCTURED || 4))) return
+      // const data: Chunk[] = await parseFile(formData)
 
       if (useCredits) {
         await minusCredits(creditsToMinus("unstructured"))
@@ -53,7 +51,7 @@ export default function Dropzone() {
         reader.onabort = () => console.log("file reading was aborted")
         reader.onerror = () => console.log("file reading has failed")
         reader.onload = async () => {
-          await uploadPost(data, file)
+          await uploadPost(file)
         }
         reader.readAsArrayBuffer(file)
       })
@@ -63,7 +61,7 @@ export default function Dropzone() {
       setProcessing(false)
     }
   }
-  const uploadPost = async (unstructuredData: Chunk[], selectedFile: File) => {
+  const uploadPost = async (selectedFile: File) => {
     if (loading) return
     if (!user) return
 
@@ -80,10 +78,12 @@ export default function Dropzone() {
         size: selectedFile.size,
         type: selectedFile.type,
         lastModified: selectedFile.lastModified,
-        unstructuredFile: JSON.stringify(unstructuredData, null, 2),
+        unstructuredFile: null,
         summary: null,
         deletedAt: null,
         folderId,
+        isUploadedToRagie: false,
+        ragieFileId: null,
       })
 
       const imageRef = ref(
@@ -106,7 +106,9 @@ export default function Dropzone() {
           await updateDoc(doc(db, "users", user.id, "files", docRef.id), {
             downloadUrl,
             docId: docRef.id,
-          })
+          });
+
+
         }
       )
 
@@ -119,6 +121,9 @@ export default function Dropzone() {
     }
     setLoading(false)
   }
+
+ 
+
   return (
     <DropzoneComponent minSize={0} maxSize={maxSize} onDrop={onDrop}>
       {({

@@ -22,15 +22,18 @@ interface AppStore {
   unstructuredFileData: string;
   setUnstructuredFileData: (unstructuredFileData: string) => void;
   fileSummary:
-    | {
-        docId: string;
-        summary: string;
-      }
-    | undefined;
+  | {
+    docId: string;
+    summary: string;
+  }
+  | undefined;
   setFileSummary: (data: {
     docId: string;
     summary: string;
   }) => void;
+
+  isQuestionAnswerModalOpen: boolean;
+  setQuestionAnswerModalOpen: (isOpen: boolean) => void;
 }
 export const useAppStore = create<AppStore>((set) => ({
   isDeleteModalOpen: false,
@@ -64,4 +67,11 @@ export const useAppStore = create<AppStore>((set) => ({
     docId: string;
     summary: string;
   }) => set({ fileSummary: data }),
+
+
+  isQuestionAnswerModalOpen: false,
+  setQuestionAnswerModalOpen(isOpen) {
+    set({ isQuestionAnswerModalOpen: isOpen })
+  },
+
 }));

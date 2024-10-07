@@ -43,7 +43,7 @@ export const Card: FunctionComponent<Props> = ({
                 {
                   data.type !== 'folder' && <DropdownMenuItem
                   onClick={() =>
-                    openViewModal(data.id, data.unstructuredFile, data.summary)
+                    openViewModal(data.docId, data.unstructuredFile, data.summary)
                   }
                 >
                   View
@@ -51,7 +51,7 @@ export const Card: FunctionComponent<Props> = ({
                 }
                 <DropdownMenuItem
                   onClick={() =>
-                    openRenameModal(data.id, data.filename, data.tags)
+                    openRenameModal(data.docId, data.filename, data.tags)
                   }
                 >
                   Edit

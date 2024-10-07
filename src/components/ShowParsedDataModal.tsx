@@ -64,37 +64,38 @@ export function ShowParsedDataModal() {
       setDocument(data as FileType);
       setDocLoading(false);
     }
-  }, [fileId, user?.id])
+  }, [fileId, user?.id]);
 
   useEffect(() => {
     if (!unstructuredFileData) {
       getDocument();
     }
-  }, [unstructuredFileData, getDocument])
+  }, [unstructuredFileData, getDocument]);
 
   const fetchUnstructuredData = useCallback(async () => {
     if (user && document && !!!document.unstructuredFile) {
       try {
-
         setUnstructuredLoading(true);
-        const data: Chunk[] = await parseFile(document?.downloadUrl, document.filename);
+        const data: Chunk[] = await parseFile(
+          document?.downloadUrl,
+          document.filename
+        );
         await updateDoc(doc(db, "users", user.id, "files", document.docId), {
-          unstructuredFile: JSON.stringify(data, null, 2)
+          unstructuredFile: JSON.stringify(data, null, 2),
         });
 
         setUnstructuredFileData(JSON.stringify(data, null, 2));
-
       } catch (error) {
-        console.error(error)
+        console.error(error);
       } finally {
-        setUnstructuredLoading(false)
+        setUnstructuredLoading(false);
       }
     }
-  }, [document, user])
+  }, [document, setUnstructuredFileData, user]);
 
   useEffect(() => {
     fetchUnstructuredData();
-  }, [fetchUnstructuredData])
+  }, [fetchUnstructuredData]);
 
   const fetchSummary = async () => {
     if (
@@ -110,7 +111,7 @@ export function ShowParsedDataModal() {
       if (
         useCredits &&
         currentCredits <
-        Number(process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI || 4)
+          Number(process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI || 4)
       )
         return;
 
@@ -261,8 +262,7 @@ export function ShowParsedDataModal() {
           </div>
           <div className="overflow-auto h-[70vh] p-4 bg-gray-50 rounded-lg w-full">
             <TabsContent value="raw" className="w-full h-[98%]">
-
-              {(isDocLoading || isUnstructuredLoading) ? (
+              {isDocLoading || isUnstructuredLoading ? (
                 <div className="flex flex-col justify-center items-center h-full">
                   <LoaderCircleIcon size={48} className="animate-spin" />
                   <small>Loading Raw Data...</small>
@@ -272,7 +272,6 @@ export function ShowParsedDataModal() {
                   {unstructuredFileData}
                 </pre>
               )}
-
             </TabsContent>
             <TabsContent value="readable" className="text-gray-800">
               {loading ? (
@@ -294,7 +293,6 @@ export function ShowParsedDataModal() {
                 "Cant't display anything yet."
               )}
             </TabsContent>
-
           </div>
         </Tabs>
         <DialogFooter className="flex justify-end space-x-2 py-3">

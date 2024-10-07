@@ -1,5 +1,6 @@
 "use client";
 
+import { deleteFileFromRagie } from "@/actions/ragieActions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -77,6 +78,8 @@ export function DeleteModal() {
         const docSnap = await getDoc(docRef);
         const document = docSnap.data();
         if (document) {
+          console.info("Ragie file Id: ", document.ragieFileId);
+          await deleteFileFromRagie(document.ragieFileId);
           const fileName = `${document.docId}_${document.filename}`
           await deleteFileFromStorage(fileName)
         }

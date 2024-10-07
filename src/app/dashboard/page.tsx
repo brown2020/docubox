@@ -24,7 +24,7 @@ export default function Dashboard() {
         )
         const files: FileType[] = docsResults.docs.map((doc) => {
           return {
-            id: doc.id || "",
+            docId: doc.id || "",
             filename: doc.data().filename || doc.id || "",
             tags: doc.data().tags,
             fullName: doc.data().fullName || doc.id || "",
@@ -36,6 +36,8 @@ export default function Dashboard() {
             summary: doc.data().summary || "",
             unstructuredFile: doc.data().unstructuredFile || "",
             deletedAt: doc.data().deletedAt || null,
+            isUploadedToRagie: doc.data().isUploadedToRagie,
+            ragieFileId: doc.data().ragieFileId
           }
         })
         setSkeletonFiles(files)

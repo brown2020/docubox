@@ -2,18 +2,27 @@
 import { Element, Chunk } from "@/types/types";
 import { UnstructuredClient } from "unstructured-client";
 import { Strategy } from "unstructured-client/sdk/models/shared/index.js";
+
 export async function parseFile(
-  formData: FormData,
+  fileUrl: string,
+  fileName: string,
   isHighRes: boolean = false
 ): Promise<Chunk[]> {
-  const file = formData.get("file") as File;
-  if (!file) {
-    console.error("No file uploaded");
-    throw new Error("No file uploaded");
+
+
+  const fileResponse = await fetch(fileUrl);
+
+  if (!fileResponse.ok) {
+    throw new Error(
+      `Failed to fetch the file from Firebase Storage: ${fileResponse.statusText}`
+    );
   }
-  console.log("File uploaded:", file.name, "Size:", file.size);
-  const fileData = await file.arrayBuffer();
-  console.log("File data loaded. Byte length:", fileData.byteLength);
+
+  // Convert the response to a Buffer
+  const fileBuffer = await fileResponse.arrayBuffer();
+  console.log("Fetched file from Firebase Storage.");
+
+  console.log("File data loaded. Byte length:", fileBuffer.byteLength);
   const apiKey = process.env.UNSTRUCTURED_API_KEY || "";
   const apiURL = process.env.UNSTRUCTURED_API_URL || "";
 
@@ -29,8 +38,8 @@ export async function parseFile(
     const response = await client.general.partition({
       partitionParameters: {
         files: {
-          content: fileData, // Use fileData directly as ArrayBuffer
-          fileName: file.name,
+          content: fileBuffer, // Use fileData directly as ArrayBuffer
+          fileName: fileName,
         },
         strategy: isHighRes ? Strategy.HiRes : Strategy.Auto,
       },

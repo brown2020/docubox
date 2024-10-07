@@ -1,5 +1,5 @@
 export type FileType = {
-  id: string;
+  docId: string;
   filename: string;
   fullName: string;
   timestamp: Date;
@@ -11,4 +11,6 @@ export type FileType = {
   tags: string[];
   folderId?: string;
   deletedAt: Date | null;
+  isUploadedToRagie: boolean;
+  ragieFileId: string | null;
 };

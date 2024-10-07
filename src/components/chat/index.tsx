@@ -4,12 +4,13 @@ import { ArrowUp, LoaderCircleIcon } from "lucide-react"
 import { Button } from "../ui/button"
 import { Textarea } from "../ui/textarea"
 import { useCallback, useEffect, useRef, useState } from "react";
-import { retrieveChunks } from "@/actions/ragieActions";
+import { retrieveChunks, uploadToRagie } from "@/actions/ragieActions";
 import { generateWithChunks } from "@/actions/generateActions";
 import { readStreamableValue } from "ai/rsc";
 import { useUser } from "@clerk/nextjs"
 import { QARecord } from "./QARecord"
 import toast from "react-hot-toast";
+import { FileType } from "@/typings/filetype"
 
 // Define a type for the chunk structure
 type Chunk = {
@@ -38,25 +39,56 @@ export const Chat = ({ fileId }: IChatProps) => {
   const [generatedContent, setGeneratedContent] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [history, setHistory] = useState<IQARecord[]>([]);
-
+  const [document, setDocument] = useState<FileType>();
   const [isDeleting, setDeleting] = useState(false);
+
+  const [isDocLoading, setDocLoading] = useState(false);
+  const [isUploadingToRagie, setUploadingToRagie] = useState(false);
 
 
   const getDocument = useCallback(async () => {
     if (user?.id) {
+
+      setDocLoading(true);
+
       const docRef = doc(db, `users`, user?.id, "files", fileId);
       const docSnap = await getDoc(docRef);
 
+      if (!docSnap.exists()) {
+        setDocLoading(false);
+        return;
+      }
+
       const data = docSnap.data();
 
-      console.log({ data });
-
       const qaRecords = data?.qaRecords || [];
-
       setHistory(qaRecords);
+      setDocument(data as FileType);
+      setDocLoading(false);
     }
-
   }, [fileId, user?.id])
+
+  const onDocumentLoad = useCallback(async () => {
+    if (user?.id && document) {
+      const { docId, filename, downloadUrl } = document;
+
+      try {
+        await _uploadToRagie(user?.id, { id: docId, filename, downloadUrl })
+      } catch (error) {
+        console.error(error);
+        throw new Error("Error while uploading file to Ragie.ai")
+      }
+    }
+  }, [document, user])
+
+  useEffect(() => {
+    if (document && !document.isUploadedToRagie) {
+      onDocumentLoad()
+        .then(() => {
+          getDocument();
+        })
+    }
+  }, [document, onDocumentLoad, getDocument]);
 
   useEffect(() => {
     getDocument();
@@ -70,6 +102,7 @@ export const Chat = ({ fileId }: IChatProps) => {
         qaRecords: _records
       })
     } catch (error) {
+      console.error(error)
       throw Error("Something went wrong while updating QA Records");
     }
   }
@@ -84,10 +117,30 @@ export const Chat = ({ fileId }: IChatProps) => {
         setHistory(updatedRecords);
         setGeneratedContent("");
       } catch (error) {
-
+        console.error(error)
       }
     }
   }
+
+  // Function to upload a document to Ragie using server action
+  const _uploadToRagie = async (userId: string, _document: { id: string; downloadUrl: string; filename: string }) => {
+    try {
+      setUploadingToRagie(true);
+      const response = await uploadToRagie(_document.id, _document.downloadUrl, _document.filename);
+
+      // Update Firestore with the Ragie upload status
+      await updateDoc(doc(db, "users", userId, "files", _document.id), {
+        isUploadedToRagie: true,
+        ragieFileId: response.id
+      });
+
+    } catch (error) {
+      console.error("Error uploading to Ragie: ", error);
+      throw Error("Error uploading to Ragie")
+    } finally {
+      setUploadingToRagie(false);
+    }
+  };
 
   // Handle both retrieval and generation in a single function
   const handleAsk = async (): Promise<void> => {
@@ -140,7 +193,7 @@ export const Chat = ({ fileId }: IChatProps) => {
       setHistory([...history]);
       toast.success("Record is removed.")
     } catch (error) {
-
+      console.error(error)
     } finally {
       setDeleting(false);
     }
@@ -149,6 +202,13 @@ export const Chat = ({ fileId }: IChatProps) => {
   return (
     <div style={{ height: '65dvh' }} className="flex flex-col gap-2">
       <div className="flex-grow border rounded-md bg-slate-100 max-h-[65dvh] overflow-y-auto px-5 pt-5 pb-2">
+
+        {(isDocLoading || isUploadingToRagie) && (
+          <div className="flex flex-col justify-center items-center h-full">
+            <LoaderCircleIcon size={48} className="animate-spin" />
+            <small>Loading Document...</small>
+          </div>
+        )}
 
         {history.map(({ question, answer }, index) => (
           <QARecord

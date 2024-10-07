@@ -1,8 +1,6 @@
 "use client"
-import { parseFile } from "@/actions/parse"
 import { db, storage } from "@/firebase"
 import { cn } from "@/lib/utils"
-import { Chunk } from "@/types/types"
 import { useUser } from "@clerk/nextjs"
 import {
   addDoc,
@@ -20,7 +18,6 @@ import { Progress } from "./ui/progress-bar"
 import { useAppStore } from "@/zustand/useAppStore"
 import useProfileStore from "@/zustand/useProfileStore"
 import { creditsToMinus } from "@/utils/credits"
-import { uploadToRagie } from "@/actions/ragieActions"
 
 export default function Dropzone() {
   const maxSize = 20971520
@@ -43,7 +40,7 @@ export default function Dropzone() {
 
     try {
       if (useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_UNSTRUCTURED || 4))) return
-      const data: Chunk[] = await parseFile(formData)
+      // const data: Chunk[] = await parseFile(formData)
 
       if (useCredits) {
         await minusCredits(creditsToMinus("unstructured"))
@@ -54,7 +51,7 @@ export default function Dropzone() {
         reader.onabort = () => console.log("file reading was aborted")
         reader.onerror = () => console.log("file reading has failed")
         reader.onload = async () => {
-          await uploadPost(data, file)
+          await uploadPost(file)
         }
         reader.readAsArrayBuffer(file)
       })
@@ -64,7 +61,7 @@ export default function Dropzone() {
       setProcessing(false)
     }
   }
-  const uploadPost = async (unstructuredData: Chunk[], selectedFile: File) => {
+  const uploadPost = async (selectedFile: File) => {
     if (loading) return
     if (!user) return
 
@@ -81,11 +78,11 @@ export default function Dropzone() {
         size: selectedFile.size,
         type: selectedFile.type,
         lastModified: selectedFile.lastModified,
-        unstructuredFile: JSON.stringify(unstructuredData, null, 2),
+        unstructuredFile: null,
         summary: null,
         deletedAt: null,
         folderId,
-        uploadedToRagie: false,
+        isUploadedToRagie: false,
         ragieFileId: null,
       })
 
@@ -111,7 +108,7 @@ export default function Dropzone() {
             docId: docRef.id,
           });
 
-          await _uploadToRagie(user.id, { id: docRef.id, downloadUrl, filename: selectedFile.name })
+
         }
       )
 
@@ -125,23 +122,7 @@ export default function Dropzone() {
     setLoading(false)
   }
 
-  // Function to upload a document to Ragie using server action
-  const _uploadToRagie = async (userId: string, document: { id: string; downloadUrl: string; filename: string }) => {
-    try {
-      const response = await uploadToRagie(document.id, document.downloadUrl, document.filename); // Call server action
-      console.log("Uploaded to Ragie:", response);
-      // Update Firestore with the Ragie upload status
-      await updateDoc(doc(db, "users", userId, "files", document.id), {
-        uploadedToRagie: true,
-        ragieFileId: response.id
-      });
-
-    } catch (error) {
-      console.error("Error uploading to Ragie: ", error);
-    } finally {
-
-    }
-  };
+ 
 
   return (
     <DropzoneComponent minSize={0} maxSize={maxSize} onDrop={onDrop}>

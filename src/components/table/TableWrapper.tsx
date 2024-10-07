@@ -68,7 +68,7 @@ export default function TableWrapper({ skeletonFiles }: Props) {
     for (const data of docs) {
       if (data.type === "folder") {
         // Recursively calculate the size of the nested folder
-        const folderSize = calculateFolderSize(data.id);
+        const folderSize = calculateFolderSize(data.docId);
         totalSize += folderSize;
       } else {
         // Add the size of the file to the total
@@ -98,7 +98,7 @@ export default function TableWrapper({ skeletonFiles }: Props) {
     // Map through the filtered files and calculate folder size if needed
     return files.map((file) => {
       if (file.type === "folder") {
-        file.size = calculateFolderSize(file.id);
+        file.size = calculateFolderSize(file.docId);
       }
       return { ...file };
     });
@@ -107,8 +107,8 @@ export default function TableWrapper({ skeletonFiles }: Props) {
 
   useEffect(() => {
     if (!docs) return
-    const files = docs.docs.map((doc) => ({
-      id: doc.id || "",
+    const files: FileType[] = docs.docs.map((doc) => ({
+      docId: doc.id || "",
       filename: doc.data().filename || doc.id || "",
       tags: doc.data().tags || [],
       fullName: doc.data().fullName || doc.id || "",
@@ -120,7 +120,7 @@ export default function TableWrapper({ skeletonFiles }: Props) {
       unstructuredFile: doc.data().unstructuredFile || "",
       folderId: doc.data().folderId,
       deletedAt: doc.data().deletedAt,
-      uploadedToRagie: doc.data().uploadedToRagie,
+      isUploadedToRagie: doc.data().isUploadedToRagie,
       ragieFileId: doc.data().ragieFileId
     }))
     setInitialFiles(files)
@@ -138,7 +138,7 @@ export default function TableWrapper({ skeletonFiles }: Props) {
         return;
       }
 
-      const existingDoc = initialFiles.find(file => file.id === docId);
+      const existingDoc = initialFiles.find(file => file.docId === docId);
 
       if (existingDoc) {
         await updateDoc(doc(db, "users", userId, "files", docId), {
@@ -148,7 +148,7 @@ export default function TableWrapper({ skeletonFiles }: Props) {
     }, [initialFiles, isTrashPageActive])
 
   const goBack = () => {
-    const parentFolderId = initialFiles.find((i) => i.id === folderId)?.folderId
+    const parentFolderId = initialFiles.find((i) => i.docId === folderId)?.folderId
     const params = new URLSearchParams(searchParams)
     if (parentFolderId) {
       params.set("activeFolder", parentFolderId)
@@ -173,7 +173,7 @@ export default function TableWrapper({ skeletonFiles }: Props) {
           <div className="border-b h-12" />
           {skeletonFiles.map((file) => (
             <div
-              key={file.id}
+              key={file.docId}
               className="flex items-center space-x-4 p-4 w-full"
             >
               <Skeleton className="h-12 w-12" />

@@ -75,6 +75,7 @@ export function DataTable<TData, TValue>({
     filedata: string,
     summary: string
   ) => {
+    setFileId(docId)
     setUnstructuredFileData(filedata)
     setFileSummary({ docId, summary })
     setIsShowParseDataModelOpen(true)
@@ -161,7 +162,7 @@ export function DataTable<TData, TValue>({
                         <div
                           onClick={() =>
                             openRenameModal(
-                              (row.original as FileType).id,
+                              (row.original as FileType).docId,
                               (row.original as FileType).filename,
                               (row.original as FileType).tags
                             )
@@ -193,7 +194,7 @@ export function DataTable<TData, TValue>({
                         variant={"outline"}
                         size="icon"
                         onClick={() => {
-                          restoreDeletedFile((row.original as FileType).id)
+                          restoreDeletedFile((row.original as FileType).docId)
                         }}
                         className="text-blue-500 hover:bg-blue-100"
                       >
@@ -205,7 +206,7 @@ export function DataTable<TData, TValue>({
                           variant={"outline"}
                           size="icon"
                           className="text-blue-500 hover:bg-blue-100"
-                          onClick={() => handleOpenQuestionAnswerModal((row.original as FileType).id)}>
+                          onClick={() => handleOpenQuestionAnswerModal((row.original as FileType).docId)}>
                           <MessageCircleQuestionIcon size={20} />
                         </Button>
                         <Button
@@ -213,7 +214,7 @@ export function DataTable<TData, TValue>({
                           size="icon"
                           onClick={() => {
                             openParseDataViewModal(
-                              (row.original as FileType).id,
+                              (row.original as FileType).docId,
                               (row.original as FileType).unstructuredFile,
                               (row.original as FileType).summary
                             )
@@ -230,7 +231,7 @@ export function DataTable<TData, TValue>({
                       size="icon"
                       onClick={() =>
                         openDeleteModal(
-                          (row.original as FileType).id,
+                          (row.original as FileType).docId,
                           (row.original as FileType).folderId,
                           (row.original as FileType).type === "folder"
                         )
@@ -267,7 +268,7 @@ export function DataTable<TData, TValue>({
                         <div
                           onClick={() =>
                             openRenameModal(
-                              (row.original as FileType).id,
+                              (row.original as FileType).docId,
                               (row.original as FileType).filename,
                               (row.original as FileType).tags
                             )
@@ -294,7 +295,7 @@ export function DataTable<TData, TValue>({
                         variant={"outline"}
                         size="icon"
                         onClick={() => {
-                          restoreDeletedFile((row.original as FileType).id)
+                          restoreDeletedFile((row.original as FileType).docId)
                         }}
                         className="text-blue-500 hover:bg-blue-100"
                       >
@@ -307,7 +308,7 @@ export function DataTable<TData, TValue>({
                           size="icon"
                           onClick={() => {
                             openParseDataViewModal(
-                              (row.original as FileType).id,
+                              (row.original as FileType).docId,
                               (row.original as FileType).unstructuredFile,
                               (row.original as FileType).summary
                             )
@@ -324,7 +325,7 @@ export function DataTable<TData, TValue>({
                       size="icon"
                       onClick={() =>
                         openDeleteModal(
-                          (row.original as FileType).id,
+                          (row.original as FileType).docId,
                           (row.original as FileType).folderId,
                           (row.original as FileType).type === "folder"
                         )

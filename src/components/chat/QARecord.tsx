@@ -1,4 +1,4 @@
-import { BotMessageSquareIcon, LoaderCircleIcon, Trash2Icon, UserIcon } from "lucide-react";
+import { BotMessageSquareIcon, Trash2Icon, UserIcon } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
 import { AnswerWrapper } from "./AnswerWrapper";
 import { Button } from "../ui/button";

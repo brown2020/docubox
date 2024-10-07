@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { doc, updateDoc } from "firebase/firestore";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { useUser } from "@clerk/nextjs";
 
@@ -21,17 +21,25 @@ import { Chunk, Element } from "@/types/types";
 import { generateSummary } from "@/actions/generateSummary";
 import useProfileStore from "@/zustand/useProfileStore";
 import { creditsToMinus } from "@/utils/credits";
+import { parseFile } from "@/actions/parse";
+import { FileType } from "@/typings/filetype";
+import { LoaderCircleIcon } from "lucide-react";
 
 export function ShowParsedDataModal() {
   const {
     isShowParseDataModelOpen,
     setIsShowParseDataModelOpen,
     unstructuredFileData,
+    setUnstructuredFileData,
     fileSummary,
+    fileId,
   } = useAppStore();
   const { user } = useUser();
   const isAIAlreadyCalled = useRef(false);
   const [loading, setLoading] = useState(false);
+  const [isDocLoading, setDocLoading] = useState(false);
+  const [isUnstructuredLoading, setUnstructuredLoading] = useState(false);
+  const [document, setDocument] = useState<FileType>();
 
   const [parsedData, setParsedData] = useState<Chunk[] | null>(null);
   const [summary, setSummary] = useState("");
@@ -39,6 +47,54 @@ export function ShowParsedDataModal() {
   const apiKey = useProfileStore((state) => state.profile.openai_api_key);
   const currentCredits = useProfileStore((state) => state.profile.credits);
   const minusCredits = useProfileStore((state) => state.minusCredits);
+
+  const getDocument = useCallback(async () => {
+    if (user?.id && fileId) {
+      setDocLoading(true);
+
+      const docRef = doc(db, `users`, user?.id, "files", fileId);
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        setDocLoading(false);
+        return;
+      }
+
+      const data = docSnap.data();
+      setDocument(data as FileType);
+      setDocLoading(false);
+    }
+  }, [fileId, user?.id])
+
+  useEffect(() => {
+    if (!unstructuredFileData) {
+      getDocument();
+    }
+  }, [unstructuredFileData, getDocument])
+
+  const fetchUnstructuredData = useCallback(async () => {
+    if (user && document && !!!document.unstructuredFile) {
+      try {
+
+        setUnstructuredLoading(true);
+        const data: Chunk[] = await parseFile(document?.downloadUrl, document.filename);
+        await updateDoc(doc(db, "users", user.id, "files", document.docId), {
+          unstructuredFile: JSON.stringify(data, null, 2)
+        });
+
+        setUnstructuredFileData(JSON.stringify(data, null, 2));
+
+      } catch (error) {
+        console.error(error)
+      } finally {
+        setUnstructuredLoading(false)
+      }
+    }
+  }, [document, user])
+
+  useEffect(() => {
+    fetchUnstructuredData();
+  }, [fetchUnstructuredData])
 
   const fetchSummary = async () => {
     if (
@@ -201,16 +257,22 @@ export function ShowParsedDataModal() {
               <TabsTrigger value="summary" onClick={() => fetchSummary()}>
                 Summary
               </TabsTrigger>
-              <TabsTrigger value="chat">
-                Ask a Question of the Documents
-              </TabsTrigger>
             </TabsList>
           </div>
           <div className="overflow-auto h-[70vh] p-4 bg-gray-50 rounded-lg w-full">
-            <TabsContent value="raw" className="w-full">
-              <pre className="whitespace-pre-wrap text-sm text-gray-800 w-full">
-                {unstructuredFileData}
-              </pre>
+            <TabsContent value="raw" className="w-full h-[98%]">
+
+              {(isDocLoading || isUnstructuredLoading) ? (
+                <div className="flex flex-col justify-center items-center h-full">
+                  <LoaderCircleIcon size={48} className="animate-spin" />
+                  <small>Loading Raw Data...</small>
+                </div>
+              ) : (
+                <pre className="whitespace-pre-wrap text-sm text-gray-800 w-full">
+                  {unstructuredFileData}
+                </pre>
+              )}
+
             </TabsContent>
             <TabsContent value="readable" className="text-gray-800">
               {loading ? (
@@ -232,7 +294,7 @@ export function ShowParsedDataModal() {
                 "Cant't display anything yet."
               )}
             </TabsContent>
-          
+
           </div>
         </Tabs>
         <DialogFooter className="flex justify-end space-x-2 py-3">

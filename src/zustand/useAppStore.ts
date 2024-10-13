@@ -1,5 +1,9 @@
 import { create } from "zustand";
 
+interface UploadingFile {
+  fileName: string;
+  loading: boolean;
+}
 interface AppStore {
   isDeleteModalOpen: boolean;
   setIsDeleteModalOpen: (isDeleteModalOpen: boolean) => void;
@@ -34,6 +38,11 @@ interface AppStore {
 
   isQuestionAnswerModalOpen: boolean;
   setQuestionAnswerModalOpen: (isOpen: boolean) => void;
+
+  uploadingFiles: UploadingFile[];
+  addUploadingFile: (file: UploadingFile) => void;
+  updateUploadingFile: (fileName: string, loading: boolean) => void;
+  removeUploadingFile: (fileName: string) => void;
 }
 export const useAppStore = create<AppStore>((set) => ({
   isDeleteModalOpen: false,
@@ -74,4 +83,17 @@ export const useAppStore = create<AppStore>((set) => ({
     set({ isQuestionAnswerModalOpen: isOpen })
   },
 
+  uploadingFiles: [],
+  addUploadingFile: (file) => set((state) => ({
+    uploadingFiles: [...state.uploadingFiles, file]
+  })),
+  updateUploadingFile: (fileName, loading) => set((state) => ({
+    uploadingFiles: state.uploadingFiles.map(file =>
+      file.fileName === fileName ? { ...file, loading } : file
+    )
+  })),
+  removeUploadingFile: (fileName) => set((state) => ({
+    uploadingFiles: state.uploadingFiles.filter(file => file.fileName !== fileName)
+  }))
+  
 }));

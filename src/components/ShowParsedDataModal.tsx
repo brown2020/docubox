@@ -78,6 +78,7 @@ export function ShowParsedDataModal() {
 
         setUnstructuredLoading(true);
         const data: Chunk[] = await parseFile(document?.downloadUrl, document.filename);
+        debugger;
         await updateDoc(doc(db, "users", user.id, "files", document.docId), {
           unstructuredFile: JSON.stringify(data, null, 2)
         });
@@ -90,7 +91,7 @@ export function ShowParsedDataModal() {
         setUnstructuredLoading(false)
       }
     }
-  }, [document, user])
+  }, [document, user, setUnstructuredLoading])
 
   useEffect(() => {
     fetchUnstructuredData();

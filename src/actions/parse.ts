@@ -42,6 +42,11 @@ export async function parseFile(
           fileName: fileName,
         },
         strategy: isHighRes ? Strategy.HiRes : Strategy.Auto,
+        splitPdfPage: true,
+        // Continue PDF splitting even if some earlier split operations fail.
+        splitPdfAllowFailed: true,
+        // Modify splitPdfConcurrencyLevel to set the number of parallel requests
+        splitPdfConcurrencyLevel: 10,
       },
     });
     console.log("Response status code:", response.statusCode);
@@ -56,6 +61,7 @@ export async function parseFile(
       const chunks: Chunk[] = [];
       let currentChunk: Element[] = [];
       let currentHeading: string | null = null;
+      debugger;
       for (const element of elements) {
         console.log("Processing element:", element);
         if (element.type === "Heading") {

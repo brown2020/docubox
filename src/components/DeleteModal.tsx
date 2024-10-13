@@ -79,7 +79,7 @@ export function DeleteModal() {
         const document = docSnap.data();
         if (document) {
           console.info("Ragie file Id: ", document.ragieFileId);
-          await deleteFileFromRagie(document.ragieFileId);
+          if (document.ragieFileId) await deleteFileFromRagie(document.ragieFileId);
           const fileName = `${document.docId}_${document.filename}`
           await deleteFileFromStorage(fileName)
         }

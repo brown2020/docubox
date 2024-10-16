@@ -21,9 +21,9 @@ import { Chunk, Element } from "@/types/types";
 import { generateSummary } from "@/actions/generateSummary";
 import useProfileStore from "@/zustand/useProfileStore";
 import { creditsToMinus } from "@/utils/credits";
-import { parseFile } from "@/actions/parse";
 import { FileType } from "@/typings/filetype";
 import { LoaderCircleIcon } from "lucide-react";
+import { downloadFile } from "@/actions/unstructuredActions";
 
 export function ShowParsedDataModal() {
   const {
@@ -73,25 +73,23 @@ export function ShowParsedDataModal() {
   }, [unstructuredFileData, getDocument])
 
   const fetchUnstructuredData = useCallback(async () => {
-    if (user && document && !!!document.unstructuredFile) {
+    if (user && document && document.unstructuredFile) {
       try {
-
         setUnstructuredLoading(true);
-        const data: Chunk[] = await parseFile(document?.downloadUrl, document.filename);
-        debugger;
-        await updateDoc(doc(db, "users", user.id, "files", document.docId), {
-          unstructuredFile: JSON.stringify(data, null, 2)
-        });
-
+        const data = await downloadFile(document.unstructuredFile);
+        // // Fetch the content of the unstructured file
+        // const unStructureRef = ref(storage, document.unstructuredFile);
+        // const url = await getDownloadURL(unStructureRef);
+        // const response = await fetch(url);
+        // const data = await response.json();
         setUnstructuredFileData(JSON.stringify(data, null, 2));
-
       } catch (error) {
         console.error(error)
       } finally {
         setUnstructuredLoading(false)
       }
     }
-  }, [document, user, setUnstructuredLoading])
+  }, [document, user, setUnstructuredLoading, setUnstructuredFileData])
 
   useEffect(() => {
     fetchUnstructuredData();
@@ -118,7 +116,7 @@ export function ShowParsedDataModal() {
       setLoading(true);
       const summary = await generateSummary(
         useCredits ? null : apiKey,
-        unstructuredFileData
+      JSON.stringify(parsedData)
       );
 
       if (summary) {
@@ -140,7 +138,7 @@ export function ShowParsedDataModal() {
     }
   };
 
-  const extractReadableText = (data: Chunk[] | null) => {
+  const extractReadableText = (data: Chunk[] = []) => {
     if (!data) return <p>No content to display.</p>;
 
     const contentArray = data[0]?.content || [];
@@ -282,7 +280,7 @@ export function ShowParsedDataModal() {
                 </div>
               ) : (
                 <div className="bg-gray-100 p-4 rounded-lg">
-                  {extractReadableText(parsedData)}
+                  {extractReadableText(Array.isArray(parsedData) ? parsedData : [parsedData])}
                 </div>
               )}
             </TabsContent>

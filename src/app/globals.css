@@ -89,3 +89,32 @@
     @apply list-disc mx-4 space-y-3;
   }
 }
+
+@keyframes blink {
+  0% {
+    opacity: 1;
+    background-color: #ccc;
+  }
+  25% {
+    opacity: 0.5;
+    background-color: white;
+  }
+  50% {
+    opacity: 0.5;
+    background-color: white;
+  }
+  75% {
+    opacity: 1;
+    background-color: #ccc;
+  }
+  100% {
+    opacity: 1;
+    background-color: #ccc;
+  }
+}
+
+.blinking-background {
+  animation: blink 1.5s infinite;
+  opacity: 1;
+  background-color: white; 
+}

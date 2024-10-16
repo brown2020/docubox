@@ -61,7 +61,6 @@ export async function parseFile(
       const chunks: Chunk[] = [];
       let currentChunk: Element[] = [];
       let currentHeading: string | null = null;
-      debugger;
       for (const element of elements) {
         console.log("Processing element:", element);
         if (element.type === "Heading") {

@@ -1,9 +1,15 @@
 import { create } from "zustand";
 
 interface UploadingFile {
+  downloadUrl: string;
+  fileId: string;
   fileName: string;
   loading: boolean;
+  isParsing: boolean;
 }
+
+type OnFileAddedCallback = (file: UploadingFile) => void;
+
 interface AppStore {
   isDeleteModalOpen: boolean;
   setIsDeleteModalOpen: (isDeleteModalOpen: boolean) => void;
@@ -41,8 +47,10 @@ interface AppStore {
 
   uploadingFiles: UploadingFile[];
   addUploadingFile: (file: UploadingFile) => void;
-  updateUploadingFile: (fileName: string, loading: boolean) => void;
-  removeUploadingFile: (fileName: string) => void;
+  updateUploadingFile: (fileId: string, file: Partial<UploadingFile>) => void;
+  removeUploadingFile: (fileId: string) => void;
+  onFileAddedCallback: OnFileAddedCallback | null;
+  setOnFileAddedCallback: (callback: OnFileAddedCallback | null) => void;
 }
 export const useAppStore = create<AppStore>((set) => ({
   isDeleteModalOpen: false,
@@ -84,16 +92,22 @@ export const useAppStore = create<AppStore>((set) => ({
   },
 
   uploadingFiles: [],
-  addUploadingFile: (file) => set((state) => ({
-    uploadingFiles: [...state.uploadingFiles, file]
+  addUploadingFile: (file) => set((state) => {
+    const newState = { uploadingFiles: [...state.uploadingFiles, file] };
+    if (state.onFileAddedCallback) {
+      state.onFileAddedCallback(file);
+    }
+    return newState;
+  }),
+
+  updateUploadingFile: (fileId, file) => set((state) => ({
+    uploadingFiles: state.uploadingFiles.map((f) => (f.fileId === fileId ? { ...f, ...file } : f))
   })),
-  updateUploadingFile: (fileName, loading) => set((state) => ({
-    uploadingFiles: state.uploadingFiles.map(file =>
-      file.fileName === fileName ? { ...file, loading } : file
-    )
+
+  removeUploadingFile: (fileId) => set((state) => ({
+    uploadingFiles: state.uploadingFiles.filter(file => file.fileId !== fileId)
   })),
-  removeUploadingFile: (fileName) => set((state) => ({
-    uploadingFiles: state.uploadingFiles.filter(file => file.fileName !== fileName)
-  }))
-  
+  onFileAddedCallback: null,
+  setOnFileAddedCallback: (callback: OnFileAddedCallback | null) => set({ onFileAddedCallback: callback }),
+
 }));

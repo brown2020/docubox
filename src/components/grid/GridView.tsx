@@ -8,6 +8,7 @@ import { DeleteModal } from "../DeleteModal"
 import { File } from "../table/File"
 import { Folder } from "../table/Folder"
 import { useUser } from "@clerk/nextjs"
+import { downloadFile } from "@/actions/unstructuredActions"
 
 type Props = {
   data: FileType[]
@@ -46,12 +47,13 @@ export const GridView: FunctionComponent<Props> = ({
     setIsRenameModalOpen(true)
   }
 
-  const openParseDataViewModal = (
+  const openParseDataViewModal = async(
     docId: string,
-    filedata: string,
+    filedataUrl: string,
     summary: string
   ) => {
-    setUnstructuredFileData(filedata)
+    const data = await downloadFile(filedataUrl)
+    setUnstructuredFileData(data)
     setFileSummary({ docId, summary })
     setIsShowParseDataModelOpen(true)
   }

@@ -20,7 +20,7 @@ interface AppStore {
   isCreateFolderModalOpen: boolean;
   setIsCreateFolderModalOpen: (isRenameModalOpen: boolean) => void;
   fileId: string | null;
-  setFileId: (fileId: string) => void;
+  setFileId: (fileId: string | null) => void;
   filename: string;
   setFilename: (filename: string) => void;
   tags: string[];
@@ -40,7 +40,7 @@ interface AppStore {
   setFileSummary: (data: {
     docId: string;
     summary: string;
-  }) => void;
+  } | undefined) => void;
 
   isQuestionAnswerModalOpen: boolean;
   setQuestionAnswerModalOpen: (isOpen: boolean) => void;
@@ -63,7 +63,7 @@ export const useAppStore = create<AppStore>((set) => ({
   setIsShowParseDataModelOpen: (isShowParseDataModelOpen: boolean) =>
     set({ isShowParseDataModelOpen }),
   fileId: null,
-  setFileId: (fileId: string) => set({ fileId }),
+  setFileId: (fileId: string | null) => set({ fileId }),
   isCreateFolderModalOpen: false,
   setIsCreateFolderModalOpen: (isCreateFolderModalOpen: boolean) => set({ isCreateFolderModalOpen }),
   filename: "",
@@ -83,7 +83,7 @@ export const useAppStore = create<AppStore>((set) => ({
   setFileSummary: (data: {
     docId: string;
     summary: string;
-  }) => set({ fileSummary: data }),
+  } | undefined) => set({ fileSummary: data }),
 
 
   isQuestionAnswerModalOpen: false,

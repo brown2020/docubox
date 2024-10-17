@@ -23,7 +23,7 @@ import useProfileStore from "@/zustand/useProfileStore";
 import { creditsToMinus } from "@/utils/credits";
 import { FileType } from "@/typings/filetype";
 import { LoaderCircleIcon } from "lucide-react";
-import { downloadFile } from "@/actions/unstructuredActions";
+import { downloadUnstructuredFile } from "@/actions/unstructuredActions";
 
 export function ShowParsedDataModal() {
   const {
@@ -33,6 +33,8 @@ export function ShowParsedDataModal() {
     setUnstructuredFileData,
     fileSummary,
     fileId,
+    setFileId,
+    setFileSummary
   } = useAppStore();
   const { user } = useUser();
   const isAIAlreadyCalled = useRef(false);
@@ -41,7 +43,7 @@ export function ShowParsedDataModal() {
   const [isUnstructuredLoading, setUnstructuredLoading] = useState(false);
   const [document, setDocument] = useState<FileType>();
 
-  const [parsedData, setParsedData] = useState<Chunk[] | null>(null);
+  const [parsedData, setParsedData] = useState<Chunk[] | []>([]);
   const [summary, setSummary] = useState("");
   const useCredits = useProfileStore((state) => state.profile.useCredits);
   const apiKey = useProfileStore((state) => state.profile.openai_api_key);
@@ -76,13 +78,13 @@ export function ShowParsedDataModal() {
     if (user && document && document.unstructuredFile) {
       try {
         setUnstructuredLoading(true);
-        const data = await downloadFile(document.unstructuredFile);
+        const data = await downloadUnstructuredFile(document.unstructuredFile);
         // // Fetch the content of the unstructured file
         // const unStructureRef = ref(storage, document.unstructuredFile);
         // const url = await getDownloadURL(unStructureRef);
         // const response = await fetch(url);
         // const data = await response.json();
-        setUnstructuredFileData(JSON.stringify(data, null, 2));
+        setUnstructuredFileData(data);
       } catch (error) {
         console.error(error)
       } finally {
@@ -301,7 +303,12 @@ export function ShowParsedDataModal() {
             size="sm"
             className="px-4"
             variant="ghost"
-            onClick={() => setIsShowParseDataModelOpen(false)}
+            onClick={() => {
+              setIsShowParseDataModelOpen(false)
+              setFileId(null)
+              setUnstructuredFileData('');
+              setFileSummary(undefined);
+            }}
           >
             Close
           </Button>

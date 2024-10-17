@@ -7,7 +7,7 @@ import { useAppStore } from "@/zustand/useAppStore"
 import { useUser } from "@clerk/nextjs";
 import { Chunk } from "@/types/types";
 import { parseFile } from "@/actions/parse";
-import { uploadFile } from "@/actions/unstructuredActions";
+import { uploadUnstructuredFile } from "@/actions/unstructuredActions";
 
 export default function FileUploadModal() {
     const [isExpanded, setIsExpanded] = useState(true);
@@ -18,31 +18,13 @@ export default function FileUploadModal() {
         if (user?.id) {
             setOnFileAddedCallback(async (newFile) => {
                 const data: Chunk[] = await parseFile(newFile?.downloadUrl, newFile.fileName);
-                console.log({data});
-                debugger;
-                await uploadFile(data, user.id, newFile.fileName, newFile.fileId);
-                // const compressedData = JSONCompressor.compress(data);
-                // const unstructuredDataString = JSON.stringify(data, null, 2);
-                // const unstructuredDataRef = ref(
-                //     storage,
-                //     `users/${user.id}/unstructured/${newFile.fileId}_${newFile.fileName}`
-                // )
-
-                // await uploadString(unstructuredDataRef, unstructuredDataString, 'raw', {
-                //     contentType: 'application/json',
-                // });
-
-                // const unstructuredDataUrl = await getDownloadURL(unstructuredDataRef);
-                debugger
-                // await updateDoc(doc(db, "users", user.id, "files", newFile.fileId), {
-                //     unstructuredFile: compressedData,
-                // });
+                await uploadUnstructuredFile(data, user.id, newFile.fileName, newFile.fileId);
                 setUnstructuredFileData(JSON.stringify(data, null, 2));
                 removeUploadingFile(newFile.fileId);
             });
         }
         return () => setOnFileAddedCallback(null);
-    }, [user?.id, setOnFileAddedCallback, setUnstructuredFileData]);
+    }, [user?.id, setOnFileAddedCallback, setUnstructuredFileData, removeUploadingFile]);
 
     if (uploadingFiles.length === 0) {
         return null;
@@ -71,7 +53,7 @@ export default function FileUploadModal() {
             {isExpanded && (
                 <div className="p-3">
                     {uploadingFiles.map((file, index) => (
-                        <div key={index} className={`flex items-center space-x-2 p-0.5 rounded-md ${file.isParsing ? 'blinking-background' : ''}`}>
+                        <div key={index} className={`flex items-center space-x-2 p-0.5 rounded-md ${file.isParsing ? 'blinking-background' : 'hover:bg-muted'}`}>
                             <FileIcon className="h-5 w-5 text-muted-foreground" />
                             <span className="text-sm text-muted-foreground flex-grow">{file.fileName}</span>
                             <LoaderCircleIcon size={16} className="animate-spin" />

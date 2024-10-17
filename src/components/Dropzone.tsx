@@ -16,8 +16,6 @@ import toast from "react-hot-toast"
 import Spinner from "./common/spinner"
 import { Progress } from "./ui/progress-bar"
 import { useAppStore } from "@/zustand/useAppStore"
-import useProfileStore from "@/zustand/useProfileStore"
-import { creditsToMinus } from "@/utils/credits"
 
 export default function Dropzone() {
   const maxSize = 20971520
@@ -26,9 +24,6 @@ export default function Dropzone() {
   const [processing, setProcessing] = useState(false)
   const { user } = useUser()
   const { folderId } = useAppStore()
-  const useCredits = useProfileStore((state) => state.profile.useCredits)
-  const currentCredits = useProfileStore((state) => state.profile.credits)
-  const minusCredits = useProfileStore((state) => state.minusCredits)
 
   const onDrop = async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return
@@ -39,12 +34,7 @@ export default function Dropzone() {
     formData.append("file", acceptedFiles[0])
 
     try {
-      if (useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_UNSTRUCTURED || 4))) return
-      // const data: Chunk[] = await parseFile(formData)
-
-      if (useCredits) {
-        await minusCredits(creditsToMinus("unstructured"))
-      }
+      
 
       acceptedFiles.forEach((file) => {
         const reader = new FileReader()

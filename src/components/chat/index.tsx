@@ -11,6 +11,8 @@ import { useUser } from "@clerk/nextjs"
 import { QARecord } from "./QARecord"
 import toast from "react-hot-toast";
 import { FileType } from "@/typings/filetype"
+import useProfileStore from "@/zustand/useProfileStore"
+import { creditsToMinus } from "@/utils/credits"
 
 // Define a type for the chunk structure
 type Chunk = {
@@ -44,6 +46,10 @@ export const Chat = ({ fileId }: IChatProps) => {
 
   const [isDocLoading, setDocLoading] = useState(false);
   const [isUploadingToRagie, setUploadingToRagie] = useState(false);
+
+  const useCredits = useProfileStore((state) => state.profile.useCredits)
+    const currentCredits = useProfileStore((state) => state.profile.credits)
+    const minusCredits = useProfileStore((state) => state.minusCredits)
 
 
   const getDocument = useCallback(async () => {
@@ -126,7 +132,13 @@ export const Chat = ({ fileId }: IChatProps) => {
   const _uploadToRagie = async (userId: string, _document: { id: string; downloadUrl: string; filename: string }) => {
     try {
       setUploadingToRagie(true);
-      const response = await uploadToRagie(_document.id, _document.downloadUrl, _document.filename);
+      if (useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_RAGIE || 8))) return
+        const response = await uploadToRagie(_document.id, _document.downloadUrl, _document.filename);
+
+        if (useCredits) {
+            await minusCredits(creditsToMinus("ragie"))
+        }
+      
 
       // Update Firestore with the Ragie upload status
       await updateDoc(doc(db, "users", userId, "files", _document.id), {
@@ -157,12 +169,16 @@ export const Chat = ({ fileId }: IChatProps) => {
       console.log("Retrieved chunks from Ragie:", data);
 
       // Step 2: Generate content using the retrieved chunks
-
+      if (useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI || 4))) return
       const result = await generateWithChunks(
         data.scored_chunks.map((chunk) => chunk.text), // Pass only the chunk texts
         newQuestion,
         "gpt-4o" // Adjust the model name as needed
       );
+
+      if (useCredits) {
+            await minusCredits(creditsToMinus("ragie"))
+        }
 
       let answer = "";
       // Stream the response to handle progressive updates

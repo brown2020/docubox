@@ -9,6 +9,7 @@ export default function ProfileComponent() {
   const updateProfile = useProfileStore((state) => state.updateProfile);
   const [unstructuredApiKey, setUnstructuredApiKey] = useState(profile.unstructured_api_key);
   const [openaiApiKey, setOpenaiApiKey] = useState(profile.openai_api_key);
+  const [ragieApiKey, setregieApiKey] = useState(profile.ragie_api_key);
   const [useCredits, setUseCredits] = useState(profile.useCredits);
 
   useEffect(() => {
@@ -22,6 +23,7 @@ export default function ProfileComponent() {
         await updateProfile({
           unstructured_api_key: unstructuredApiKey,
           openai_api_key: openaiApiKey,
+          ragie_api_key: ragieApiKey
         });
         console.log("API keys updated successfully!");
       } catch (error) {
@@ -78,6 +80,17 @@ export default function ProfileComponent() {
           onChange={(e) => setOpenaiApiKey(e.target.value)}
           className="border border-gray-300 rounded-md px-3 py-2 h-10"
           placeholder="Enter your OpenAI API Key"
+        />
+        <label htmlFor="ragie-api-key" className="text-sm font-medium">
+          Ragie API Key:
+        </label>
+        <input
+          type="text"
+          id="openai-api-key"
+          value={openaiApiKey}
+          onChange={(e) => setregieApiKey(e.target.value)}
+          className="border border-gray-300 rounded-md px-3 py-2 h-10"
+          placeholder="Enter your Ragie API Key"
         />
         <button
           onClick={handleApiKeyChange}

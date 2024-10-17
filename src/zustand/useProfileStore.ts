@@ -13,6 +13,7 @@ export interface ProfileType {
   credits: number
   unstructured_api_key: string
   openai_api_key: string
+  ragie_api_key: string
   useCredits: boolean
 }
 
@@ -26,6 +27,7 @@ const defaultProfile: ProfileType = {
   credits: 0,
   unstructured_api_key: "",
   openai_api_key: "",
+  ragie_api_key: "",
   useCredits: true,
 }
 
@@ -95,6 +97,7 @@ const useProfileStore = create<ProfileState>((set, get) => ({
           emailVerified: authEmailVerified || false,
           credits: 1000,
           openai_api_key: "",
+          ragie_api_key: "",
           unstructured_api_key: "",
           useCredits: true,
         }

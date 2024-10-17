@@ -67,7 +67,7 @@ export default function Header() {
   }, [clearAuthDetails, getToken, isSignedIn, setAuthDetails, user])
 
   return (
-    <header className="h-14 flex items-center px-3 justify-between bg-slate-200 dark:bg-slate-600 p-3">
+    <header className="h-14 flex items-center px-3 sticky top-0 justify-between bg-slate-200 dark:bg-slate-600 p-3">
       <div className="flex gap-x-3">
         <Link href={"/dashboard"}>
           <Button size="sm" className="bg-green-500 hover:bg-green-400">

@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "../ui/table"
 import { FileType } from "@/typings/filetype"
-import { EyeIcon, MessageCircleQuestionIcon, PencilIcon, TrashIcon, UndoIcon } from "lucide-react"
+import { EyeIcon, MessageCircleQuestionIcon, PencilIcon, TrashIcon, UndoIcon, FileTerminal } from "lucide-react"
 import { Button } from "../ui/button"
 import { useAppStore } from "@/zustand/useAppStore"
 import { DeleteModal } from "../DeleteModal"
@@ -226,16 +226,20 @@ export function DataTable<TData, TValue>({
                     ) : (
                       <div className="flex space-x-2 items-center">
                         {(!(row.original as FileType).unstructuredFile) && (
-                          <p className="text-xs text-gray-500 cursor-pointer" style={{ lineHeight: `2.5rem` }}>
-                            <span onClick={() => { handleParsingClick((row.original as FileType)) }} style={{ cursor: 'pointer' }}>
-                              Parsing the data
-                            </span>
-                          </p>
+                            <Button
+                              variant={"outline"}
+                              size="icon"
+                              className="text-blue-500 hover:bg-blue-100"
+                              onClick={() => { handleParsingClick((row.original as FileType)) }}
+                            >
+                              <FileTerminal size={20} />
+                          </Button>
                         )}
                         <Button
                           variant={"outline"}
                           size="icon"
                           className="text-blue-500 hover:bg-blue-100"
+                          disabled={!(row.original as FileType).unstructuredFile}
                           onClick={() => handleOpenQuestionAnswerModal((row.original as FileType).docId)}>
                           <MessageCircleQuestionIcon size={20} />
                         </Button>

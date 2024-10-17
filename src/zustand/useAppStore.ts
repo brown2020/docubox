@@ -1,5 +1,15 @@
 import { create } from "zustand";
 
+interface UploadingFile {
+  downloadUrl: string;
+  fileId: string;
+  fileName: string;
+  loading: boolean;
+  isParsing: boolean;
+}
+
+type OnFileAddedCallback = (file: UploadingFile) => void;
+
 interface AppStore {
   isDeleteModalOpen: boolean;
   setIsDeleteModalOpen: (isDeleteModalOpen: boolean) => void;
@@ -10,7 +20,7 @@ interface AppStore {
   isCreateFolderModalOpen: boolean;
   setIsCreateFolderModalOpen: (isRenameModalOpen: boolean) => void;
   fileId: string | null;
-  setFileId: (fileId: string) => void;
+  setFileId: (fileId: string | null) => void;
   filename: string;
   setFilename: (filename: string) => void;
   tags: string[];
@@ -30,10 +40,17 @@ interface AppStore {
   setFileSummary: (data: {
     docId: string;
     summary: string;
-  }) => void;
+  } | undefined) => void;
 
   isQuestionAnswerModalOpen: boolean;
   setQuestionAnswerModalOpen: (isOpen: boolean) => void;
+
+  uploadingFiles: UploadingFile[];
+  addUploadingFile: (file: UploadingFile) => void;
+  updateUploadingFile: (fileId: string, file: Partial<UploadingFile>) => void;
+  removeUploadingFile: (fileId: string) => void;
+  onFileAddedCallback: OnFileAddedCallback | null;
+  setOnFileAddedCallback: (callback: OnFileAddedCallback | null) => void;
 }
 export const useAppStore = create<AppStore>((set) => ({
   isDeleteModalOpen: false,
@@ -46,7 +63,7 @@ export const useAppStore = create<AppStore>((set) => ({
   setIsShowParseDataModelOpen: (isShowParseDataModelOpen: boolean) =>
     set({ isShowParseDataModelOpen }),
   fileId: null,
-  setFileId: (fileId: string) => set({ fileId }),
+  setFileId: (fileId: string | null) => set({ fileId }),
   isCreateFolderModalOpen: false,
   setIsCreateFolderModalOpen: (isCreateFolderModalOpen: boolean) => set({ isCreateFolderModalOpen }),
   filename: "",
@@ -66,12 +83,31 @@ export const useAppStore = create<AppStore>((set) => ({
   setFileSummary: (data: {
     docId: string;
     summary: string;
-  }) => set({ fileSummary: data }),
+  } | undefined) => set({ fileSummary: data }),
 
 
   isQuestionAnswerModalOpen: false,
   setQuestionAnswerModalOpen(isOpen) {
     set({ isQuestionAnswerModalOpen: isOpen })
   },
+
+  uploadingFiles: [],
+  addUploadingFile: (file) => set((state) => {
+    const newState = { uploadingFiles: [...state.uploadingFiles, file] };
+    if (state.onFileAddedCallback) {
+      state.onFileAddedCallback(file);
+    }
+    return newState;
+  }),
+
+  updateUploadingFile: (fileId, file) => set((state) => ({
+    uploadingFiles: state.uploadingFiles.map((f) => (f.fileId === fileId ? { ...f, ...file } : f))
+  })),
+
+  removeUploadingFile: (fileId) => set((state) => ({
+    uploadingFiles: state.uploadingFiles.filter(file => file.fileId !== fileId)
+  })),
+  onFileAddedCallback: null,
+  setOnFileAddedCallback: (callback: OnFileAddedCallback | null) => set({ onFileAddedCallback: callback }),
 
 }));

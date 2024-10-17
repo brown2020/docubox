@@ -27,6 +27,7 @@ import Link from "next/link"
 import { db } from "@/firebase"
 import { doc, updateDoc } from "firebase/firestore"
 import { QuestionAnswerModal } from "../QuestionAnswerModal"
+import { downloadUnstructuredFile } from "@/actions/unstructuredActions"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -58,7 +59,10 @@ export function DataTable<TData, TValue>({
     setFileSummary,
     setFolderId,
     setIsFolder,
-    setQuestionAnswerModalOpen
+    setQuestionAnswerModalOpen,
+    uploadingFiles,
+    addUploadingFile,
+    updateUploadingFile,
   } = useAppStore()
   const openDeleteModal = (
     fileId: string,
@@ -70,15 +74,16 @@ export function DataTable<TData, TValue>({
     setFolderId(folderId)
     setIsFolder(isFolder)
   }
-  const openParseDataViewModal = (
+  const openParseDataViewModal = async (
     docId: string,
-    filedata: string,
+    filedataurl: string,
     summary: string
   ) => {
     setFileId(docId)
-    setUnstructuredFileData(filedata)
-    setFileSummary({ docId, summary })
-    setIsShowParseDataModelOpen(true)
+    setIsShowParseDataModelOpen(true);
+    const data = await downloadUnstructuredFile(filedataurl);
+    setUnstructuredFileData(data);
+    setFileSummary({ docId, summary });
   }
   const openRenameModal = (
     fileId: string,
@@ -107,6 +112,24 @@ export function DataTable<TData, TValue>({
   const handleOpenQuestionAnswerModal = (fileId: string) => {
     setFileId(fileId)
     setQuestionAnswerModalOpen(true);
+  }
+
+  const handleParsingClick = (file: FileType) => {
+    if (uploadingFiles.find((f) => f.fileId === file.docId)) {
+      updateUploadingFile(file.docId, { isParsing: true });
+      setTimeout(() => {
+        updateUploadingFile(file.docId, { isParsing: false });
+      }, 2000);
+    }
+    else {
+      addUploadingFile({
+        fileId: file.docId,
+        fileName: file.filename,
+        downloadUrl: file.downloadUrl,
+        loading: true,
+        isParsing: false,
+      })
+    }
   }
 
   return (
@@ -201,7 +224,14 @@ export function DataTable<TData, TValue>({
                         <UndoIcon size={20} />
                       </Button>
                     ) : (
-                      <>
+                      <div className="flex space-x-2 items-center">
+                        {(!(row.original as FileType).unstructuredFile) && (
+                          <p className="text-xs text-gray-500 cursor-pointer" style={{ lineHeight: `2.5rem` }}>
+                            <span onClick={() => { handleParsingClick((row.original as FileType)) }} style={{ cursor: 'pointer' }}>
+                              Parsing the data
+                            </span>
+                          </p>
+                        )}
                         <Button
                           variant={"outline"}
                           size="icon"
@@ -219,11 +249,12 @@ export function DataTable<TData, TValue>({
                               (row.original as FileType).summary
                             )
                           }}
-                          className="text-blue-500 hover:bg-blue-100"
+                          disabled={!(row.original as FileType).unstructuredFile}
+                          className={"text-blue-500 hover:bg-blue-100"}
                         >
                           <EyeIcon size={20} />
                         </Button>
-                      </>
+                      </div>
 
                     )}
                     <Button

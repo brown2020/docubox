@@ -9,8 +9,9 @@ export async function parseFile(
   isHighRes: boolean = false
 ): Promise<Chunk[]> {
 
-
   const fileResponse = await fetch(fileUrl);
+
+  console.log("File URL:", {fileResponse});
 
   if (!fileResponse.ok) {
     throw new Error(
@@ -42,22 +43,22 @@ export async function parseFile(
           fileName: fileName,
         },
         strategy: isHighRes ? Strategy.HiRes : Strategy.Auto,
+        splitPdfPage: true,
+        // Continue PDF splitting even if some earlier split operations fail.
+        splitPdfAllowFailed: true,
+        // Modify splitPdfConcurrencyLevel to set the number of parallel requests
+        splitPdfConcurrencyLevel: 10,
       },
     });
-    console.log("Response status code:", response.statusCode);
     if (response.statusCode === 200) {
-      console.log("Response received successfully.");
+      console.error("Error at status not 200");
       if (!response.elements) {
-        console.error("No elements found in the response");
-        throw new Error("No elements found in the response");
       }
       const elements = response.elements as Element[];
-      console.log("Number of elements received:", elements.length);
       const chunks: Chunk[] = [];
       let currentChunk: Element[] = [];
       let currentHeading: string | null = null;
       for (const element of elements) {
-        console.log("Processing element:", element);
         if (element.type === "Heading") {
           if (currentChunk.length > 0) {
             chunks.push({ heading: currentHeading, content: currentChunk });
@@ -71,9 +72,9 @@ export async function parseFile(
       if (currentChunk.length > 0) {
         chunks.push({ heading: currentHeading, content: currentChunk });
       }
-      console.log("Chunks created:", chunks);
       return chunks;
     } else {
+      console.error("Error at status not 200");
       let errorMessage = "Error processing file";
       console.error("Error status code received:", response.statusCode);
       if (response.rawResponse) {

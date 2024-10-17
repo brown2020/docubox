@@ -21,9 +21,9 @@ import { Chunk, Element } from "@/types/types";
 import { generateSummary } from "@/actions/generateSummary";
 import useProfileStore from "@/zustand/useProfileStore";
 import { creditsToMinus } from "@/utils/credits";
-import { parseFile } from "@/actions/parse";
 import { FileType } from "@/typings/filetype";
 import { LoaderCircleIcon } from "lucide-react";
+import { downloadUnstructuredFile } from "@/actions/unstructuredActions";
 
 export function ShowParsedDataModal() {
   const {
@@ -33,6 +33,8 @@ export function ShowParsedDataModal() {
     setUnstructuredFileData,
     fileSummary,
     fileId,
+    setFileId,
+    setFileSummary,
   } = useAppStore();
   const { user } = useUser();
   const isAIAlreadyCalled = useRef(false);
@@ -41,7 +43,7 @@ export function ShowParsedDataModal() {
   const [isUnstructuredLoading, setUnstructuredLoading] = useState(false);
   const [document, setDocument] = useState<FileType>();
 
-  const [parsedData, setParsedData] = useState<Chunk[] | null>(null);
+  const [parsedData, setParsedData] = useState<Chunk[] | []>([]);
   const [summary, setSummary] = useState("");
   const useCredits = useProfileStore((state) => state.profile.useCredits);
   const apiKey = useProfileStore((state) => state.profile.openai_api_key);
@@ -73,25 +75,23 @@ export function ShowParsedDataModal() {
   }, [unstructuredFileData, getDocument]);
 
   const fetchUnstructuredData = useCallback(async () => {
-    if (user && document && !!!document.unstructuredFile) {
+    if (user && document && document.unstructuredFile) {
       try {
         setUnstructuredLoading(true);
-        const data: Chunk[] = await parseFile(
-          document?.downloadUrl,
-          document.filename
-        );
-        await updateDoc(doc(db, "users", user.id, "files", document.docId), {
-          unstructuredFile: JSON.stringify(data, null, 2),
-        });
-
-        setUnstructuredFileData(JSON.stringify(data, null, 2));
+        const data = await downloadUnstructuredFile(document.unstructuredFile);
+        // // Fetch the content of the unstructured file
+        // const unStructureRef = ref(storage, document.unstructuredFile);
+        // const url = await getDownloadURL(unStructureRef);
+        // const response = await fetch(url);
+        // const data = await response.json();
+        setUnstructuredFileData(data);
       } catch (error) {
         console.error(error);
       } finally {
         setUnstructuredLoading(false);
       }
     }
-  }, [document, setUnstructuredFileData, user]);
+  }, [document, user, setUnstructuredLoading, setUnstructuredFileData]);
 
   useEffect(() => {
     fetchUnstructuredData();
@@ -118,7 +118,7 @@ export function ShowParsedDataModal() {
       setLoading(true);
       const summary = await generateSummary(
         useCredits ? null : apiKey,
-        unstructuredFileData
+        JSON.stringify(parsedData)
       );
 
       if (summary) {
@@ -140,7 +140,7 @@ export function ShowParsedDataModal() {
     }
   };
 
-  const extractReadableText = (data: Chunk[] | null) => {
+  const extractReadableText = (data: Chunk[] = []) => {
     if (!data) return <p>No content to display.</p>;
 
     const contentArray = data[0]?.content || [];
@@ -280,7 +280,9 @@ export function ShowParsedDataModal() {
                 </div>
               ) : (
                 <div className="bg-gray-100 p-4 rounded-lg">
-                  {extractReadableText(parsedData)}
+                  {extractReadableText(
+                    Array.isArray(parsedData) ? parsedData : [parsedData]
+                  )}
                 </div>
               )}
             </TabsContent>
@@ -300,7 +302,12 @@ export function ShowParsedDataModal() {
             size="sm"
             className="px-4"
             variant="ghost"
-            onClick={() => setIsShowParseDataModelOpen(false)}
+            onClick={() => {
+              setIsShowParseDataModelOpen(false);
+              setFileId(null);
+              setUnstructuredFileData("");
+              setFileSummary(undefined);
+            }}
           >
             Close
           </Button>

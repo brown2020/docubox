@@ -14,7 +14,7 @@ import { db } from "@/firebase";
 import { useAppStore } from "@/zustand/useAppStore";
 import { useUser } from "@clerk/nextjs";
 import { collection, deleteDoc, doc, getDoc, getDocs, query, updateDoc, where } from "firebase/firestore";
-import { deleteObject, getStorage, ref } from "firebase/storage"
+import { deleteObject, getStorage, listAll, ref } from "firebase/storage"
 import { usePathname } from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -33,6 +33,11 @@ export function DeleteModal() {
     const filePath = `users/${user?.id}/files/${fileName}`;
     const fileRef = ref(storage, filePath);
     await deleteObject(fileRef);
+
+    const undstructureFileRef = ref(storage, `users/${user?.id}/unstructured/${fileId}_${fileName}`);
+    const listResults = await listAll(undstructureFileRef);
+    const deletePromises = listResults.items.map((itemRef) => deleteObject(itemRef));
+    await Promise.all(deletePromises);
   }
 
   async function deleteFolderContents(folderId: string, userId: string) {
@@ -79,7 +84,7 @@ export function DeleteModal() {
         const document = docSnap.data();
         if (document) {
           console.info("Ragie file Id: ", document.ragieFileId);
-          await deleteFileFromRagie(document.ragieFileId);
+          if (document.ragieFileId) await deleteFileFromRagie(document.ragieFileId);
           const fileName = `${document.docId}_${document.filename}`
           await deleteFileFromStorage(fileName)
         }

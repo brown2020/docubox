@@ -225,7 +225,19 @@ export const Chat = ({ fileId }: IChatProps) => {
 
       </div>
       <div className="flex gap-x-3 items-center ">
-        <Textarea placeholder="Type your question here." className="resize-none bg-slate-200 dark:bg-slate-600" value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} />
+        <Textarea
+          placeholder="Type your question here."
+          className="resize-none bg-slate-200 focus-visible:ring-1 focus-visible:ring-offset-0 dark:bg-slate-600 border-gray-400 border-[1px]"
+          value={newQuestion}
+          onChange={(e) => setNewQuestion(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              setNewQuestion((e.target as HTMLTextAreaElement).value);
+              handleAsk();
+            }
+          }}
+        />
         <Button variant="outline" size="icon" className="bg-slate-200 dark:bg-slate-600 border-gray-400" onClick={handleAsk} disabled={isGenerating || newQuestion.length === 0}>
           {isGenerating ? <LoaderCircleIcon className="animate-spin" size={18} /> : <ArrowUp size={18} />}
         </Button>

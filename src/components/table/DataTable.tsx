@@ -27,7 +27,7 @@ import Link from "next/link"
 import { db } from "@/firebase"
 import { doc, updateDoc } from "firebase/firestore"
 import { QuestionAnswerModal } from "../QuestionAnswerModal"
-import { downloadFile } from "@/actions/unstructuredActions"
+import { downloadUnstructuredFile } from "@/actions/unstructuredActions"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -80,10 +80,10 @@ export function DataTable<TData, TValue>({
     summary: string
   ) => {
     setFileId(docId)
-    const data = await downloadFile(filedataurl);
-    setUnstructuredFileData(data)
-    setFileSummary({ docId, summary })
-    setIsShowParseDataModelOpen(true)
+    setIsShowParseDataModelOpen(true);
+    const data = await downloadUnstructuredFile(filedataurl);
+    setUnstructuredFileData(data);
+    setFileSummary({ docId, summary });
   }
   const openRenameModal = (
     fileId: string,

@@ -34,8 +34,6 @@ export default function Dropzone() {
     formData.append("file", acceptedFiles[0])
 
     try {
-      
-
       acceptedFiles.forEach((file) => {
         const reader = new FileReader()
         reader.onabort = () => console.log("file reading was aborted")
@@ -61,7 +59,7 @@ export default function Dropzone() {
     try {
       const docRef = await addDoc(collection(db, "users", user.id, "files"), {
         userId: user.id,
-        filename: selectedFile.name,
+        // filename: selectedFile.name,
         fullName: user.fullName,
         profileImg: user.imageUrl,
         timestamp: serverTimestamp(),
@@ -80,7 +78,8 @@ export default function Dropzone() {
         storage,
         `users/${user.id}/files/${docRef.id}_${selectedFile.name}`
       )
-      const uploadTask = uploadBytesResumable(imageRef, selectedFile)
+      const uploadTask = uploadBytesResumable(imageRef, selectedFile);
+
       uploadTask.on(
         "state_changed",
         (snapshot) => {
@@ -89,30 +88,36 @@ export default function Dropzone() {
           setUploadProgress(progress.toFixed(2))
         },
         (error) => {
-          console.log(error)
+          console.log(error);
+          setLoading(false);
         },
         async () => {
-          const downloadUrl = await getDownloadURL(imageRef)
-          await updateDoc(doc(db, "users", user.id, "files", docRef.id), {
-            downloadUrl,
-            docId: docRef.id,
-          });
+          try {
+            const downloadUrl = await getDownloadURL(imageRef,)
+            await updateDoc(doc(db, "users", user.id, "files", docRef.id), {
+              downloadUrl,
+              docId: docRef.id,
+              filename: selectedFile.name,
+            });
 
-
+            toast.success("File uploaded successfully!", { id: toastId })
+          } catch (error) {
+            console.log(error);
+            toast.error("Error fetching download URL!", { id: toastId });
+          } finally {
+            setLoading(false)
+          }
         }
       )
-
-      toast.success("File uploaded successfully!", { id: toastId })
     } catch (error) {
       console.log(error)
       toast.error("Error uploading file!", { id: toastId })
     } finally {
       setLoading(false)
     }
-    setLoading(false)
   }
 
- 
+
 
   return (
     <DropzoneComponent minSize={0} maxSize={maxSize} onDrop={onDrop}>

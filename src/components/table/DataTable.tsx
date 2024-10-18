@@ -239,7 +239,7 @@ export function DataTable<TData, TValue>({
                           variant={"outline"}
                           size="icon"
                           className="text-blue-500 hover:bg-blue-100"
-                          disabled={!(row.original as FileType).unstructuredFile}
+                          // disabled={!(row.original as FileType).unstructuredFile}
                           onClick={() => handleOpenQuestionAnswerModal((row.original as FileType).docId)}>
                           <MessageCircleQuestionIcon size={20} />
                         </Button>

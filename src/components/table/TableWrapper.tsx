@@ -107,7 +107,7 @@ export default function TableWrapper({ skeletonFiles }: Props) {
 
   useEffect(() => {
     if (!docs) return
-    const files: FileType[] = docs.docs.map((doc) => ({
+    const files: FileType[] = docs.docs.filter(doc => doc.data().filename).map((doc) => ({
       docId: doc.id || "",
       filename: doc.data().filename || doc.id || "",
       tags: doc.data().tags || [],

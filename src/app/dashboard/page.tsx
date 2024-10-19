@@ -64,7 +64,7 @@ export default function Dashboard() {
       <TableWrapper skeletonFiles={skeletonFiles} />
       <Link
         href="/trash"
-        className="bg-secondary w-max z-50 rounded-md absolute bottom-6 right-3 p-3 hover:bg-[#E2E8F0] dark:hover:bg-slate-700"
+        className="bg-secondary w-max z-50 rounded-md fixed bottom-16 cursor-pointer right-3 p-3 hover:bg-[#E2E8F0] dark:hover:bg-slate-700"
       >
         <Trash size={30} />
       </Link>

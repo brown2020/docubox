@@ -16,8 +16,6 @@ import toast from "react-hot-toast"
 import Spinner from "./common/spinner"
 import { Progress } from "./ui/progress-bar"
 import { useAppStore } from "@/zustand/useAppStore"
-import useProfileStore from "@/zustand/useProfileStore"
-import { creditsToMinus } from "@/utils/credits"
 
 export default function Dropzone() {
   const maxSize = 20971520
@@ -26,9 +24,6 @@ export default function Dropzone() {
   const [processing, setProcessing] = useState(false)
   const { user } = useUser()
   const { folderId } = useAppStore()
-  const useCredits = useProfileStore((state) => state.profile.useCredits)
-  const currentCredits = useProfileStore((state) => state.profile.credits)
-  const minusCredits = useProfileStore((state) => state.minusCredits)
 
   const onDrop = async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return
@@ -39,13 +34,6 @@ export default function Dropzone() {
     formData.append("file", acceptedFiles[0])
 
     try {
-      if (useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_UNSTRUCTURED || 4))) return
-      // const data: Chunk[] = await parseFile(formData)
-
-      if (useCredits) {
-        await minusCredits(creditsToMinus("unstructured"))
-      }
-
       acceptedFiles.forEach((file) => {
         const reader = new FileReader()
         reader.onabort = () => console.log("file reading was aborted")
@@ -71,7 +59,7 @@ export default function Dropzone() {
     try {
       const docRef = await addDoc(collection(db, "users", user.id, "files"), {
         userId: user.id,
-        filename: selectedFile.name,
+        // filename: selectedFile.name,
         fullName: user.fullName,
         profileImg: user.imageUrl,
         timestamp: serverTimestamp(),
@@ -90,7 +78,8 @@ export default function Dropzone() {
         storage,
         `users/${user.id}/files/${docRef.id}_${selectedFile.name}`
       )
-      const uploadTask = uploadBytesResumable(imageRef, selectedFile)
+      const uploadTask = uploadBytesResumable(imageRef, selectedFile);
+
       uploadTask.on(
         "state_changed",
         (snapshot) => {
@@ -99,30 +88,36 @@ export default function Dropzone() {
           setUploadProgress(progress.toFixed(2))
         },
         (error) => {
-          console.log(error)
+          console.log(error);
+          setLoading(false);
         },
         async () => {
-          const downloadUrl = await getDownloadURL(imageRef)
-          await updateDoc(doc(db, "users", user.id, "files", docRef.id), {
-            downloadUrl,
-            docId: docRef.id,
-          });
+          try {
+            const downloadUrl = await getDownloadURL(imageRef,)
+            await updateDoc(doc(db, "users", user.id, "files", docRef.id), {
+              downloadUrl,
+              docId: docRef.id,
+              filename: selectedFile.name,
+            });
 
-
+            toast.success("File uploaded successfully!", { id: toastId })
+          } catch (error) {
+            console.log(error);
+            toast.error("Error fetching download URL!", { id: toastId });
+          } finally {
+            setLoading(false)
+          }
         }
       )
-
-      toast.success("File uploaded successfully!", { id: toastId })
     } catch (error) {
       console.log(error)
       toast.error("Error uploading file!", { id: toastId })
     } finally {
       setLoading(false)
     }
-    setLoading(false)
   }
 
- 
+
 
   return (
     <DropzoneComponent minSize={0} maxSize={maxSize} onDrop={onDrop}>

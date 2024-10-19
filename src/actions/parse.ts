@@ -6,6 +6,7 @@ import { Strategy } from "unstructured-client/sdk/models/shared/index.js";
 export async function parseFile(
   fileUrl: string,
   fileName: string,
+  apiKey: string,
   isHighRes: boolean = false
 ): Promise<Chunk[]> {
 
@@ -24,10 +25,7 @@ export async function parseFile(
   console.log("Fetched file from Firebase Storage.");
 
   console.log("File data loaded. Byte length:", fileBuffer.byteLength);
-  const apiKey = process.env.UNSTRUCTURED_API_KEY || "";
   const apiURL = process.env.UNSTRUCTURED_API_URL || "";
-
-  console.log({apiKey: process.env.OPENAI_API_KEY,})
 
   const client = new UnstructuredClient({
     security: {

@@ -9,35 +9,41 @@ import { Chunk } from "@/types/types";
 import { parseFile } from "@/actions/parse";
 import { uploadUnstructuredFile } from "@/actions/unstructuredActions";
 import useProfileStore from "@/zustand/useProfileStore";
-import { creditsToMinus } from "@/utils/credits";
+import { handleAPIAndCredits } from "@/utils/useApiAndCreditKeys";
+import toast from "react-hot-toast";
 
 
 export default function FileUploadModal() {
     const [isExpanded, setIsExpanded] = useState(true);
     const { uploadingFiles, setOnFileAddedCallback, setUnstructuredFileData, removeUploadingFile } = useAppStore();
-    const useCredits = useProfileStore((state) => state.profile.useCredits)
-    const currentCredits = useProfileStore((state) => state.profile.credits)
-    const minusCredits = useProfileStore((state) => state.minusCredits)
+    const userProfileState = useProfileStore((state) => state);
 
     const { user } = useUser();
     useEffect(() => {
         if (user && user?.id) {
             setOnFileAddedCallback(async (newFile) => {
-                if (useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_UNSTRUCTURED || 4))) return
-                    const data: Chunk[] = await parseFile(newFile?.downloadUrl, newFile.fileName);
-
-                if (useCredits) {
-                    await minusCredits(creditsToMinus("unstructured"))
+                try {
+                    let data: Chunk[] = [];
+                    const handleParseFile = async (apiKey: string) => {
+                        data = await parseFile(newFile?.downloadUrl, newFile.fileName, apiKey);
+                        await uploadUnstructuredFile(data, user.id, newFile.fileName, newFile.fileId);
+                        setUnstructuredFileData(JSON.stringify(data, null, 2));
+                        removeUploadingFile(newFile.fileId);
+                    }
+                    await handleAPIAndCredits("unstructured", userProfileState, handleParseFile);
                 }
-
-                
-                await uploadUnstructuredFile(data, user.id, newFile.fileName, newFile.fileId);
-                setUnstructuredFileData(JSON.stringify(data, null, 2));
-                removeUploadingFile(newFile.fileId);
+                catch (error) {
+                    removeUploadingFile(newFile.fileId);
+                    if (error instanceof Error) {
+                        toast.error(error.message);
+                    } else {
+                        toast.error("An error occurred at file Parsing.");
+                    }
+                }
             });
         }
         return () => setOnFileAddedCallback(null);
-    }, [setOnFileAddedCallback, setUnstructuredFileData, removeUploadingFile, useCredits, currentCredits, minusCredits, user]);
+    }, [setOnFileAddedCallback, setUnstructuredFileData, removeUploadingFile, user, userProfileState]);
 
     if (uploadingFiles.length === 0) {
         return null;

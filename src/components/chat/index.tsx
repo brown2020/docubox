@@ -1,19 +1,23 @@
-import { doc, getDoc, updateDoc } from "firebase/firestore"
-import { db } from "@/firebase"
-import { ArrowUp, LoaderCircleIcon } from "lucide-react"
-import { Button } from "../ui/button"
-import { Textarea } from "../ui/textarea"
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { db } from "@/firebase";
+import { ArrowUp, LoaderCircleIcon } from "lucide-react";
+import { Button } from "../ui/button";
+import { Textarea } from "../ui/textarea";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { checkDocumentReadiness, retrieveChunks, uploadToRagie } from "@/actions/ragieActions";
+import {
+  checkDocumentReadiness,
+  retrieveChunks,
+  uploadToRagie,
+} from "@/actions/ragieActions";
 import { generateWithChunks } from "@/actions/generateActions";
 import { readStreamableValue } from "ai/rsc";
-import { useUser } from "@clerk/nextjs"
-import { QARecord } from "./QARecord"
+import { useUser } from "@clerk/nextjs";
+import { QARecord } from "./QARecord";
 import toast from "react-hot-toast";
-import { FileType } from "@/typings/filetype"
-import useProfileStore from "@/zustand/useProfileStore"
-import { handleAPIAndCredits } from "@/utils/useApiAndCreditKeys"
-import { useAppStore } from "@/zustand/useAppStore"
+import { FileType } from "@/typings/filetype";
+import useProfileStore from "@/zustand/useProfileStore";
+import { handleAPIAndCredits } from "@/utils/useApiAndCreditKeys";
+import { useAppStore } from "@/zustand/useAppStore";
 
 // Define a type for the chunk structure
 type Chunk = {
@@ -49,12 +53,10 @@ export const Chat = ({ fileId }: IChatProps) => {
   const [isUploadingToRagie, setUploadingToRagie] = useState(false);
 
   const userProfileState = useProfileStore((state) => state);
-  const  { setQuestionAnswerModalOpen } = useAppStore()
-
+  const { setQuestionAnswerModalOpen } = useAppStore();
 
   const getDocument = useCallback(async () => {
     if (user?.id) {
-
       setDocLoading(true);
 
       const docRef = doc(db, `users`, user?.id, "files", fileId);
@@ -72,105 +74,115 @@ export const Chat = ({ fileId }: IChatProps) => {
       setDocument(data as FileType);
       setDocLoading(false);
     }
-  }, [fileId, user?.id])
+  }, [fileId, user?.id]);
 
   // Function to upload a document to Ragie using server action
-  const _uploadToRagie = useCallback(async (userId: string, _document: { id: string; downloadUrl: string; filename: string }) => {
-    try {
-      setUploadingToRagie(true);
-      const handleUploadfile = async (apiKey: string) => {
-        const response = await uploadToRagie(_document.id, _document.downloadUrl, _document.filename, apiKey);
-        await updateDoc(doc(db, "users", userId, "files", _document.id), {
-          isUploadedToRagie: true,
-          ragieFileId: response.id
-        });
-        await checkDocumentReadiness(response.id, apiKey);
+  const _uploadToRagie = useCallback(
+    async (
+      userId: string,
+      _document: { id: string; downloadUrl: string; filename: string }
+    ) => {
+      try {
+        setUploadingToRagie(true);
+        const handleUploadfile = async (apiKey: string) => {
+          const response = await uploadToRagie(
+            _document.id,
+            _document.downloadUrl,
+            _document.filename,
+            apiKey
+          );
+          await updateDoc(doc(db, "users", userId, "files", _document.id), {
+            isUploadedToRagie: true,
+            ragieFileId: response.id,
+          });
+          await checkDocumentReadiness(response.id, apiKey);
+        };
+        await handleAPIAndCredits("ragie", userProfileState, handleUploadfile);
+      } catch (error) {
+        if (error instanceof Error) {
+          toast.error(error.message);
+          setQuestionAnswerModalOpen(false);
+        } else {
+          console.error("Error uploading to Ragie: ", error);
+          throw Error("Error uploading to Ragie");
+        }
+      } finally {
+        setUploadingToRagie(false);
       }
-      await handleAPIAndCredits("ragie", userProfileState, handleUploadfile);
-
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message);
-        setQuestionAnswerModalOpen(false);
-      } else {
-        console.error("Error uploading to Ragie: ", error);
-        throw Error("Error uploading to Ragie")
-      }
-    } finally {
-      setUploadingToRagie(false);
-    }
-  }, [userProfileState, setQuestionAnswerModalOpen]);
+    },
+    [userProfileState, setQuestionAnswerModalOpen]
+  );
 
   const onDocumentLoad = useCallback(async () => {
     if (user?.id && document) {
       const { docId, filename, downloadUrl } = document;
 
       try {
-        await _uploadToRagie(user?.id, { id: docId, filename, downloadUrl })
+        await _uploadToRagie(user?.id, { id: docId, filename, downloadUrl });
       } catch (error) {
         console.error(error);
-        throw new Error("Error while uploading file to Ragie.ai")
+        throw new Error("Error while uploading file to Ragie.ai");
       }
     }
   }, [document, user, _uploadToRagie]);
 
   useEffect(() => {
     if (document && !document.isUploadedToRagie) {
-      onDocumentLoad()
-        .then(() => {
-          getDocument();
-        })
+      onDocumentLoad().then(() => {
+        getDocument();
+      });
     }
   }, [document, onDocumentLoad, getDocument]);
 
   useEffect(() => {
     getDocument();
-  }, [fileId, getDocument])
+  }, [fileId, getDocument]);
 
   const updateQARecords = async (_records: IQARecord[]) => {
     if (!user) return;
 
     try {
       await updateDoc(doc(db, "users", user.id, "files", fileId), {
-        qaRecords: _records
-      })
+        qaRecords: _records,
+      });
     } catch (error) {
-      console.error(error)
+      console.error(error);
       throw Error("Something went wrong while updating QA Records");
     }
-  }
+  };
 
   const updateDocument = async (data: IQARecord) => {
     if (user?.id) {
-
-      const updatedRecords = [...history, data]
+      const updatedRecords = [...history, data];
 
       try {
         await updateQARecords(updatedRecords);
         setHistory(updatedRecords);
         setGeneratedContent("");
       } catch (error) {
-        console.error(error)
+        console.error(error);
       }
     }
-  }
+  };
 
   // Handle both retrieval and generation in a single function
   const handleAsk = async (): Promise<void> => {
     try {
-
       setIsGenerating(true);
       setGeneratedContent("");
 
       newQuestionRef.current = newQuestion;
 
       // Step 1: Retrieve chunks from Ragie
-      const data: RetrievalResponse = await retrieveChunks(newQuestionRef.current, fileId);
+      const data: RetrievalResponse = await retrieveChunks(
+        newQuestionRef.current,
+        fileId
+      );
       console.log("Retrieved chunks from Ragie:", data);
 
       // Step 2: Generate content using the retrieved chunks
-      const handleContent = async (apiKey: string) => {
-        setNewQuestion("");  
+      const handleContent = async () => {
+        setNewQuestion("");
         const result = await generateWithChunks(
           data.scored_chunks.map((chunk) => chunk.text), // Pass only the chunk texts
           newQuestion,
@@ -185,7 +197,7 @@ export const Chat = ({ fileId }: IChatProps) => {
           }
         }
         updateDocument({ question: newQuestion, answer });
-      }
+      };
 
       await handleAPIAndCredits("open-ai", userProfileState, handleContent);
       // if (useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI || 4))) return
@@ -208,7 +220,6 @@ export const Chat = ({ fileId }: IChatProps) => {
       // }
 
       // updateDocument({ question: newQuestion, answer });
-
     } catch (error) {
       console.error("Error during retrieval or generation:", error);
     } finally {
@@ -225,17 +236,16 @@ export const Chat = ({ fileId }: IChatProps) => {
       setDeleting(true);
       await updateQARecords(history);
       setHistory([...history]);
-      toast.success("Record is removed.")
+      toast.success("Record is removed.");
     } catch (error) {
-      console.error(error)
+      console.error(error);
     } finally {
       setDeleting(false);
     }
   };
   return (
-    <div style={{ height: '65dvh' }} className="flex flex-col gap-2">
+    <div style={{ height: "65dvh" }} className="flex flex-col gap-2">
       <div className="flex-grow border rounded-md bg-slate-100 max-h-[65dvh] overflow-y-auto px-5 pt-5 pb-2">
-
         {(isDocLoading || isUploadingToRagie) && (
           <div className="flex flex-col justify-center items-center h-full">
             <LoaderCircleIcon size={48} className="animate-spin" />
@@ -254,9 +264,13 @@ export const Chat = ({ fileId }: IChatProps) => {
         ))}
 
         {generatedContent && (
-          <QARecord key="new-record" question={newQuestionRef.current} answer={generatedContent} isDeleting={isDeleting} />
+          <QARecord
+            key="new-record"
+            question={newQuestionRef.current}
+            answer={generatedContent}
+            isDeleting={isDeleting}
+          />
         )}
-
       </div>
       <div className="flex gap-x-3 items-center ">
         <Textarea
@@ -273,10 +287,20 @@ export const Chat = ({ fileId }: IChatProps) => {
             }
           }}
         />
-        <Button variant="outline" size="icon" className="bg-slate-200 dark:bg-slate-600 border-gray-400" onClick={handleAsk} disabled={isGenerating || newQuestion.length === 0}>
-          {isGenerating ? <LoaderCircleIcon className="animate-spin" size={18} /> : <ArrowUp size={18} />}
+        <Button
+          variant="outline"
+          size="icon"
+          className="bg-slate-200 dark:bg-slate-600 border-gray-400"
+          onClick={handleAsk}
+          disabled={isGenerating || newQuestion.length === 0}
+        >
+          {isGenerating ? (
+            <LoaderCircleIcon className="animate-spin" size={18} />
+          ) : (
+            <ArrowUp size={18} />
+          )}
         </Button>
       </div>
     </div>
-  )
-}
+  );
+};

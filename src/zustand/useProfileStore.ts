@@ -38,7 +38,7 @@ interface AuthState {
   authEmailVerified?: boolean
 }
 
-interface ProfileState {
+export interface ProfileState {
   profile: ProfileType
   fetchProfile: () => void
   updateProfile: (newProfile: Partial<ProfileType>) => Promise<void>

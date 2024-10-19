@@ -4,7 +4,7 @@ import { ArrowUp, LoaderCircleIcon } from "lucide-react"
 import { Button } from "../ui/button"
 import { Textarea } from "../ui/textarea"
 import { useCallback, useEffect, useRef, useState } from "react";
-import { retrieveChunks, uploadToRagie } from "@/actions/ragieActions";
+import { checkDocumentReadiness, retrieveChunks, uploadToRagie } from "@/actions/ragieActions";
 import { generateWithChunks } from "@/actions/generateActions";
 import { readStreamableValue } from "ai/rsc";
 import { useUser } from "@clerk/nextjs"
@@ -12,7 +12,8 @@ import { QARecord } from "./QARecord"
 import toast from "react-hot-toast";
 import { FileType } from "@/typings/filetype"
 import useProfileStore from "@/zustand/useProfileStore"
-import { creditsToMinus } from "@/utils/credits"
+import { handleAPIAndCredits } from "@/utils/useApiAndCreditKeys"
+import { useAppStore } from "@/zustand/useAppStore"
 
 // Define a type for the chunk structure
 type Chunk = {
@@ -47,9 +48,8 @@ export const Chat = ({ fileId }: IChatProps) => {
   const [isDocLoading, setDocLoading] = useState(false);
   const [isUploadingToRagie, setUploadingToRagie] = useState(false);
 
-  const useCredits = useProfileStore((state) => state.profile.useCredits)
-    const currentCredits = useProfileStore((state) => state.profile.credits)
-    const minusCredits = useProfileStore((state) => state.minusCredits)
+  const userProfileState = useProfileStore((state) => state);
+  const  { setQuestionAnswerModalOpen } = useAppStore()
 
 
   const getDocument = useCallback(async () => {
@@ -74,6 +74,33 @@ export const Chat = ({ fileId }: IChatProps) => {
     }
   }, [fileId, user?.id])
 
+  // Function to upload a document to Ragie using server action
+  const _uploadToRagie = useCallback(async (userId: string, _document: { id: string; downloadUrl: string; filename: string }) => {
+    try {
+      setUploadingToRagie(true);
+      const handleUploadfile = async (apiKey: string) => {
+        const response = await uploadToRagie(_document.id, _document.downloadUrl, _document.filename, apiKey);
+        await updateDoc(doc(db, "users", userId, "files", _document.id), {
+          isUploadedToRagie: true,
+          ragieFileId: response.id
+        });
+        await checkDocumentReadiness(response.id, apiKey);
+      }
+      await handleAPIAndCredits("ragie", userProfileState, handleUploadfile);
+
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+        setQuestionAnswerModalOpen(false);
+      } else {
+        console.error("Error uploading to Ragie: ", error);
+        throw Error("Error uploading to Ragie")
+      }
+    } finally {
+      setUploadingToRagie(false);
+    }
+  }, [userProfileState, setQuestionAnswerModalOpen]);
+
   const onDocumentLoad = useCallback(async () => {
     if (user?.id && document) {
       const { docId, filename, downloadUrl } = document;
@@ -85,7 +112,7 @@ export const Chat = ({ fileId }: IChatProps) => {
         throw new Error("Error while uploading file to Ragie.ai")
       }
     }
-  }, [document, user])
+  }, [document, user, _uploadToRagie]);
 
   useEffect(() => {
     if (document && !document.isUploadedToRagie) {
@@ -128,32 +155,6 @@ export const Chat = ({ fileId }: IChatProps) => {
     }
   }
 
-  // Function to upload a document to Ragie using server action
-  const _uploadToRagie = async (userId: string, _document: { id: string; downloadUrl: string; filename: string }) => {
-    try {
-      setUploadingToRagie(true);
-      if (useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_RAGIE || 8))) return
-        const response = await uploadToRagie(_document.id, _document.downloadUrl, _document.filename);
-
-        if (useCredits) {
-            await minusCredits(creditsToMinus("ragie"))
-        }
-      
-
-      // Update Firestore with the Ragie upload status
-      await updateDoc(doc(db, "users", userId, "files", _document.id), {
-        isUploadedToRagie: true,
-        ragieFileId: response.id
-      });
-
-    } catch (error) {
-      console.error("Error uploading to Ragie: ", error);
-      throw Error("Error uploading to Ragie")
-    } finally {
-      setUploadingToRagie(false);
-    }
-  };
-
   // Handle both retrieval and generation in a single function
   const handleAsk = async (): Promise<void> => {
     try {
@@ -162,34 +163,51 @@ export const Chat = ({ fileId }: IChatProps) => {
       setGeneratedContent("");
 
       newQuestionRef.current = newQuestion;
-      setNewQuestion("");
 
       // Step 1: Retrieve chunks from Ragie
       const data: RetrievalResponse = await retrieveChunks(newQuestionRef.current, fileId);
       console.log("Retrieved chunks from Ragie:", data);
 
       // Step 2: Generate content using the retrieved chunks
-      if (useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI || 4))) return
-      const result = await generateWithChunks(
-        data.scored_chunks.map((chunk) => chunk.text), // Pass only the chunk texts
-        newQuestion,
-        "gpt-4o" // Adjust the model name as needed
-      );
-
-      if (useCredits) {
-            await minusCredits(creditsToMinus("ragie"))
+      const handleContent = async (apiKey: string) => {
+        setNewQuestion("");  
+        const result = await generateWithChunks(
+          data.scored_chunks.map((chunk) => chunk.text), // Pass only the chunk texts
+          newQuestion,
+          "gpt-4o" // Adjust the model name as needed
+        );
+        let answer = "";
+        // Stream the response to handle progressive updates
+        for await (const content of readStreamableValue(result)) {
+          if (content) {
+            setGeneratedContent(content.trim());
+            answer = content.trim();
+          }
         }
-
-      let answer = "";
-      // Stream the response to handle progressive updates
-      for await (const content of readStreamableValue(result)) {
-        if (content) {
-          setGeneratedContent(content.trim());
-          answer = content.trim();
-        }
+        updateDocument({ question: newQuestion, answer });
       }
 
-      updateDocument({ question: newQuestion, answer });
+      await handleAPIAndCredits("open-ai", userProfileState, handleContent);
+      // if (useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI || 4))) return
+      // const result = await generateWithChunks(
+      //   data.scored_chunks.map((chunk) => chunk.text), // Pass only the chunk texts
+      //   newQuestion,
+      //   "gpt-4o" // Adjust the model name as needed
+      // );
+
+      // if (useCredits) {
+      //   await minusCredits(creditsToMinus("ragie"))
+      // }
+
+      // let answer = "";
+      // for await (const content of readStreamableValue(result)) {
+      //   if (content) {
+      //     setGeneratedContent(content.trim());
+      //     answer = content.trim();
+      //   }
+      // }
+
+      // updateDocument({ question: newQuestion, answer });
 
     } catch (error) {
       console.error("Error during retrieval or generation:", error);
@@ -227,7 +245,7 @@ export const Chat = ({ fileId }: IChatProps) => {
 
         {history.map(({ question, answer }, index) => (
           <QARecord
-            key={question}
+            key={index}
             question={question}
             answer={answer}
             onDelete={() => handleDeleteQARecord(index)}
@@ -245,6 +263,7 @@ export const Chat = ({ fileId }: IChatProps) => {
           placeholder="Type your question here."
           className="resize-none bg-slate-200 focus-visible:ring-1 focus-visible:ring-offset-0 dark:bg-slate-600 border-gray-400 border-[1px]"
           value={newQuestion}
+          disabled={isUploadingToRagie || isGenerating}
           onChange={(e) => setNewQuestion(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {

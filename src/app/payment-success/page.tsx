@@ -2,13 +2,34 @@
 
 import PaymentSuccessPage from "@/components/PaymentSuccessPage";
 import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+
+// Define the prop types for ClientOnlyComponent
+interface ClientOnlyComponentProps {
+  setPaymentIntent: React.Dispatch<React.SetStateAction<string>>;
+}
+
+function ClientOnlyComponent({ setPaymentIntent }: ClientOnlyComponentProps) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams) {
+      const payment_intent = searchParams.get("payment_intent") || "";
+      setPaymentIntent(payment_intent);
+      console.log("payment_intent in ClientOnlyComponent", payment_intent);
+    }
+  }, [searchParams, setPaymentIntent]);
+
+  return null;
+}
 
 export default function PaymentSuccess() {
-  const searchParams = useSearchParams();
-  const payment_intent = searchParams.get("payment_intent") || "";
+  const [paymentIntent, setPaymentIntent] = useState<string>("");
 
-  console.log("searchParams in calling page", searchParams);
-
-  console.log("payment_intent in calling page", payment_intent);
-  return <PaymentSuccessPage payment_intent={payment_intent} />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ClientOnlyComponent setPaymentIntent={setPaymentIntent} />
+      {paymentIntent && <PaymentSuccessPage payment_intent={paymentIntent} />}
+    </Suspense>
+  );
 }

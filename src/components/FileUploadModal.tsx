@@ -74,7 +74,7 @@ export default function FileUploadModal() {
                     {uploadingFiles.map((file, index) => (
                         <div key={index} className={`flex items-center space-x-2 rounded-md p-2 border-2 mb-1 border-[#F1F5F9] ${file.isParsing ? 'blinking-background' : 'hover:bg-muted'}`}>
                             <FileIcon className="h-5 w-5 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground flex-grow">{file.fileName}</span>
+                            <span className="text-sm text-muted-foreground grow">{file.fileName}</span>
                             <LoaderCircleIcon size={16} className="animate-spin" />
                         </div>
                     ))}

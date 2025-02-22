@@ -245,7 +245,7 @@ export const Chat = ({ fileId }: IChatProps) => {
   };
   return (
     <div style={{ height: "65dvh" }} className="flex flex-col gap-2">
-      <div className="flex-grow border rounded-md bg-slate-100 max-h-[65dvh] overflow-y-auto px-5 pt-5 pb-2">
+      <div className="grow border rounded-md bg-slate-100 max-h-[65dvh] overflow-y-auto px-5 pt-5 pb-2">
         {(isDocLoading || isUploadingToRagie) && (
           <div className="flex flex-col justify-center items-center h-full">
             <LoaderCircleIcon size={48} className="animate-spin" />

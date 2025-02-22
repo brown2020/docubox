@@ -51,7 +51,7 @@ const TagInput: FunctionComponent<TagInputProps> = ({ tags, setTags }) => {
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder="Type and press Enter or comma to add a tag"
-        className="flex-1 border-none outline-none p-1"
+        className="flex-1 border-none outline-hidden p-1"
       />
     </div>
   );

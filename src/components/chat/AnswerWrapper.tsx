@@ -13,52 +13,51 @@ interface CodeProps extends React.HTMLAttributes<HTMLElement> {
   className?: string;
   children?: React.ReactNode;
 }
-
 export const AnswerWrapper = ({ answer }: IProps) => {
   return (
-    <MemoizedReactMarkdown
-      className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:p-0"
-      remarkPlugins={[remarkGfm, remarkMath]}
-      components={{
-        p({ children }) {
-          return <p className="mb-2 last:mb-0">{children}</p>;
-        },
-        code({ inline, className, children, ...props }: CodeProps) {
-          const childArray = React.Children.toArray(children); // Convert to array
+    <div className="prose break-words dark:prose-invert prose-p:leading-relaxed prose-pre:p-0">
+      <MemoizedReactMarkdown
+        remarkPlugins={[remarkGfm, remarkMath]}
+        components={{
+          p({ children }) {
+            return <p className="mb-2 last:mb-0">{children}</p>;
+          },
+          code({ inline, className, children, ...props }: CodeProps) {
+            const childArray = React.Children.toArray(children);
 
-          if (childArray.length > 0) {
-            if (childArray[0] === "▍") {
+            if (childArray.length > 0) {
+              if (childArray[0] === "▍") {
+                return (
+                  <span className="mt-1 cursor-default animate-pulse">▍</span>
+                );
+              }
+
+              childArray[0] = (childArray[0] as string).replace("`▍`", "▍");
+            }
+
+            const match = /language-(\w+)/.exec(className || "");
+
+            if (inline) {
               return (
-                <span className="mt-1 cursor-default animate-pulse">▍</span>
+                <code className={className} {...props}>
+                  {childArray}
+                </code>
               );
             }
 
-            // Replace '`▍`' with '▍' if needed
-            childArray[0] = (childArray[0] as string).replace("`▍`", "▍");
-          }
-
-          const match = /language-(\w+)/.exec(className || "");
-
-          if (inline) {
             return (
-              <code className={className} {...props}>
-                {childArray}
-              </code>
+              <CodeBlock
+                key={Math.random()}
+                language={(match && match[1]) || ""}
+                value={String(childArray).replace(/\n$/, "")}
+                {...props}
+              />
             );
-          }
-
-          return (
-            <CodeBlock
-              key={Math.random()}
-              language={(match && match[1]) || ""}
-              value={String(childArray).replace(/\n$/, "")}
-              {...props}
-            />
-          );
-        },
-      }}
-    >
-      {answer}
-    </MemoizedReactMarkdown>
+          },
+        }}
+      >
+        {answer}
+      </MemoizedReactMarkdown>
+    </div>
   );
 };

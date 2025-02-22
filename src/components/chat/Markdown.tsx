@@ -1,9 +1,17 @@
-import { FC, memo } from 'react'
-import ReactMarkdown, { Options } from 'react-markdown'
+import { FC, memo } from "react";
+import ReactMarkdown, { Options } from "react-markdown";
 
-export const MemoizedReactMarkdown: FC<Options> = memo(
-  ReactMarkdown,
-  (prevProps, nextProps) =>
-    prevProps.children === nextProps.children &&
-    prevProps.className === nextProps.className
-)
+interface MarkdownProps extends Options {
+  className?: string;
+}
+
+const MarkdownComponent: FC<MarkdownProps> = (props) => (
+  <ReactMarkdown {...props} />
+);
+
+MarkdownComponent.displayName = "MarkdownComponent"; // ✅ Fix missing display name
+
+export const MemoizedReactMarkdown = memo(
+  MarkdownComponent,
+  (prevProps, nextProps) => prevProps.children === nextProps.children
+);

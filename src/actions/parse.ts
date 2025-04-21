@@ -9,10 +9,9 @@ export async function parseFile(
   apiKey: string,
   isHighRes: boolean = false
 ): Promise<Chunk[]> {
-
   const fileResponse = await fetch(fileUrl);
 
-  console.log("File URL:", {fileResponse});
+  console.log("File URL:", { fileResponse });
 
   if (!fileResponse.ok) {
     throw new Error(
@@ -48,11 +47,30 @@ export async function parseFile(
         splitPdfConcurrencyLevel: 10,
       },
     });
-    if (response.statusCode === 200) {
-      console.error("Error at status not 200");
-      if (!response.elements) {
+
+    // Handle different possible response formats
+    let elements: Element[] = [];
+
+    if (typeof response === "string") {
+      // Try to parse if it's a JSON string
+      try {
+        const parsed = JSON.parse(response);
+        if (parsed && parsed.elements && Array.isArray(parsed.elements)) {
+          elements = parsed.elements;
+        }
+      } catch (e) {
+        console.error("Could not parse response as JSON string:", e);
       }
-      const elements = response.elements as Element[];
+    } else if (response && typeof response === "object") {
+      // Check if it has elements property
+      const responseObj = response as unknown as Record<string, unknown>;
+      if (responseObj.elements && Array.isArray(responseObj.elements)) {
+        elements = responseObj.elements as Element[];
+      }
+    }
+
+    // Check if we have elements after all the checks
+    if (elements.length > 0) {
       const chunks: Chunk[] = [];
       let currentChunk: Element[] = [];
       let currentHeading: string | null = null;
@@ -72,19 +90,38 @@ export async function parseFile(
       }
       return chunks;
     } else {
-      console.error("Error at status not 200");
+      console.error("Error: No elements in response");
       let errorMessage = "Error processing file";
-      console.error("Error status code received:", response.statusCode);
-      if (response.rawResponse) {
-        try {
-          const errorData = await response.rawResponse.json();
-          if (errorData && "error" in errorData) {
-            errorMessage = errorData.error as string;
+
+      // Try to extract error info if available
+      if (response && typeof response === "object") {
+        const responseObj = response as unknown as Record<string, unknown>;
+        if (
+          responseObj.rawResponse &&
+          typeof responseObj.rawResponse === "object" &&
+          responseObj.rawResponse !== null &&
+          "json" in responseObj.rawResponse &&
+          typeof (responseObj.rawResponse as { json: unknown }).json ===
+            "function"
+        ) {
+          try {
+            const errorData = await (
+              responseObj.rawResponse as { json: () => Promise<unknown> }
+            ).json();
+            if (
+              errorData &&
+              typeof errorData === "object" &&
+              errorData !== null &&
+              "error" in errorData
+            ) {
+              errorMessage = String((errorData as { error: unknown }).error);
+            }
+          } catch (jsonError) {
+            console.error("Error parsing error response:", jsonError);
           }
-        } catch (jsonError) {
-          console.error("Error parsing error response:", jsonError);
         }
       }
+
       console.error("Error message:", errorMessage);
       throw new Error(errorMessage);
     }

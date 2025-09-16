@@ -10,7 +10,6 @@ import {
   uploadToRagie,
 } from "@/actions/ragieActions";
 import { generateWithChunks } from "@/actions/generateActions";
-import { readStreamableValue } from "ai/rsc";
 import { useUser } from "@clerk/nextjs";
 import { QARecord } from "./QARecord";
 import toast from "react-hot-toast";
@@ -28,6 +27,12 @@ type Chunk = {
 // Define a type for the server response
 type RetrievalResponse = {
   scored_chunks: Chunk[];
+};
+
+type RetrievalError = {
+  error: true;
+  status: number;
+  message: string;
 };
 
 interface IChatProps {
@@ -174,54 +179,60 @@ export const Chat = ({ fileId }: IChatProps) => {
       newQuestionRef.current = newQuestion;
 
       // Step 1: Retrieve chunks from Ragie
-      const data: RetrievalResponse = await retrieveChunks(
-        newQuestionRef.current,
-        fileId
-      );
-      console.log("Retrieved chunks from Ragie:", data);
+      let data: RetrievalResponse | RetrievalError | null = null;
+
+      // Try env key first (server action will also fallback internally)
+      try {
+        data = await retrieveChunks(newQuestionRef.current, fileId);
+      } catch (e) {
+        console.warn(
+          "Env key retrieval failed, trying profile key via credits helper.",
+          e
+        );
+      }
+
+      // If still null, try profile key via credits helper
+      if (!data) {
+        const retrieve = async (apiKey: string) => {
+          data = await retrieveChunks(newQuestionRef.current, fileId, apiKey);
+          console.log("Retrieved chunks from Ragie (profile key):", data);
+        };
+        await handleAPIAndCredits("ragie", userProfileState, retrieve);
+      }
+
+      if (!data) {
+        throw new Error("Failed to retrieve chunks from Ragie.");
+      }
+
+      // If the server returned a structured error, surface it and stop
+      if ((data as RetrievalError).error) {
+        const err = data as RetrievalError;
+        toast.error(err.message);
+        return;
+      }
 
       // Step 2: Generate content using the retrieved chunks
       const handleContent = async () => {
         setNewQuestion("");
-        const result = await generateWithChunks(
-          data.scored_chunks.map((chunk) => chunk.text), // Pass only the chunk texts
+        const answer = await generateWithChunks(
+          (data as RetrievalResponse).scored_chunks.map((chunk) => chunk.text), // Pass only the chunk texts
           newQuestion,
           "gpt-4o" // Adjust the model name as needed
         );
-        let answer = "";
-        // Stream the response to handle progressive updates
-        for await (const content of readStreamableValue(result)) {
-          if (content) {
-            setGeneratedContent(content.trim());
-            answer = content.trim();
-          }
-        }
-        updateDocument({ question: newQuestion, answer });
+        setGeneratedContent(answer.trim());
+        await updateDocument({ question: newQuestion, answer });
       };
 
       await handleAPIAndCredits("open-ai", userProfileState, handleContent);
-      // if (useCredits && currentCredits < (Number(process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI || 4))) return
-      // const result = await generateWithChunks(
-      //   data.scored_chunks.map((chunk) => chunk.text), // Pass only the chunk texts
-      //   newQuestion,
-      //   "gpt-4o" // Adjust the model name as needed
-      // );
-
-      // if (useCredits) {
-      //   await minusCredits(creditsToMinus("ragie"))
-      // }
-
-      // let answer = "";
-      // for await (const content of readStreamableValue(result)) {
-      //   if (content) {
-      //     setGeneratedContent(content.trim());
-      //     answer = content.trim();
-      //   }
-      // }
-
-      // updateDocument({ question: newQuestion, answer });
     } catch (error) {
       console.error("Error during retrieval or generation:", error);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error(
+          "Failed to retrieve or generate an answer. Please try again."
+        );
+      }
     } finally {
       setIsGenerating(false);
     }

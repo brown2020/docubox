@@ -1,7 +1,6 @@
 "use server";
 
-import { createStreamableValue } from "ai/rsc";
-import { CoreMessage, streamText } from "ai";
+import { ModelMessage, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 
 async function getModel(modelName: string) {
@@ -21,7 +20,7 @@ async function generateResponse(
 ) {
   const model = await getModel(modelName);
 
-  const messages: CoreMessage[] = [
+  const messages: ModelMessage[] = [
     {
       role: "system",
       content: systemPrompt,
@@ -32,22 +31,20 @@ async function generateResponse(
     },
   ];
 
-  const result = streamText({
+  const { text } = await generateText({
     model,
     messages,
   });
 
-  const stream = createStreamableValue(result.textStream);
-  return stream.value;
+  return text;
 }
-
 
 // New function to handle generation using previously retrieved chunks
 export async function generateWithChunks(
   chunks: string[],
   query: string,
   modelName: string
-): Promise<ReturnType<typeof generateResponse>> {
+): Promise<string> {
   // Combine the retrieved chunks into a single text block
   const chunkText = chunks.join("\n");
 

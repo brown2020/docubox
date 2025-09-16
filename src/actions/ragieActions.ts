@@ -1,12 +1,11 @@
 "use server";
 
-
 const apiKey = process.env.RAGIE_API_KEY;
-const BASE_URL = "https://api.ragie.ai"
+const BASE_URL = "https://api.ragie.ai";
 
 type Metadata = {
   [key: string]: string | number | boolean | string[];
-}
+};
 
 type RagieFileUploadResponse = {
   id: string;
@@ -18,9 +17,13 @@ type RagieFileUploadResponse = {
   chunk_count: number;
   external_id: string;
   partition: string;
-}
+};
 
-export async function checkDocumentReadiness(ragieFileId: string, ragieApiKey: string,  interval = 3000) {
+export async function checkDocumentReadiness(
+  ragieFileId: string,
+  ragieApiKey: string,
+  interval = 3000
+) {
   let isReady = false;
   do {
     try {
@@ -31,7 +34,9 @@ export async function checkDocumentReadiness(ragieFileId: string, ragieApiKey: s
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`Failed to check document readiness: ${errorText}`);
-        throw new Error(`Failed to check document readiness: ${response.status}`);
+        throw new Error(
+          `Failed to check document readiness: ${response.status}`
+        );
       }
 
       const data = await response.json();
@@ -42,7 +47,7 @@ export async function checkDocumentReadiness(ragieFileId: string, ragieApiKey: s
         isReady = true;
       }
 
-      await new Promise(resolve => setTimeout(resolve, interval));
+      await new Promise((resolve) => setTimeout(resolve, interval));
     } catch (error) {
       console.error("Error checking document readiness:", error);
       throw error;
@@ -52,8 +57,12 @@ export async function checkDocumentReadiness(ragieFileId: string, ragieApiKey: s
   return true;
 }
 
-
-export const uploadToRagie = async (fileId: string, fileUrl: string, fileName: string, ragieApiKey: string): Promise<RagieFileUploadResponse> => {
+export const uploadToRagie = async (
+  fileId: string,
+  fileUrl: string,
+  fileName: string,
+  ragieApiKey: string
+): Promise<RagieFileUploadResponse> => {
   try {
     const fileResponse = await fetch(fileUrl);
     if (!fileResponse.ok) {
@@ -62,7 +71,7 @@ export const uploadToRagie = async (fileId: string, fileUrl: string, fileName: s
 
     const fileStream = fileResponse.body;
     if (!fileStream) {
-      throw new Error('File stream is not available');
+      throw new Error("File stream is not available");
     }
 
     const formData = new FormData();
@@ -75,15 +84,21 @@ export const uploadToRagie = async (fileId: string, fileUrl: string, fileName: s
       chunks.push(value);
     }
 
-    const fileBlob = new Blob(chunks, { type: fileResponse.headers.get('content-type') || 'application/octet-stream' });
-    formData.append('file', fileBlob, fileName);
-    formData.append('metadata', JSON.stringify({ title: fileName, scope: fileId }));
+    const fileBlob = new Blob(chunks, {
+      type:
+        fileResponse.headers.get("content-type") || "application/octet-stream",
+    });
+    formData.append("file", fileBlob, fileName);
+    formData.append(
+      "metadata",
+      JSON.stringify({ title: fileName, scope: fileId })
+    );
 
     const response = await fetch(`${BASE_URL}/documents`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         authorization: `Bearer ${ragieApiKey}`,
-        accept: 'application/json',
+        accept: "application/json",
       },
       body: formData,
     });
@@ -99,18 +114,32 @@ export const uploadToRagie = async (fileId: string, fileUrl: string, fileName: s
   }
 };
 
-export async function retrieveChunks(query: string, fileId: string) {
+export async function retrieveChunks(
+  query: string,
+  fileId: string,
+  ragieApiKey?: string
+) {
   console.log("Starting chunk retrieval...");
   console.log("Query:", query);
 
-  console.log("Ragie API Key:", apiKey ? "Key is set" : "Key is missing");
+  const keyToUse = ragieApiKey || process.env.RAGIE_API_KEY || "";
+  console.log("Ragie API Key:", keyToUse ? "Key is set" : "Key is missing");
+
+  if (!keyToUse) {
+    return {
+      error: true,
+      status: 0,
+      message:
+        "Missing Ragie API key. Set RAGIE_API_KEY in the environment or provide a key in profile settings.",
+    } as const;
+  }
 
   try {
     const response = await fetch(`${BASE_URL}/retrievals`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${keyToUse}`,
       },
       body: JSON.stringify({
         query,
@@ -124,9 +153,21 @@ export async function retrieveChunks(query: string, fileId: string) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Error Response from Ragie API:", errorText);
-      throw new Error(
-        `Failed to retrieve chunks from Ragie with status: ${response.status}`
-      );
+      if (response.status === 401 || response.status === 403) {
+        return {
+          error: true,
+          status: response.status,
+          message:
+            "Ragie API access denied (" +
+            response.status +
+            "): Your account may be disabled or the API key is invalid. Please contact support@ragie.ai.",
+        } as const;
+      }
+      return {
+        error: true,
+        status: response.status,
+        message: `Failed to retrieve chunks from Ragie with status: ${response.status}`,
+      } as const;
     }
 
     const data = await response.json();
@@ -134,7 +175,11 @@ export async function retrieveChunks(query: string, fileId: string) {
     return data; // Return the retrieved chunks
   } catch (error) {
     console.error("Error during chunk retrieval:", error);
-    throw error;
+    return {
+      error: true,
+      status: 0,
+      message: "Network error while contacting Ragie API.",
+    } as const;
   }
 }
 
@@ -169,5 +214,4 @@ export async function deleteFileFromRagie(fileId: string) {
     console.error("Error during File deletion:", error);
     throw error;
   }
-
 }

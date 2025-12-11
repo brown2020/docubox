@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { ApiKeyInput } from "./common/ApiKeyInput";
 import { logger } from "@/lib/logger";
+import { Button } from "./ui/button";
 
 export default function ProfileComponent() {
   const profile = useProfileStore((state) => state.profile);
@@ -68,16 +69,14 @@ export default function ProfileComponent() {
       <div className="flex flex-col sm:flex-row px-5 py-3 gap-3 border border-gray-500 rounded-md">
         <div className="flex gap-2 w-full items-center">
           <div className="flex-1">
-            Usage Credits: {Math.round(profile.credits)}
+            Usage Credits:{" "}
+            <span className="font-semibold">{Math.round(profile.credits)}</span>
           </div>
-          <Link
-            className="bg-primary text-white px-3 py-2 rounded-md hover:opacity-50 flex-1 text-center"
-            href="/payment-attempt"
-          >
-            Buy 10,000 Credits
-          </Link>
+          <Button asChild>
+            <Link href="/payment-attempt">Buy 10,000 Credits</Link>
+          </Button>
         </div>
-        <div className="text-sm text-gray-600 mt-2">
+        <div className="text-sm text-muted-foreground mt-2">
           You can either buy credits or add your own API keys for Unstructured,
           OpenAI, and Ragie.
         </div>
@@ -108,13 +107,9 @@ export default function ProfileComponent() {
           placeholder="Enter your Ragie API Key"
         />
 
-        <button
-          onClick={handleApiKeyChange}
-          disabled={!hasChanges}
-          className="bg-primary text-white px-3 py-2 rounded-md hover:opacity-50 disabled:opacity-50"
-        >
+        <Button onClick={handleApiKeyChange} disabled={!hasChanges}>
           Update API Keys
-        </button>
+        </Button>
       </div>
 
       <div className="flex items-center px-5 py-3 gap-3 border border-gray-500 rounded-md">
@@ -125,7 +120,7 @@ export default function ProfileComponent() {
           id="toggle-use-credits"
           value={useCredits ? "credits" : "apikeys"}
           onChange={handleCreditsChange}
-          className="border border-gray-300 rounded-md px-3 py-2 h-10"
+          className="border border-input rounded-md px-3 py-2 h-10 bg-background"
           disabled={!areApiKeysAvailable}
         >
           <option value="credits">Credits</option>

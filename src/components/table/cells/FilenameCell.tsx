@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { PencilIcon } from "lucide-react";
 import { TableCell } from "@/components/ui/table";
 
@@ -8,8 +9,12 @@ interface FilenameCellProps {
 
 /**
  * Reusable cell component for displaying editable filenames.
+ * Memoized to prevent unnecessary re-renders in table.
  */
-export function FilenameCell({ filename, onEdit }: FilenameCellProps) {
+export const FilenameCell = memo(function FilenameCell({
+  filename,
+  onEdit,
+}: FilenameCellProps) {
   return (
     <TableCell className="py-2 px-4 text-gray-600 dark:text-white">
       <div
@@ -20,9 +25,9 @@ export function FilenameCell({ filename, onEdit }: FilenameCellProps) {
             : "text-gray-600 dark:text-white"
         }`}
       >
-        <div>{filename}</div>
-        {onEdit && <PencilIcon size={15} className="ml-2" />}
+        <span className="truncate max-w-[200px]">{filename}</span>
+        {onEdit && <PencilIcon size={15} className="shrink-0" />}
       </div>
     </TableCell>
   );
-}
+});

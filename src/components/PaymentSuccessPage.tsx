@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { validatePaymentIntent } from "@/actions/paymentActions";
 import { logger } from "@/lib/logger";
+import { LoadingState } from "./common/LoadingState";
+import { Button } from "./ui/button";
 
 type Props = {
   payment_intent: string;
@@ -19,18 +21,10 @@ interface PaymentData {
   created: number;
 }
 
-const initialPaymentData: PaymentData = {
-  id: "",
-  amount: 0,
-  status: "",
-  created: 0,
-};
-
 export default function PaymentSuccessPage({ payment_intent }: Props) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const [paymentData, setPaymentData] =
-    useState<PaymentData>(initialPaymentData);
+  const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
 
   const addPayment = usePaymentsStore((state) => state.addPayment);
   const checkIfPaymentProcessed = usePaymentsStore(
@@ -51,7 +45,6 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
         const data = await validatePaymentIntent(payment_intent);
 
         if (data.status === "succeeded") {
-          // Check if payment is already processed
           const existingPayment = await checkIfPaymentProcessed(data.id);
           if (existingPayment) {
             setMessage("Payment has already been processed.");
@@ -70,17 +63,15 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
             id: data.id,
             amount: data.amount,
             status: data.status,
-            created: data.created * 1000, // UNIX timestamp in seconds to ms
+            created: data.created * 1000,
           });
 
-          // Add payment to store
           await addPayment({
             id: data.id,
             amount: data.amount,
             status: data.status,
           });
 
-          // Add credits to profile
           const creditsToAdd = data.amount + 1;
           await addCredits(creditsToAdd);
         } else {
@@ -97,32 +88,38 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
     if (uid) handlePaymentSuccess();
   }, [payment_intent, addPayment, checkIfPaymentProcessed, addCredits, uid]);
 
+  if (loading) {
+    return (
+      <main className="max-w-6xl mx-auto p-10 m-10">
+        <LoadingState message="Validating payment..." />
+      </main>
+    );
+  }
+
   return (
-    <main className="max-w-6xl flex flex-col gap-2.5 mx-auto p-10 text-black text-center border m-10 rounded-md border-black">
-      {loading ? (
-        <div>validating...</div>
-      ) : paymentData.id ? (
-        <div className="mb-10">
+    <main className="max-w-6xl flex flex-col gap-4 mx-auto p-10 text-center border m-10 rounded-md dark:border-slate-600">
+      {paymentData ? (
+        <div className="mb-6">
           <h1 className="text-4xl font-extrabold mb-2">Thank you!</h1>
-          <h2 className="text-2xl">You successfully purchased credits</h2>
-          <div className="bg-white p-2 rounded-md my-5 text-4xl font-bold mx-auto">
+          <h2 className="text-2xl text-muted-foreground">
+            You successfully purchased credits
+          </h2>
+          <div className="bg-green-100 dark:bg-green-900 p-4 rounded-md my-5 text-4xl font-bold mx-auto inline-block">
             ${paymentData.amount / 100}
           </div>
-          <div>Uid: {uid}</div>
-          <div>Id: {paymentData.id}</div>
-          <div>Created: {new Date(paymentData.created).toLocaleString()}</div>
-          <div>Status: {paymentData.status}</div>
+          <div className="text-sm text-muted-foreground space-y-1">
+            <div>ID: {paymentData.id}</div>
+            <div>Created: {new Date(paymentData.created).toLocaleString()}</div>
+            <div className="capitalize">Status: {paymentData.status}</div>
+          </div>
         </div>
       ) : (
-        <div>{message}</div>
+        <div className="text-muted-foreground py-8">{message}</div>
       )}
 
-      <Link
-        href="/profile"
-        className="px-4 py-2 bg-blue-500 text-white rounded-md hover:opacity-50"
-      >
-        View Account
-      </Link>
+      <Button asChild className="mx-auto">
+        <Link href="/profile">View Account</Link>
+      </Button>
     </main>
   );
 }

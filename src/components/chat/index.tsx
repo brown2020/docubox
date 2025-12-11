@@ -56,23 +56,16 @@ export const Chat = ({ fileId }: IChatProps) => {
   const [isDocLoading, setDocLoading] = useState(false);
   const [isUploadingToRagie, setUploadingToRagie] = useState(false);
 
-  // Select only needed fields from stores (better memoization)
+  // Select only needed fields from stores
   const profile = useProfileStore((state) => state.profile);
   const minusCredits = useProfileStore((state) => state.minusCredits);
   const setQuestionAnswerModalOpen = useModalStore(
     (state) => state.setQuestionAnswerModalOpen
   );
 
-  // Create profile state for API handler - only needs profile and minusCredits
-  const userProfileState = useMemo(
-    () => ({
-      profile,
-      minusCredits,
-      // These are required by the type but not used in handleAPIAndCredits
-      fetchProfile: async () => {},
-      updateProfile: async () => {},
-      addCredits: async () => {},
-    }),
+  // Memoize profile data for API handler (simplified interface)
+  const apiProfileData = useMemo(
+    () => ({ profile, minusCredits }),
     [profile, minusCredits]
   );
 
@@ -118,7 +111,7 @@ export const Chat = ({ fileId }: IChatProps) => {
           });
           await checkDocumentReadiness(response.id, apiKey);
         };
-        await handleAPIAndCredits("ragie", userProfileState, handleUploadfile);
+        await handleAPIAndCredits("ragie", apiProfileData, handleUploadfile);
       } catch (error) {
         if (error instanceof Error) {
           toast.error(error.message);
@@ -131,7 +124,7 @@ export const Chat = ({ fileId }: IChatProps) => {
         setUploadingToRagie(false);
       }
     },
-    [userProfileState, setQuestionAnswerModalOpen]
+    [apiProfileData, setQuestionAnswerModalOpen]
   );
 
   const onDocumentLoad = useCallback(async () => {
@@ -159,21 +152,26 @@ export const Chat = ({ fileId }: IChatProps) => {
     getDocument();
   }, [fileId, getDocument]);
 
-  const updateQARecords = async (_records: IQARecord[]) => {
-    if (!user) return;
+  const updateQARecords = useCallback(
+    async (_records: IQARecord[]) => {
+      if (!user) return;
 
-    try {
-      await updateDoc(doc(db, "users", user.id, "files", fileId), {
-        qaRecords: _records,
-      });
-    } catch (error) {
-      console.error(error);
-      throw Error("Something went wrong while updating QA Records");
-    }
-  };
+      try {
+        await updateDoc(doc(db, "users", user.id, "files", fileId), {
+          qaRecords: _records,
+        });
+      } catch (error) {
+        console.error("[updateQARecords] Error:", error);
+        throw new Error("Something went wrong while updating QA Records");
+      }
+    },
+    [user, fileId]
+  );
 
-  const updateDocument = async (data: IQARecord) => {
-    if (user?.id) {
+  const updateDocument = useCallback(
+    async (data: IQARecord) => {
+      if (!user?.id) return;
+
       const updatedRecords = [...history, data];
 
       try {
@@ -181,10 +179,11 @@ export const Chat = ({ fileId }: IChatProps) => {
         setHistory(updatedRecords);
         setGeneratedContent("");
       } catch (error) {
-        console.error(error);
+        console.error("[updateDocument] Error:", error);
       }
-    }
-  };
+    },
+    [user?.id, history, updateQARecords]
+  );
 
   // Handle both retrieval and generation in a single function
   const handleAsk = async (): Promise<void> => {
@@ -213,7 +212,7 @@ export const Chat = ({ fileId }: IChatProps) => {
           data = await retrieveChunks(newQuestionRef.current, fileId, apiKey);
           console.log("Retrieved chunks from Ragie (profile key):", data);
         };
-        await handleAPIAndCredits("ragie", userProfileState, retrieve);
+        await handleAPIAndCredits("ragie", apiProfileData, retrieve);
       }
 
       if (!data) {
@@ -239,7 +238,7 @@ export const Chat = ({ fileId }: IChatProps) => {
         await updateDocument({ question: newQuestion, answer });
       };
 
-      await handleAPIAndCredits("open-ai", userProfileState, handleContent);
+      await handleAPIAndCredits("open-ai", apiProfileData, handleContent);
     } catch (error) {
       console.error("Error during retrieval or generation:", error);
       if (error instanceof Error) {

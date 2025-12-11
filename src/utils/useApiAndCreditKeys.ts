@@ -2,15 +2,24 @@
 
 import { getApiKey } from "@/actions/getApiKeys";
 import { getCreditCost, type APIType } from "@/constants/credits";
-import { ProfileState } from "@/zustand/useProfileStore";
+import { ProfileType } from "@/zustand/useProfileStore";
 
 // Re-export APIType for backwards compatibility
 export type { APIType };
 
 /**
+ * Simplified profile data interface for API/credit handling.
+ * Only includes what's actually needed by handleAPIAndCredits.
+ */
+export interface APIProfileData {
+  profile: ProfileType;
+  minusCredits: (amount: number) => Promise<boolean>;
+}
+
+/**
  * Maps API type to the corresponding profile field name.
  */
-const API_KEY_FIELDS: Record<APIType, keyof ProfileState["profile"]> = {
+const API_KEY_FIELDS: Record<APIType, keyof ProfileType> = {
   "open-ai": "openai_api_key",
   unstructured: "unstructured_api_key",
   ragie: "ragie_api_key",
@@ -31,7 +40,7 @@ const formatAPIName = (apiType: APIType): string => {
  */
 const handleAPIAndCredits = async (
   apiType: APIType,
-  profileData: ProfileState,
+  profileData: APIProfileData,
   callback: (apiKey: string) => Promise<void>
 ): Promise<void> => {
   const { profile, minusCredits } = profileData;

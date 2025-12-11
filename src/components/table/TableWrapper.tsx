@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useDeferredValue, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { usePathname } from "next/navigation";
@@ -25,6 +25,7 @@ import { useModalStore } from "@/zustand/useModalStore";
  */
 export default function TableWrapper() {
   const { user } = useUser();
+  const { isLoaded, isSignedIn } = useAuth();
   const pathname = usePathname();
   const [sort, setSort] = useState<"asc" | "desc">("desc");
   const [searchInput, setSearchInput] = useState("");
@@ -69,8 +70,9 @@ export default function TableWrapper() {
     [allFiles, isTrashPageActive]
   );
 
-  // Show loading skeleton while fetching
-  if (isLoading) {
+  // Show loading skeleton while Clerk loads or data is being fetched
+  // Also show skeleton for signed-out users (proxy will redirect them)
+  if (!isLoaded || !isSignedIn || isLoading) {
     return (
       <div className="flex flex-col px-4">
         <Button variant="outline" className="ml-auto w-36 h-10 mb-5">

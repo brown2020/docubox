@@ -10,9 +10,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useIsMounted } from "@/hooks/useIsMounted";
 
 export function ThemeToggler() {
   const { setTheme } = useTheme();
+  const isMounted = useIsMounted();
+
+  // Prevent hydration mismatch - Radix generates different IDs on server vs client
+  if (!isMounted) {
+    return (
+      <Button variant="outline" size="icon" disabled>
+        <SunIcon className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+        <MoonIcon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        <span className="sr-only">Toggle theme</span>
+      </Button>
+    );
+  }
 
   return (
     <DropdownMenu>

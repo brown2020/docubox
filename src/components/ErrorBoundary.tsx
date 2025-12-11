@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
+  name?: string;
 }
 
 interface ErrorBoundaryState {
   hasError: boolean;
   error?: Error;
+  errorInfo?: ErrorInfo;
 }
 
 /**
@@ -31,14 +33,23 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log error to console in development
-    if (process.env.NODE_ENV === "development") {
-      console.error("ErrorBoundary caught an error:", error, errorInfo);
-    }
+    // Log error to console with full details
+    const boundaryName = this.props.name || "Unknown";
+    console.error(
+      `[ErrorBoundary:${boundaryName}] caught an error:`,
+      "\n\nError:",
+      error.message,
+      "\n\nStack:",
+      error.stack,
+      "\n\nComponent Stack:",
+      errorInfo.componentStack
+    );
+
+    this.setState({ errorInfo });
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: undefined });
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
   };
 
   render() {
@@ -46,6 +57,8 @@ export class ErrorBoundary extends Component<
       if (this.props.fallback) {
         return this.props.fallback;
       }
+
+      const isDev = process.env.NODE_ENV === "development";
 
       return (
         <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -55,6 +68,30 @@ export class ErrorBoundary extends Component<
           <p className="text-muted-foreground mb-4">
             An error occurred while rendering this section.
           </p>
+
+          {isDev && this.state.error && (
+            <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-left max-w-2xl overflow-auto">
+              <p className="font-mono text-sm text-red-600 dark:text-red-400 mb-2">
+                <strong>Error:</strong> {this.state.error.message}
+              </p>
+              {this.state.error.stack && (
+                <pre className="font-mono text-xs text-red-500 dark:text-red-300 whitespace-pre-wrap">
+                  {this.state.error.stack}
+                </pre>
+              )}
+              {this.state.errorInfo?.componentStack && (
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-sm text-red-600 dark:text-red-400">
+                    Component Stack
+                  </summary>
+                  <pre className="font-mono text-xs text-red-500 dark:text-red-300 whitespace-pre-wrap mt-1">
+                    {this.state.errorInfo.componentStack}
+                  </pre>
+                </details>
+              )}
+            </div>
+          )}
+
           <Button onClick={this.handleRetry} variant="outline">
             Try Again
           </Button>

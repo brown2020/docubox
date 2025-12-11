@@ -42,20 +42,33 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <AuthProvider>
-              <TooltipProvider delayDuration={300}>
-                <Header />
-                <div className="flex flex-col h-full">
-                  <ErrorBoundary>
-                    <div className="flex-1">{children}</div>
+            <ErrorBoundary name="AuthProvider">
+              <AuthProvider>
+                <TooltipProvider delayDuration={300}>
+                  <ErrorBoundary
+                    name="Header"
+                    fallback={
+                      <div className="h-14 bg-slate-200 dark:bg-slate-600" />
+                    }
+                  >
+                    <Header />
                   </ErrorBoundary>
-                  <Footer />
-                </div>
-                <Toaster />
-                <FileUploadModal />
-                <ModalProvider />
-              </TooltipProvider>
-            </AuthProvider>
+                  <div className="flex flex-col h-full">
+                    <ErrorBoundary name="MainContent">
+                      <div className="flex-1">{children}</div>
+                    </ErrorBoundary>
+                    <Footer />
+                  </div>
+                  <Toaster />
+                  <ErrorBoundary name="FileUploadModal" fallback={null}>
+                    <FileUploadModal />
+                  </ErrorBoundary>
+                  <ErrorBoundary name="ModalProvider" fallback={null}>
+                    <ModalProvider />
+                  </ErrorBoundary>
+                </TooltipProvider>
+              </AuthProvider>
+            </ErrorBoundary>
           </ThemeProvider>
         </body>
       </html>

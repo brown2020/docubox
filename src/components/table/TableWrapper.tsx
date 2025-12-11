@@ -25,7 +25,6 @@ import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { useModalStore } from "@/zustand/useModalStore";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { AddNewFolderModal } from "../AddNewFolderModal";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 
 export default function TableWrapper() {
@@ -49,48 +48,57 @@ export default function TableWrapper() {
   };
 
   // Use the 'useCollection' hook to fetch Firestore documents
-
   const _where = isTrashPageActive
-    ? where("deletedAt", "!=", null) // Fetch files where deletedAt is not null
-    : where("deletedAt", "==", null); // Fetch files where deletedAt is null
+    ? where("deletedAt", "!=", null)
+    : where("deletedAt", "==", null);
 
   const _orderBy = isTrashPageActive
-    ? orderBy("deletedAt", sort) // Sort by deletedAt if it's a trash page
-    : orderBy("timestamp", sort); // Sort by timestamp otherwise
+    ? orderBy("deletedAt", sort)
+    : orderBy("timestamp", sort);
 
   const [docs] = useCollection(
     user && query(collection(db, "users", user.id, "files"), _where, _orderBy)
   );
 
-  const calculateFolderSize = useCallback(
-    (folderId: string) => {
-      const docs = initialFiles.filter((file) => file.folderId === folderId);
+  // Memoized folder sizes calculation - only recalculate when initialFiles changes
+  const folderSizes = useMemo(() => {
+    const sizes = new Map<string, number>();
 
+    const calculateSize = (targetFolderId: string): number => {
+      if (sizes.has(targetFolderId)) return sizes.get(targetFolderId)!;
+
+      const children = initialFiles.filter(
+        (file) => file.folderId === targetFolderId
+      );
       let totalSize = 0;
 
-      // Loop through all items in the folder
-      for (const data of docs) {
-        if (data.type === "folder") {
-          // Recursively calculate the size of the nested folder
-          const folderSize = calculateFolderSize(data.docId);
-          totalSize += folderSize;
+      for (const child of children) {
+        if (child.type === "folder") {
+          totalSize += calculateSize(child.docId);
         } else {
-          // Add the size of the file to the total
-          totalSize += data.size || 0;
+          totalSize += child.size || 0;
         }
       }
+
+      sizes.set(targetFolderId, totalSize);
       return totalSize;
-    },
-    [initialFiles]
-  );
+    };
+
+    // Pre-calculate all folder sizes
+    initialFiles
+      .filter((f) => f.type === "folder")
+      .forEach((f) => calculateSize(f.docId));
+
+    return sizes;
+  }, [initialFiles]);
 
   const filesList: FileType[] = useMemo(() => {
     let files: FileType[] = [...initialFiles];
 
-    // Filter files by folderId && deletedAt
+    // Filter files by folderId
     files = files.filter((file) => file.folderId === folderId);
 
-    // If input exists, filter by tags as well
+    // If input exists, filter by tags
     if (input) {
       files = files.filter(
         (file) =>
@@ -101,45 +109,40 @@ export default function TableWrapper() {
       );
     }
 
-    // Map through the filtered files and calculate folder size if needed
+    // Apply pre-calculated folder sizes
     return files.map((file) => {
       if (file.type === "folder") {
-        file.size = calculateFolderSize(file.docId);
+        return { ...file, size: folderSizes.get(file.docId) || 0 };
       }
-      return { ...file };
+      return file;
     });
-  }, [input, initialFiles, folderId, calculateFolderSize]);
+  }, [input, initialFiles, folderId, folderSizes]);
 
   useEffect(() => {
     if (!docs) return;
-    // Use centralized mapping utility
     const files = mapDocsToFileTypes(docs.docs);
     setInitialFiles(files);
   }, [docs]);
 
   const viewHandler = useCallback(() => {
-    if (view === "list") setView("grid");
-    else setView("list");
-  }, [view]);
+    setView((prev) => (prev === "list" ? "grid" : "list"));
+  }, []);
 
   const moveFileHandler = useCallback(
-    async (userId: string, docId: string, folderId: string) => {
-      if (isTrashPageActive) {
-        return;
-      }
+    async (userId: string, docId: string, targetFolderId: string) => {
+      if (isTrashPageActive) return;
 
       const existingDoc = initialFiles.find((file) => file.docId === docId);
-
       if (existingDoc) {
         await updateDoc(doc(db, "users", userId, "files", docId), {
-          folderId,
+          folderId: targetFolderId,
         });
       }
     },
     [initialFiles, isTrashPageActive]
   );
 
-  const goBack = () => {
+  const goBack = useCallback(() => {
     const parentFolderId = initialFiles.find(
       (i) => i.docId === folderId
     )?.folderId;
@@ -150,7 +153,7 @@ export default function TableWrapper() {
       params.delete("activeFolder");
     }
     replace(`${pathname}?${params.toString()}`);
-  };
+  }, [initialFiles, folderId, searchParams, pathname, replace]);
 
   useEffect(() => {
     const activeFolderId = searchParams.get("activeFolder");
@@ -166,7 +169,6 @@ export default function TableWrapper() {
         </Button>
         <div className="border rounded-lg">
           <div className="border-b h-12" />
-          {/* Show 3 skeleton rows */}
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex items-center space-x-4 p-4 w-full">
               <Skeleton className="h-12 w-12" />
@@ -225,7 +227,6 @@ export default function TableWrapper() {
           />
         )}
       </DndProvider>
-      <AddNewFolderModal />
     </div>
   );
 }

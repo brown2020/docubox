@@ -1,79 +1,48 @@
 /**
- * Debug-conditional logging utility.
- * Only logs in development mode to avoid console noise in production.
+ * Centralized logging utility.
+ * Conditionally logs based on environment to keep production clean.
  */
 
 const isDev = process.env.NODE_ENV === "development";
 
-type LogLevel = "log" | "warn" | "error" | "info";
-
-interface LogOptions {
-  /** Force log even in production (use sparingly) */
-  force?: boolean;
-}
+type LogData = Record<string, unknown> | unknown;
 
 /**
- * Creates a prefixed logger for a specific module/action.
+ * Logger utility with environment-aware logging.
+ * Debug and info logs are suppressed in production.
  */
-export function createLogger(prefix: string) {
-  const formatMessage = (message: string) => `[${prefix}] ${message}`;
+export const logger = {
+  /**
+   * Debug logging - only in development.
+   */
+  debug: (tag: string, data?: LogData) => {
+    if (isDev) {
+      console.log(`[${tag}]`, data ?? "");
+    }
+  },
 
-  return {
-    log: (message: string, data?: unknown, options?: LogOptions) => {
-      if (isDev || options?.force) {
-        if (data !== undefined) {
-          console.log(formatMessage(message), data);
-        } else {
-          console.log(formatMessage(message));
-        }
-      }
-    },
+  /**
+   * Info logging - only in development.
+   */
+  info: (tag: string, message: string, data?: LogData) => {
+    if (isDev) {
+      console.log(`[${tag}] ${message}`, data ?? "");
+    }
+  },
 
-    warn: (message: string, data?: unknown, options?: LogOptions) => {
-      if (isDev || options?.force) {
-        if (data !== undefined) {
-          console.warn(formatMessage(message), data);
-        } else {
-          console.warn(formatMessage(message));
-        }
-      }
-    },
+  /**
+   * Warning logging - only in development.
+   */
+  warn: (tag: string, message: string, data?: LogData) => {
+    if (isDev) {
+      console.warn(`[${tag}] ${message}`, data ?? "");
+    }
+  },
 
-    error: (message: string, data?: unknown) => {
-      // Always log errors
-      if (data !== undefined) {
-        console.error(formatMessage(message), data);
-      } else {
-        console.error(formatMessage(message));
-      }
-    },
-
-    info: (message: string, data?: unknown, options?: LogOptions) => {
-      if (isDev || options?.force) {
-        if (data !== undefined) {
-          console.info(formatMessage(message), data);
-        } else {
-          console.info(formatMessage(message));
-        }
-      }
-    },
-  };
-}
-
-/**
- * Simple debug log that only runs in development.
- */
-export function debugLog(
-  message: string,
-  data?: unknown,
-  level: LogLevel = "log"
-) {
-  if (!isDev) return;
-
-  if (data !== undefined) {
-    console[level](message, data);
-  } else {
-    console[level](message);
-  }
-}
-
+  /**
+   * Error logging - always logged (important for debugging).
+   */
+  error: (tag: string, message: string, error?: unknown) => {
+    console.error(`[${tag}] ${message}`, error ?? "");
+  },
+};

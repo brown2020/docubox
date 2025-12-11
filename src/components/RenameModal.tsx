@@ -9,15 +9,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ModalContent } from "@/components/ui/modal-content";
-import { db } from "@/firebase";
 import { useModalStore } from "@/zustand/useModalStore";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { useUser } from "@clerk/nextjs";
-import { doc, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Input } from "./ui/input";
 import toast from "react-hot-toast";
 import TagInput from "./ui/tagInput";
+import { fileService } from "@/services/fileService";
+import { logger } from "@/lib/logger";
 
 export function RenameModal() {
   const { user } = useUser();
@@ -42,14 +42,11 @@ export function RenameModal() {
 
     const toastId = toast.loading("Updating file...");
     try {
-      await updateDoc(doc(db, "users", user.id, "files", fileId), {
-        filename: input.trim(),
-        tags,
-      });
+      await fileService.rename(user.id, fileId, input.trim(), tags);
       toast.success("File updated successfully!", { id: toastId });
       setIsRenameModalOpen(false);
     } catch (error) {
-      console.error("[RenameModal] Error updating file:", error);
+      logger.error("RenameModal", "Error updating file", error);
       toast.error("Error updating file!", { id: toastId });
     }
   }

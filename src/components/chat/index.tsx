@@ -199,18 +199,14 @@ export const Chat = ({ fileId }: IChatProps) => {
       // Try env key first (server action will also fallback internally)
       try {
         data = await retrieveChunks(newQuestionRef.current, fileId);
-      } catch (e) {
-        console.warn(
-          "Env key retrieval failed, trying profile key via credits helper.",
-          e
-        );
+      } catch {
+        // Env key retrieval failed, will try profile key
       }
 
       // If still null, try profile key via credits helper
       if (!data) {
         const retrieve = async (apiKey: string) => {
           data = await retrieveChunks(newQuestionRef.current, fileId, apiKey);
-          console.log("Retrieved chunks from Ragie (profile key):", data);
         };
         await handleAPIAndCredits("ragie", apiProfileData, retrieve);
       }

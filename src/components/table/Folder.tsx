@@ -1,8 +1,10 @@
 "use client";
+
 import {
   FunctionComponent,
   PropsWithChildren,
   Suspense,
+  useCallback,
   useEffect,
   useRef,
 } from "react";
@@ -15,11 +17,6 @@ export type DustbinProps = {
   onDrop: (docId: string, folderId: string) => void;
   hasTableRow?: boolean;
   isTrashItem?: boolean;
-};
-
-export type DustbinState = {
-  hasDropped: boolean;
-  hasDroppedOnChild: boolean;
 };
 
 export const Folder: FunctionComponent<PropsWithChildren<DustbinProps>> = ({
@@ -36,9 +33,7 @@ export const Folder: FunctionComponent<PropsWithChildren<DustbinProps>> = ({
 
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "folder",
-    item: {
-      id,
-    },
+    item: { id },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
@@ -55,24 +50,20 @@ export const Folder: FunctionComponent<PropsWithChildren<DustbinProps>> = ({
       collect: (monitor) => ({
         isOver: monitor.isOver(),
         canDrop: monitor.canDrop(),
-        Item: monitor.getItem(),
-        itemKey: monitor.getItemType(),
       }),
     }),
-    [isDragging, id]
+    [isDragging, id, onDrop]
   );
 
-  const openFolder = () => {
+  const openFolder = useCallback(() => {
     const params = new URLSearchParams(searchParams);
     params.set("activeFolder", id);
-
     replace(`${pathname}?${params.toString()}`);
-  };
+  }, [searchParams, id, pathname, replace]);
 
   useEffect(() => {
     if (elementRef) {
       drop(elementRef);
-
       drag(elementRef);
     }
   }, [elementRef, drag, drop]);
@@ -82,7 +73,8 @@ export const Folder: FunctionComponent<PropsWithChildren<DustbinProps>> = ({
   return hasTableRow ? (
     <Suspense fallback={<div>Loading...</div>}>
       <TableRow
-        className={`opacity-${opacity} w-full  cursor-pointer`}
+        className="w-full cursor-pointer transition-opacity"
+        style={{ opacity }}
         onDoubleClick={isTrashItem ? undefined : openFolder}
         ref={isTrashItem ? undefined : elementRef}
       >
@@ -92,7 +84,8 @@ export const Folder: FunctionComponent<PropsWithChildren<DustbinProps>> = ({
   ) : (
     <Suspense fallback={<div>Loading...</div>}>
       <div
-        className={`opacity-${opacity}  cursor-grab hover:bg-black/10 dark:hover:bg-white/10 rounded-lg`}
+        className="cursor-grab hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-opacity"
+        style={{ opacity }}
         onDoubleClick={isTrashItem ? undefined : openFolder}
         ref={isTrashItem ? undefined : elementRef}
       >

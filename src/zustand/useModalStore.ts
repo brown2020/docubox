@@ -57,3 +57,4 @@ export const useModalStore = create<ModalStore>((set) => ({
       isQuestionAnswerModalOpen: false,
     }),
 }));
+

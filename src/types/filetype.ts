@@ -14,3 +14,4 @@ export type FileType = {
   isUploadedToRagie: boolean;
   ragieFileId: string | null;
 };
+

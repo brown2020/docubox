@@ -38,3 +38,4 @@ export function mapDocsToFileTypes(
 ): FileType[] {
   return docs.filter((doc) => doc.data().filename).map(mapDocToFileType);
 }
+

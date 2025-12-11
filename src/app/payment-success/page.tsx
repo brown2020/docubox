@@ -16,7 +16,6 @@ function ClientOnlyComponent({ setPaymentIntent }: ClientOnlyComponentProps) {
     if (searchParams) {
       const payment_intent = searchParams.get("payment_intent") || "";
       setPaymentIntent(payment_intent);
-      console.log("payment_intent in ClientOnlyComponent", payment_intent);
     }
   }, [searchParams, setPaymentIntent]);
 

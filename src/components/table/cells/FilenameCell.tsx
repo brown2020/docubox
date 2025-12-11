@@ -22,3 +22,4 @@ export function FilenameCell({ filename, onEdit }: FilenameCellProps) {
     </TableCell>
   );
 }
+

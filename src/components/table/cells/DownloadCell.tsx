@@ -21,3 +21,4 @@ export function DownloadCell({ downloadUrl }: DownloadCellProps) {
     </TableCell>
   );
 }
+

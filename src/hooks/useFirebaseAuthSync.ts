@@ -8,7 +8,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { serverTimestamp, Timestamp } from "firebase/firestore";
-import { auth } from "@/firebase/firebaseClient";
+import { auth } from "@/firebase";
 import { useAuthStore } from "@/zustand/useAuthStore";
 
 /**
@@ -60,3 +60,4 @@ export function useFirebaseAuthSync() {
     syncAuthState();
   }, [clearAuthDetails, getToken, isSignedIn, setAuthDetails, user]);
 }
+

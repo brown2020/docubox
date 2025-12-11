@@ -3,7 +3,7 @@ import { TableCell } from "@/components/ui/table";
 
 interface FilenameCellProps {
   filename: string;
-  onEdit: () => void;
+  onEdit?: () => void;
 }
 
 /**
@@ -14,12 +14,15 @@ export function FilenameCell({ filename, onEdit }: FilenameCellProps) {
     <TableCell className="py-2 px-4 text-gray-600 dark:text-white">
       <div
         onClick={onEdit}
-        className="flex items-center text-blue-600 hover:underline cursor-pointer gap-2"
+        className={`flex items-center gap-2 ${
+          onEdit
+            ? "text-blue-600 hover:underline cursor-pointer"
+            : "text-gray-600 dark:text-white"
+        }`}
       >
         <div>{filename}</div>
-        <PencilIcon size={15} className="ml-2" />
+        {onEdit && <PencilIcon size={15} className="ml-2" />}
       </div>
     </TableCell>
   );
 }
-

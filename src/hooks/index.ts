@@ -4,3 +4,4 @@ export { useFileModals } from "./useFileModals";
 export { useDocument } from "./useDocument";
 export { useApiProfileData } from "./useApiProfileData";
 export { useDraggableItem } from "./useDraggableItem";
+export { useCopyToClipboard } from "./useCopyToClipboard";

@@ -5,6 +5,7 @@ import useProfileStore from "@/zustand/useProfileStore";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { ApiKeyInput } from "./common/ApiKeyInput";
+import { logger } from "@/lib/logger";
 
 export default function ProfileComponent() {
   const profile = useProfileStore((state) => state.profile);
@@ -47,7 +48,7 @@ export default function ProfileComponent() {
       });
       toast.success("API keys updated successfully!", { id: toastId });
     } catch (error) {
-      console.error("Error updating API keys:", error);
+      logger.error("ProfileComponent", "Error updating API keys", error);
       toast.error("Failed to update API keys", { id: toastId });
     }
   };

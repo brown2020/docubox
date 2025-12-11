@@ -10,6 +10,7 @@ import {
 import { serverTimestamp, Timestamp } from "firebase/firestore";
 import { auth } from "@/firebase";
 import { useAuthStore } from "@/zustand/useAuthStore";
+import { logger } from "@/lib/logger";
 
 /**
  * Hook to synchronize Clerk authentication state with Firebase.
@@ -47,7 +48,7 @@ export function useFirebaseAuthSync() {
             lastSignIn: serverTimestamp() as Timestamp,
           });
         } catch (error) {
-          console.error("[useFirebaseAuthSync] Error signing in:", error);
+          logger.error("useFirebaseAuthSync", "Error signing in", error);
           clearAuthDetails();
         }
       } else {
@@ -60,4 +61,3 @@ export function useFirebaseAuthSync() {
     syncAuthState();
   }, [clearAuthDetails, getToken, isSignedIn, setAuthDetails, user]);
 }
-

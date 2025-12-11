@@ -7,7 +7,7 @@ import DropzoneComponent from "react-dropzone";
 import toast from "react-hot-toast";
 import { LoadingState } from "./common/LoadingState";
 import { Progress } from "./ui/progress-bar";
-import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
+import { useNavigationStore } from "@/zustand/useNavigationStore";
 import { fileService } from "@/services/fileService";
 import { logger } from "@/lib/logger";
 
@@ -18,7 +18,7 @@ export default function Dropzone() {
   const [uploadProgress, setUploadProgress] = useState("0");
   const [processing, setProcessing] = useState(false);
   const { user } = useUser();
-  const folderId = useFileSelectionStore((state) => state.folderId);
+  const folderId = useNavigationStore((state) => state.folderId);
 
   // Use ref to track loading state in async callbacks
   const loadingRef = useRef(false);

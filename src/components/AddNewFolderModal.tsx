@@ -1,7 +1,7 @@
 "use client";
 
-import { useModalStore } from "@/zustand/useModalStore";
-import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
+import { useModalStore, useIsModalOpen } from "@/zustand/useModalStore";
+import { useNavigationStore } from "@/zustand/useNavigationStore";
 import { useUser } from "@clerk/nextjs";
 import { useState } from "react";
 import { Input } from "./ui/input";
@@ -14,9 +14,9 @@ export function AddNewFolderModal() {
   const { user } = useUser();
   const [input, setInput] = useState("");
 
-  const { isCreateFolderModalOpen, setIsCreateFolderModalOpen } =
-    useModalStore();
-  const { folderId } = useFileSelectionStore();
+  const isOpen = useIsModalOpen("createFolder");
+  const close = useModalStore((s) => s.close);
+  const { folderId } = useNavigationStore();
 
   const isValidInput = input.trim().length > 0;
 
@@ -32,7 +32,7 @@ export function AddNewFolderModal() {
 
       toast.success("Folder created successfully!", { id: toastId });
       setInput("");
-      setIsCreateFolderModalOpen(false);
+      close();
     } catch (error) {
       logger.error("AddNewFolderModal", "Error creating folder", error);
       toast.error("Error creating folder!", { id: toastId });
@@ -41,12 +41,12 @@ export function AddNewFolderModal() {
 
   const handleClose = () => {
     setInput("");
-    setIsCreateFolderModalOpen(false);
+    close();
   };
 
   return (
     <BaseModal
-      isOpen={isCreateFolderModalOpen}
+      isOpen={isOpen}
       onClose={handleClose}
       title="Create Folder"
       footer={

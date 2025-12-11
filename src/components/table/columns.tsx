@@ -5,15 +5,10 @@ import { ColumnDef } from "@tanstack/react-table";
 import prettyBytes from "pretty-bytes";
 import { FileTypeIcon } from "@/components/common/FileTypeIcon";
 
+/**
+ * Column definitions for the files table.
+ */
 export const columns: ColumnDef<FileType>[] = [
-  {
-    accessorKey: "id",
-    header: "",
-    cell: "",
-    enableSorting: false,
-    enableColumnFilter: false,
-    enableHiding: false,
-  },
   {
     accessorKey: "type",
     header: "Type",

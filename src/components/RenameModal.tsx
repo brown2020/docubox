@@ -1,6 +1,6 @@
 "use client";
 
-import { useModalStore } from "@/zustand/useModalStore";
+import { useModalStore, useIsModalOpen } from "@/zustand/useModalStore";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
@@ -16,15 +16,16 @@ export function RenameModal() {
   const [input, setInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
 
-  const { isRenameModalOpen, setIsRenameModalOpen } = useModalStore();
+  const isOpen = useIsModalOpen("rename");
+  const close = useModalStore((s) => s.close);
   const { fileId, filename, tags: tagsList } = useFileSelectionStore();
 
   useEffect(() => {
-    if (isRenameModalOpen && fileId) {
+    if (isOpen && fileId) {
       setInput(filename);
       setTags(tagsList);
     }
-  }, [isRenameModalOpen, fileId, filename, tagsList]);
+  }, [isOpen, fileId, filename, tagsList]);
 
   async function renameFile() {
     if (!user || !fileId || !input.trim()) return;
@@ -33,7 +34,7 @@ export function RenameModal() {
     try {
       await fileService.rename(user.id, fileId, input.trim(), tags);
       toast.success("File updated successfully!", { id: toastId });
-      setIsRenameModalOpen(false);
+      close();
     } catch (error) {
       logger.error("RenameModal", "Error updating file", error);
       toast.error("Error updating file!", { id: toastId });
@@ -43,12 +44,12 @@ export function RenameModal() {
   const handleClose = () => {
     setInput("");
     setTags([]);
-    setIsRenameModalOpen(false);
+    close();
   };
 
   return (
     <BaseModal
-      isOpen={isRenameModalOpen}
+      isOpen={isOpen}
       onClose={handleClose}
       title="Edit File"
       footer={

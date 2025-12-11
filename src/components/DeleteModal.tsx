@@ -1,7 +1,11 @@
 "use client";
 
 import { deleteFileFromRagie } from "@/actions/ragieActions";
-import { useModalStore } from "@/zustand/useModalStore";
+import {
+  useModalStore,
+  useIsModalOpen,
+  useModalData,
+} from "@/zustand/useModalStore";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
@@ -16,7 +20,10 @@ export function DeleteModal() {
 
   const isTrashPageActive = pathname.includes("trash");
 
-  const { isDeleteModalOpen, setIsDeleteModalOpen } = useModalStore();
+  const isOpen = useIsModalOpen("delete");
+  const close = useModalStore((s) => s.close);
+  const modalData = useModalData();
+
   const {
     fileId,
     setFileId,
@@ -57,13 +64,13 @@ export function DeleteModal() {
       await fileService.permanentDelete(user.id, fileId, filename);
 
       toast.success(`${itemType} deleted successfully!`, { id: toastId });
-      setIsDeleteModalOpen(false);
+      close();
       setFileId("");
     } catch (error) {
       logger.error("DeleteModal", "Error deleting file", error);
       toast.error(`Error deleting ${itemType.toLowerCase()}!`, { id: toastId });
     } finally {
-      setIsDeleteModalOpen(false);
+      close();
     }
   }
 
@@ -79,7 +86,7 @@ export function DeleteModal() {
       logger.error("DeleteModal", "Error soft deleting file", error);
       toast.error(`Error deleting ${itemType.toLowerCase()}!`, { id: toastId });
     } finally {
-      setIsDeleteModalOpen(false);
+      close();
     }
   }
 
@@ -97,13 +104,13 @@ export function DeleteModal() {
 
   return (
     <BaseModal
-      isOpen={isDeleteModalOpen}
-      onClose={() => setIsDeleteModalOpen(false)}
+      isOpen={isOpen}
+      onClose={close}
       title="Are you sure you want to delete?"
       description={description}
       footer={
         <ModalFooterButtons
-          onCancel={() => setIsDeleteModalOpen(false)}
+          onCancel={close}
           onConfirm={handleDelete}
           confirmText="Delete"
           confirmVariant="destructive"

@@ -16,11 +16,8 @@ import {
   TableRow,
 } from "../ui/table";
 import { FileType, isFolder } from "@/types/filetype";
-import { useUploadStore } from "@/zustand/useUploadStore";
 import { useUser } from "@clerk/nextjs";
 import { FileRow, FolderRow } from "./rows";
-import { useFileModals } from "@/hooks";
-import { fileService } from "@/services/fileService";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -29,6 +26,10 @@ interface DataTableProps<TData, TValue> {
   isTrashView?: boolean;
 }
 
+/**
+ * Data table component for displaying files and folders.
+ * Uses FileActionsContext for modal handlers (no prop drilling).
+ */
 export function DataTable<TData, TValue>({
   columns,
   data,
@@ -42,42 +43,8 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
   });
 
-  // Use shared modal handlers
-  const {
-    openDeleteModal,
-    openRenameModal,
-    openParseDataViewModal,
-    openQuestionAnswerModal,
-  } = useFileModals();
-
-  const { uploadingFiles, addUploadingFile, updateUploadingFile } =
-    useUploadStore();
-
   const onDrop = (docId: string, folderId: string) => {
-    if (user) moveFileHandler(user?.id, docId, folderId);
-  };
-
-  const restoreDeletedFile = async (fileId: string) => {
-    if (user) {
-      await fileService.restore(user.id, fileId);
-    }
-  };
-
-  const handleParsingClick = (file: FileType) => {
-    if (uploadingFiles.find((f) => f.fileId === file.docId)) {
-      updateUploadingFile(file.docId, { isParsing: true });
-      setTimeout(() => {
-        updateUploadingFile(file.docId, { isParsing: false });
-      }, 2000);
-    } else {
-      addUploadingFile({
-        fileId: file.docId,
-        fileName: file.filename,
-        downloadUrl: file.downloadUrl,
-        loading: true,
-        isParsing: false,
-      });
-    }
+    if (user) moveFileHandler(user.id, docId, folderId);
   };
 
   return (
@@ -113,12 +80,6 @@ export function DataTable<TData, TValue>({
                     row={row as Row<FileType>}
                     fileData={row.original as FileType}
                     isTrashView={isTrashView}
-                    openRenameModal={openRenameModal}
-                    openDeleteModal={openDeleteModal}
-                    openParseDataViewModal={openParseDataViewModal}
-                    handleOpenQuestionAnswerModal={openQuestionAnswerModal}
-                    handleParsingClick={handleParsingClick}
-                    restoreDeletedFile={restoreDeletedFile}
                   />
                 ) : (
                   <FolderRow
@@ -126,15 +87,12 @@ export function DataTable<TData, TValue>({
                     row={row as Row<FileType>}
                     folderData={row.original as FileType}
                     isTrashView={isTrashView}
-                    openRenameModal={openRenameModal}
-                    openDeleteModal={openDeleteModal}
                     onDrop={onDrop}
-                    restoreDeletedFile={restoreDeletedFile}
                   />
                 )
               )
           ) : (
-            <TableRow key={"no Found"}>
+            <TableRow key="no-found">
               <TableCell
                 colSpan={columns.length}
                 className="h-24 text-center text-gray-600"

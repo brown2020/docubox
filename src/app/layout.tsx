@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "react-hot-toast";
 import FileUploadModal from "@/components/FileUploadModal";
 import { ModalProvider } from "@/components/providers/ModalProvider";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -41,18 +42,20 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <TooltipProvider delayDuration={300}>
-              <Header />
-              <div className="flex flex-col h-full">
-                <ErrorBoundary>
-                  <div className="flex-1">{children}</div>
-                </ErrorBoundary>
-                <Footer />
-              </div>
-              <Toaster />
-              <FileUploadModal />
-              <ModalProvider />
-            </TooltipProvider>
+            <AuthProvider>
+              <TooltipProvider delayDuration={300}>
+                <Header />
+                <div className="flex flex-col h-full">
+                  <ErrorBoundary>
+                    <div className="flex-1">{children}</div>
+                  </ErrorBoundary>
+                  <Footer />
+                </div>
+                <Toaster />
+                <FileUploadModal />
+                <ModalProvider />
+              </TooltipProvider>
+            </AuthProvider>
           </ThemeProvider>
         </body>
       </html>

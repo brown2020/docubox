@@ -1,8 +1,9 @@
 import { create } from "zustand";
 
 /**
- * Store for managing currently selected file/folder state.
+ * Store for managing currently selected file state.
  * Used by modals and other components that need to know what's selected.
+ * Note: Folder navigation is handled by useNavigationStore.
  */
 interface FileSelectionStore {
   // Selected file info
@@ -15,7 +16,7 @@ interface FileSelectionStore {
   tags: string[];
   setTags: (tags: string[]) => void;
 
-  // Folder navigation
+  // For delete modal - parent folder and type info
   folderId: string | null;
   setFolderId: (folderId: string | null) => void;
 
@@ -72,9 +73,9 @@ export const useFileSelectionStore = create<FileSelectionStore>((set) => ({
       fileId: null,
       filename: "",
       tags: [],
+      folderId: null,
       isFolder: false,
       unstructuredFileData: "",
       fileSummary: undefined,
     }),
 }));
-

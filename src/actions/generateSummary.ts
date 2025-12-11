@@ -13,7 +13,8 @@ const splitIntoChunks = (data: string, chunkSize: number) => {
 
 export const generateSummary = async (apiKey: string | null, data: string) => {
   try {
-    const systemPrompt = "You are a helpful assistant. Your job is to summarize the provided data concisely (100 words or less for each chunk).";
+    const systemPrompt =
+      "You are a helpful assistant. Your job is to summarize the provided data concisely (100 words or less for each chunk).";
 
     const ai = createOpenAI({ apiKey: apiKey || process.env.OPENAI_API_KEY });
 
@@ -25,7 +26,7 @@ export const generateSummary = async (apiKey: string | null, data: string) => {
     for (const chunk of chunks) {
       const userPrompt = `Provided data chunk:\n${chunk}`;
       const { text } = await generateText({
-        model: ai("gpt-3.5-turbo-instruct"),
+        model: ai("gpt-4.1"),
         system: systemPrompt,
         prompt: userPrompt,
       });

@@ -1,5 +1,4 @@
-import { ArrowRightIcon } from "lucide-react";
-import Link from "next/link";
+import { GetStartedButton } from "@/components/GetStartedButton";
 
 export default function Home() {
   return (
@@ -50,13 +49,7 @@ export default function Home() {
         </div>
 
         {/* Get Started Button */}
-        <Link
-          href="/dashboard"
-          className="mt-10 flex items-center px-5 py-3 bg-green-500 text-white rounded-lg hover:opacity-80 transition-opacity duration-300 w-fit"
-        >
-          <div>Get Started</div>
-          <ArrowRightIcon className="ml-2" />
-        </Link>
+        <GetStartedButton />
       </div>
     </div>
   );

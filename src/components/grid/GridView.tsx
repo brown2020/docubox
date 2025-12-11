@@ -1,15 +1,13 @@
 import { FunctionComponent } from "react";
 import { Card } from "./Card";
 import { FileType } from "@/types/filetype";
-import { useModalStore } from "@/zustand/useModalStore";
-import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { RenameModal } from "../RenameModal";
 import { ShowParsedDataModal } from "../ShowParsedDataModal";
 import { DeleteModal } from "../DeleteModal";
 import { File } from "../table/File";
 import { Folder } from "../table/Folder";
 import { useUser } from "@clerk/nextjs";
-import { downloadUnstructuredFile } from "@/actions/unstructuredActions";
+import { useFileModals } from "@/hooks";
 
 type Props = {
   data: FileType[];
@@ -24,54 +22,9 @@ export const GridView: FunctionComponent<Props> = ({
 }) => {
   const { user } = useUser();
 
-  // Use focused stores
-  const {
-    setIsRenameModalOpen,
-    setIsShowParseDataModelOpen,
-    setIsDeleteModalOpen,
-  } = useModalStore();
-
-  const {
-    setFileId,
-    setFilename,
-    setTags,
-    setUnstructuredFileData,
-    setFileSummary,
-    setFolderId,
-    setIsFolder,
-  } = useFileSelectionStore();
-
-  const openRenameModal = (
-    fileId: string,
-    filename: string,
-    tags: string[] = []
-  ) => {
-    setFileId(fileId);
-    setFilename(filename);
-    setTags(tags);
-    setIsRenameModalOpen(true);
-  };
-
-  const openParseDataViewModal = async (
-    docId: string,
-    filedataUrl: string,
-    summary: string
-  ) => {
-    const data = await downloadUnstructuredFile(filedataUrl);
-    setUnstructuredFileData(data);
-    setFileSummary({ docId, summary });
-    setIsShowParseDataModelOpen(true);
-  };
-  const openDeleteModal = (
-    fileId: string,
-    folderId: string | null = null,
-    isFolder = false
-  ) => {
-    setFileId(fileId);
-    setIsDeleteModalOpen(true);
-    setFolderId(folderId);
-    setIsFolder(isFolder);
-  };
+  // Use shared modal handlers
+  const { openDeleteModal, openRenameModal, openParseDataViewModal } =
+    useFileModals();
 
   const onDrop = (docId: string, folderId: string) => {
     if (user) moveFileHandler(user?.id, docId, folderId);

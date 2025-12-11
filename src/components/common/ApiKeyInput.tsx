@@ -1,4 +1,5 @@
-import { FunctionComponent } from "react";
+import { memo } from "react";
+import { Input } from "@/components/ui/input";
 
 interface ApiKeyInputProps {
   id: string;
@@ -10,27 +11,27 @@ interface ApiKeyInputProps {
 
 /**
  * Reusable API key input component with consistent styling.
+ * Uses the UI Input component for consistency across the app.
  */
-export const ApiKeyInput: FunctionComponent<ApiKeyInputProps> = ({
+export const ApiKeyInput = memo(function ApiKeyInput({
   id,
   label,
   value,
   onChange,
   placeholder,
-}) => {
+}: ApiKeyInputProps) {
   return (
-    <>
+    <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-sm font-medium">
-        {label}:
+        {label}
       </label>
-      <input
+      <Input
         type="password"
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="border border-gray-300 rounded-md px-3 py-2 h-10"
         placeholder={placeholder}
       />
-    </>
+    </div>
   );
-};
+});

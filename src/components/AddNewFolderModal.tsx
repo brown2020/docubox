@@ -1,14 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ModalContent } from "@/components/ui/modal-content";
 import { useModalStore } from "@/zustand/useModalStore";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { useUser } from "@clerk/nextjs";
@@ -17,12 +8,12 @@ import { Input } from "./ui/input";
 import toast from "react-hot-toast";
 import { fileService } from "@/services/fileService";
 import { logger } from "@/lib/logger";
+import { BaseModal, ModalFooterButtons } from "./ui/base-modal";
 
 export function AddNewFolderModal() {
   const { user } = useUser();
   const [input, setInput] = useState("");
 
-  // Use focused stores
   const { isCreateFolderModalOpen, setIsCreateFolderModalOpen } =
     useModalStore();
   const { folderId } = useFileSelectionStore();
@@ -30,13 +21,7 @@ export function AddNewFolderModal() {
   const isValidInput = input.trim().length > 0;
 
   async function createFolder() {
-    if (!user) return;
-
-    // Validate input
-    if (!isValidInput) {
-      toast.error("Please enter a folder name");
-      return;
-    }
+    if (!user || !isValidInput) return;
 
     const toastId = toast.loading("Creating folder...");
     try {
@@ -60,46 +45,35 @@ export function AddNewFolderModal() {
   };
 
   return (
-    <Dialog open={isCreateFolderModalOpen} onOpenChange={handleClose}>
-      <ModalContent>
-        <DialogHeader>
-          <DialogTitle className="pb-2">Create Folder</DialogTitle>
-          <DialogDescription>Folder Name</DialogDescription>
-          <Input
-            id="folder-name"
-            value={input}
-            placeholder="Enter folder name"
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && isValidInput) {
-                createFolder();
-              }
-            }}
-          />
-        </DialogHeader>
-
-        <DialogFooter className="flex space-x-2 py-3">
-          <Button
-            size="sm"
-            className="px-3 flex-1"
-            variant="ghost"
-            onClick={handleClose}
-          >
-            <span className="sr-only">Cancel</span>
-            <span>Cancel</span>
-          </Button>
-          <Button
-            type="submit"
-            size="sm"
-            className="px-3 flex-1"
-            onClick={createFolder}
-            disabled={!isValidInput}
-          >
-            <span className="sr-only">Save</span>
-            <span>Save</span>
-          </Button>
-        </DialogFooter>
-      </ModalContent>
-    </Dialog>
+    <BaseModal
+      isOpen={isCreateFolderModalOpen}
+      onClose={handleClose}
+      title="Create Folder"
+      footer={
+        <ModalFooterButtons
+          onCancel={handleClose}
+          onConfirm={createFolder}
+          confirmText="Create"
+          isConfirmDisabled={!isValidInput}
+        />
+      }
+    >
+      <div className="space-y-2 py-2">
+        <label htmlFor="folder-name" className="text-sm font-medium">
+          Folder Name
+        </label>
+        <Input
+          id="folder-name"
+          value={input}
+          placeholder="Enter folder name"
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && isValidInput) {
+              createFolder();
+            }
+          }}
+        />
+      </div>
+    </BaseModal>
   );
 }

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import useProfileStore from "@/zustand/useProfileStore";
 import { useUser } from "@clerk/nextjs";
-import { LoaderCircleIcon } from "lucide-react";
+import { LoadingState } from "@/components/common/LoadingState";
 
 export default function LoginFinishPage() {
   const router = useRouter();
@@ -28,10 +28,5 @@ export default function LoginFinishPage() {
     router.replace("/dashboard");
   }, [isSignedIn, user, router, setAuthDetails, updateProfile]);
 
-  return (
-    <div className="flex flex-col items-center justify-center h-full gap-4">
-      <LoaderCircleIcon size={48} className="animate-spin" />
-      <p className="text-lg">Completing sign in...</p>
-    </div>
-  );
+  return <LoadingState message="Completing sign in..." />;
 }

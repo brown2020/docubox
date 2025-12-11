@@ -5,7 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import { useCallback, useRef, useState } from "react";
 import DropzoneComponent from "react-dropzone";
 import toast from "react-hot-toast";
-import Spinner from "./common/spinner";
+import { LoadingState } from "./common/LoadingState";
 import { Progress } from "./ui/progress-bar";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { fileService } from "@/services/fileService";
@@ -129,10 +129,11 @@ export default function Dropzone() {
             >
               <input {...getInputProps()} />
               {processing && (
-                <div className="flex flex-col items-center">
-                  <Spinner size="50" />
-                  <p>Processing File</p>
-                </div>
+                <LoadingState
+                  message="Processing file..."
+                  size={40}
+                  fullHeight={false}
+                />
               )}
               {loading && (
                 <div className="flex flex-col items-center">

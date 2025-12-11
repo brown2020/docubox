@@ -5,11 +5,11 @@ import {
   useElements,
   PaymentElement,
 } from "@stripe/react-stripe-js";
-
 import { useEffect, useState } from "react";
 import { createPaymentIntent } from "@/actions/paymentActions";
 import convertToSubcurrency from "@/utils/convertToSubcurrency";
-import Spinner from "./common/spinner";
+import { LoadingState } from "./common/LoadingState";
+import { Button } from "./ui/button";
 
 type Props = { amount: number };
 
@@ -28,7 +28,6 @@ export default function PaymentCheckoutPage({ amount }: Props) {
           setClientSecret(secret);
         }
       } catch (error: unknown) {
-        // Ensure type-safe error handling
         if (error instanceof Error) {
           setErrorMessage(
             error.message || "Failed to initialize payment. Please try again."
@@ -54,7 +53,6 @@ export default function PaymentCheckoutPage({ amount }: Props) {
     setLoading(true);
 
     try {
-      // Confirm the Payment Element is submitted
       const { error: submitError } = await elements.submit();
       if (submitError) {
         setErrorMessage(submitError.message || "Payment submission failed");
@@ -62,7 +60,6 @@ export default function PaymentCheckoutPage({ amount }: Props) {
         return;
       }
 
-      // Confirm the Payment
       const paymentResult = await stripe.confirmPayment({
         elements,
         clientSecret,
@@ -74,7 +71,6 @@ export default function PaymentCheckoutPage({ amount }: Props) {
       if (paymentResult.error) {
         setErrorMessage(paymentResult.error.message || "Payment failed");
       }
-      // Success case: Stripe redirects to return_url automatically
     } catch (err: unknown) {
       if (err instanceof Error) {
         setErrorMessage(
@@ -91,30 +87,36 @@ export default function PaymentCheckoutPage({ amount }: Props) {
   if (!clientSecret || !stripe || !elements) {
     return (
       <div className="flex items-center justify-center max-w-6xl h-36 mx-auto w-full">
-        <Spinner size={"50"} />
+        <LoadingState message="Initializing payment..." size={40} />
       </div>
     );
   }
 
   return (
     <main className="flex flex-col w-full items-center max-w-6xl mx-auto py-10">
-      <div className="mb-10">
-        <h1 className="text-4xl">Buy 10,000 Credits</h1>
-        <h2 className="text-2xl">
+      <div className="mb-10 text-center">
+        <h1 className="text-4xl font-bold">Buy 10,000 Credits</h1>
+        <h2 className="text-2xl mt-2">
           Purchase amount: <span className="font-bold">${amount}</span>
         </h2>
       </div>
-      <form onSubmit={handleSubmit} className="bg-white p-2 rounded-md w-full">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-4 rounded-md w-full max-w-md"
+      >
         {clientSecret && <PaymentElement />}
 
-        {errorMessage && <p className="text-red-500">{errorMessage}</p>}
+        {errorMessage && (
+          <p className="text-destructive text-sm mt-2">{errorMessage}</p>
+        )}
 
-        <button
+        <Button
+          type="submit"
           disabled={!stripe || loading}
-          className="text-white w-full p-5 bg-black mt-2 rounded-md font-bold disabled:opacity-50 disabled:animate-pulse"
+          className="w-full mt-4 py-6 text-lg font-semibold"
         >
-          {!loading ? `Pay $${amount}` : "Processing..."}
-        </button>
+          {loading ? "Processing..." : `Pay $${amount}`}
+        </Button>
       </form>
     </main>
   );

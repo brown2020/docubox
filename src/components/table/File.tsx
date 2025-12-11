@@ -1,6 +1,8 @@
-import { FunctionComponent, PropsWithChildren, useEffect, useRef } from "react";
-import { useDrag } from "react-dnd";
+"use client";
+
+import { FunctionComponent, PropsWithChildren } from "react";
 import { TableRow } from "../ui/table";
+import { useDraggableItem } from "@/hooks/useDraggableItem";
 
 type Props = {
   id: string;
@@ -8,45 +10,45 @@ type Props = {
   isTrashItem?: boolean;
 };
 
+/**
+ * Draggable file wrapper component.
+ * Renders either a TableRow or div based on context.
+ */
 export const File: FunctionComponent<PropsWithChildren<Props>> = ({
   children,
   id,
   hasTableRow = true,
   isTrashItem = false,
 }) => {
-  const element = useRef<HTMLTableRowElement>(null);
-  const [{ isDragging }, drag] = useDrag(() => ({
+  const { elementRef, opacity } = useDraggableItem<HTMLTableRowElement>({
+    id,
     type: "file",
-    item: { id },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  }));
+    disabled: isTrashItem,
+  });
 
-  useEffect(() => {
-    if (element) {
-      drag(element);
-    }
-  }, [element, drag]);
+  if (hasTableRow) {
+    return (
+      <TableRow
+        className="w-full cursor-grab transition-opacity"
+        style={{ opacity }}
+        ref={isTrashItem ? undefined : elementRef}
+      >
+        {children}
+      </TableRow>
+    );
+  }
 
   return (
-    <>
-      {hasTableRow ? (
-        <TableRow
-          className="w-full cursor-grab transition-opacity"
-          style={{ opacity: isDragging ? 0.5 : 1 }}
-          ref={isTrashItem ? undefined : element}
-        >
-          {children}
-        </TableRow>
-      ) : (
-        <div
-          style={{ opacity: isDragging ? 0.5 : 1 }}
-          ref={isTrashItem ? undefined : element}
-        >
-          {children}
-        </div>
-      )}
-    </>
+    <div
+      className="cursor-grab transition-opacity"
+      style={{ opacity }}
+      ref={
+        isTrashItem
+          ? undefined
+          : (elementRef as React.RefObject<HTMLDivElement>)
+      }
+    >
+      {children}
+    </div>
   );
 };

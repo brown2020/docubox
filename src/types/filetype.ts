@@ -15,3 +15,23 @@ export type FileType = {
   ragieFileId: string | null;
 };
 
+/**
+ * Type guard to check if a FileType is a folder.
+ */
+export function isFolder(file: FileType): boolean {
+  return file.type === "folder";
+}
+
+/**
+ * Type guard to check if a FileType has been parsed.
+ */
+export function isParsed(file: FileType): boolean {
+  return !!file.unstructuredFile;
+}
+
+/**
+ * Type guard to check if a FileType is in trash.
+ */
+export function isDeleted(file: FileType): boolean {
+  return file.deletedAt !== null;
+}

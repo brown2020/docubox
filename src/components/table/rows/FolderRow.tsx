@@ -1,11 +1,11 @@
 "use client";
 
 import { FileType } from "@/types/filetype";
-import { Row, flexRender } from "@tanstack/react-table";
+import { Row } from "@tanstack/react-table";
 import { Button } from "../../ui/button";
 import { TableCell } from "../../ui/table";
 import { Folder } from "../Folder";
-import { TimestampCell, FilenameCell } from "../cells";
+import { renderTableCell } from "../utils/renderCell";
 import { TrashIcon, UndoIcon } from "lucide-react";
 
 interface FolderRowProps {
@@ -39,38 +39,17 @@ export function FolderRow({
       onDrop={onDrop}
       isTrashItem={isTrashView}
     >
-      {row.getVisibleCells().map((cell) => {
-        if (cell.column.id === "timestamp") {
-          return (
-            <TimestampCell key={cell.id} timestamp={cell.getValue() as Date} />
-          );
-        }
-
-        if (cell.column.id === "filename") {
-          return (
-            <FilenameCell
-              key={cell.id}
-              filename={cell.getValue() as string}
-              onEdit={() =>
-                openRenameModal(
-                  folderData.docId,
-                  folderData.filename,
-                  folderData.tags
-                )
-              }
-            />
-          );
-        }
-
-        return (
-          <TableCell
-            key={cell.id}
-            className="py-2 px-4 text-gray-600 dark:text-white"
-          >
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </TableCell>
-        );
-      })}
+      {row.getVisibleCells().map((cell) =>
+        renderTableCell(cell, {
+          onEditFilename: () =>
+            openRenameModal(
+              folderData.docId,
+              folderData.filename,
+              folderData.tags
+            ),
+          showDownload: false, // Folders don't have download links
+        })
+      )}
       <TableCell key="actions" className="flex space-x-2 py-2 px-4 justify-end">
         {isTrashView && (
           <Button

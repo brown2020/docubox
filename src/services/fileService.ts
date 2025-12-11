@@ -11,7 +11,14 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { ref, deleteObject, listAll } from "firebase/storage";
+import {
+  ref,
+  deleteObject,
+  listAll,
+  uploadBytesResumable,
+  getDownloadURL,
+  UploadTask,
+} from "firebase/storage";
 import { logger } from "@/lib/logger";
 
 /**
@@ -23,10 +30,94 @@ interface UserMeta {
 }
 
 /**
+ * Data for creating a new file entry
+ */
+interface CreateFileEntryData {
+  userId: string;
+  userMeta: UserMeta;
+  file: File;
+  folderId: string | null;
+}
+
+/**
+ * Result of creating a file entry
+ */
+interface CreateFileEntryResult {
+  docId: string;
+  uploadTask: UploadTask;
+  storageRef: ReturnType<typeof ref>;
+}
+
+/**
  * Centralized file operations service.
  * Consolidates all file CRUD operations for consistency and maintainability.
  */
 export const fileService = {
+  /**
+   * Create a new file entry in Firestore and start upload to storage
+   */
+  async createFileEntry({
+    userId,
+    userMeta,
+    file,
+    folderId,
+  }: CreateFileEntryData): Promise<CreateFileEntryResult> {
+    // Create Firestore document
+    const docRef = await addDoc(collection(db, "users", userId, "files"), {
+      userId,
+      fullName: userMeta.fullName,
+      profileImg: userMeta.imageUrl,
+      timestamp: serverTimestamp(),
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified,
+      unstructuredFile: null,
+      summary: null,
+      deletedAt: null,
+      folderId,
+      isUploadedToRagie: false,
+      ragieFileId: null,
+    });
+
+    // Setup storage upload
+    const storageRef = ref(
+      storage,
+      `users/${userId}/files/${docRef.id}_${file.name}`
+    );
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    logger.debug("fileService", {
+      action: "createFileEntry",
+      docId: docRef.id,
+      filename: file.name,
+    });
+
+    return { docId: docRef.id, uploadTask, storageRef };
+  },
+
+  /**
+   * Complete file upload by updating document with download URL
+   */
+  async completeFileUpload(
+    userId: string,
+    docId: string,
+    filename: string,
+    storageRef: ReturnType<typeof ref>
+  ): Promise<string> {
+    const downloadUrl = await getDownloadURL(storageRef);
+    await updateDoc(doc(db, "users", userId, "files", docId), {
+      downloadUrl,
+      docId,
+      filename,
+    });
+    logger.debug("fileService", {
+      action: "completeFileUpload",
+      docId,
+      filename,
+    });
+    return downloadUrl;
+  },
+
   /**
    * Soft delete a file (move to trash)
    */
@@ -212,7 +303,6 @@ export const fileService = {
         await this.deleteFolderRecursive(userId, document.id);
         await deleteDoc(doc(db, "users", userId, "files", document.id));
       } else {
-        const fileName = `${data.docId}_${data.filename}`;
         await this.deleteFromStorage(userId, data.docId, data.filename);
         await deleteDoc(doc(db, "users", userId, "files", data.docId));
       }

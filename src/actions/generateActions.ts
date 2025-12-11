@@ -5,9 +5,8 @@ import { openai } from "@ai-sdk/openai";
 
 async function getModel(modelName: string) {
   switch (modelName) {
-    case "gpt-4o":
-      return openai("gpt-4o");
-
+    case "gpt-4.1":
+      return openai("gpt-4.1");
     default:
       throw new Error(`Unsupported model name: ${modelName}`);
   }

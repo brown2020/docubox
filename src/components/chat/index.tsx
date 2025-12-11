@@ -217,7 +217,7 @@ export const Chat = ({ fileId }: IChatProps) => {
         const answer = await generateWithChunks(
           (data as RetrievalResponse).scored_chunks.map((chunk) => chunk.text), // Pass only the chunk texts
           newQuestion,
-          "gpt-4o" // Adjust the model name as needed
+          "gpt-4.1" // Adjust the model name as needed
         );
         setGeneratedContent(answer.trim());
         await updateDocument({ question: newQuestion, answer });

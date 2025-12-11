@@ -33,8 +33,8 @@ export default function RootLayout({
               <Footer />
             </div>
             <Toaster />
+            <FileUploadModal />
           </ThemeProvider>
-          <FileUploadModal />
         </body>
       </html>
     </ClerkProvider>

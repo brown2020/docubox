@@ -18,6 +18,17 @@ export type PaymentType = {
   status: string;
 };
 
+/**
+ * Sorts payments by createdAt (newest first) with null safety.
+ */
+function sortPaymentsByDate(payments: PaymentType[]): PaymentType[] {
+  return [...payments].sort((a, b) => {
+    const aTime = a.createdAt?.toMillis() ?? 0;
+    const bTime = b.createdAt?.toMillis() ?? 0;
+    return bTime - aTime;
+  });
+}
+
 interface PaymentsStoreState {
   payments: PaymentType[];
   paymentsLoading: boolean;
@@ -51,10 +62,7 @@ export const usePaymentsStore = create<PaymentsStoreState>((set) => ({
         status: doc.data().status,
       }));
 
-      // Sort payments by createdAt with newest at the top
-      payments.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-
-      set({ payments, paymentsLoading: false });
+      set({ payments: sortPaymentsByDate(payments), paymentsLoading: false });
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "An unknown error occurred";
@@ -103,16 +111,10 @@ export const usePaymentsStore = create<PaymentsStoreState>((set) => ({
         status: payment.status,
       };
 
-      set((state) => {
-        const updatedPayments = [...state.payments, newPayment];
-
-        // Sort payments by createdAt with newest at the top
-        updatedPayments.sort(
-          (a, b) => b.createdAt!.toMillis() - a.createdAt!.toMillis()
-        );
-
-        return { payments: updatedPayments, paymentsLoading: false };
-      });
+      set((state) => ({
+        payments: sortPaymentsByDate([...state.payments, newPayment]),
+        paymentsLoading: false,
+      }));
 
       toast.success("Payment added successfully.");
     } catch (error: unknown) {

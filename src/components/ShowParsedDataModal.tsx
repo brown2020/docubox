@@ -99,7 +99,17 @@ export function ShowParsedDataModal() {
     fetchUnstructuredData();
   }, [fetchUnstructuredData]);
 
-  const fetchSummary = async () => {
+  const updateRecord = useCallback(
+    async (docId: string, summaryText: string | undefined) => {
+      if (!user) return;
+      await updateDoc(doc(db, "users", user.id, "files", docId), {
+        summary: summaryText ?? null,
+      });
+    },
+    [user]
+  );
+
+  const fetchSummary = useCallback(async () => {
     if (
       !fileSummary ||
       !unstructuredFileData ||
@@ -116,29 +126,38 @@ export function ShowParsedDataModal() {
       }
 
       setLoading(true);
-      const summary = await generateSummary(
+      const generatedSummary = await generateSummary(
         useCredits ? null : apiKey,
         JSON.stringify(parsedData)
       );
 
-      if (summary) {
-        setSummary(summary);
+      if (generatedSummary) {
+        setSummary(generatedSummary);
       }
 
       if (fileSummary) {
-        await updateRecord(fileSummary.docId, summary || "");
+        await updateRecord(fileSummary.docId, generatedSummary || "");
       }
 
-      if (summary && useCredits) {
+      if (generatedSummary && useCredits) {
         await minusCredits(requiredCredits);
       }
     } catch (error) {
       isAIAlreadyCalled.current = false;
-      console.error("Error parsing data:", error);
+      console.error("[ShowParsedDataModal] Error generating summary:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    fileSummary,
+    unstructuredFileData,
+    useCredits,
+    currentCredits,
+    apiKey,
+    parsedData,
+    updateRecord,
+    minusCredits,
+  ]);
 
   const extractReadableText = (data: Chunk[] = []) => {
     if (!data) return <p>No content to display.</p>;
@@ -218,21 +237,10 @@ export function ShowParsedDataModal() {
     });
   };
 
-  const fetchReadableFormat = async () => {
-    if (!unstructuredFileData) {
-      return;
-    }
+  const fetchReadableFormat = useCallback(() => {
+    if (!unstructuredFileData) return;
     setParsedData(JSON.parse(unstructuredFileData));
-  };
-
-  const updateRecord = async (docId: string, summary: string | undefined) => {
-    if (!user) {
-      return;
-    }
-    await updateDoc(doc(db, "users", user.id, "files", docId), {
-      summary: summary ?? null,
-    });
-  };
+  }, [unstructuredFileData]);
 
   return (
     <Dialog
@@ -290,9 +298,7 @@ export function ShowParsedDataModal() {
               {loading ? (
                 <Spinner size="50" />
               ) : (
-                summary ||
-                fileSummary?.summary ||
-                "Cant't display anything yet."
+                summary || fileSummary?.summary || "Can't display anything yet."
               )}
             </TabsContent>
           </div>

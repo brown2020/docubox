@@ -63,7 +63,10 @@ export function useFirebaseAuthSync() {
           }
         } catch (error) {
           // Silently handle sign out errors (e.g., no user to sign out)
-          logger.debug("useFirebaseAuthSync", "Sign out skipped", error);
+          logger.debug("useFirebaseAuthSync", {
+            message: "Sign out skipped",
+            error,
+          });
         }
         clearAuthDetails();
       }

@@ -35,15 +35,12 @@ export class ErrorBoundary extends Component<
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Log error to console with full details
     const boundaryName = this.props.name || "Unknown";
-    console.error(
-      `[ErrorBoundary:${boundaryName}] caught an error:`,
-      "\n\nError:",
-      error.message,
-      "\n\nStack:",
-      error.stack,
-      "\n\nComponent Stack:",
-      errorInfo.componentStack
-    );
+
+    console.error(`[ErrorBoundary:${boundaryName}]`, error.message);
+    if (process.env.NODE_ENV === "development") {
+      console.error("Stack:", error.stack);
+      console.error("Component Stack:", errorInfo.componentStack);
+    }
 
     this.setState({ errorInfo });
   }

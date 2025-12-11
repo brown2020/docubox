@@ -76,3 +76,4 @@ export function debugLog(
     console[level](message);
   }
 }
+

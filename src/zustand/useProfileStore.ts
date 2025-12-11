@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { useAuthStore } from "./useAuthStore";
-import { db } from "@/firebase/firebaseClient";
+import { db } from "@/firebase";
 
 /**
  * User profile type with API keys and credit information.

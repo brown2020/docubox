@@ -1,29 +1,37 @@
-"use client"
+"use client";
 
-import { useAuthStore } from "@/zustand/useAuthStore"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
-import useProfileStore from "@/zustand/useProfileStore"
-import { useUser } from "@clerk/nextjs"
+import { useAuthStore } from "@/zustand/useAuthStore";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import useProfileStore from "@/zustand/useProfileStore";
+import { useUser } from "@clerk/nextjs";
+import { LoaderCircleIcon } from "lucide-react";
 
 export default function LoginFinishPage() {
-  const router = useRouter()
-  const { isSignedIn, user } = useUser()
-  const setAuthDetails = useAuthStore((s) => s.setAuthDetails)
-  const updateProfile = useProfileStore((s) => s.updateProfile)
+  const router = useRouter();
+  const { isSignedIn, user } = useUser();
+  const setAuthDetails = useAuthStore((s) => s.setAuthDetails);
+  const updateProfile = useProfileStore((s) => s.updateProfile);
 
   useEffect(() => {
     if (!isSignedIn) {
-      router.replace("/dashboard")
-      return
+      router.replace("/dashboard");
+      return;
     }
 
     setAuthDetails({
       uid: user?.id,
       authEmail: user?.primaryEmailAddress?.emailAddress,
       authDisplayName: user?.fullName || "",
-    })
-    updateProfile({ displayName: user?.fullName || "" })
-    router.replace("/dashboard")
-  }, [isSignedIn, user, router, setAuthDetails, updateProfile])
+    });
+    updateProfile({ displayName: user?.fullName || "" });
+    router.replace("/dashboard");
+  }, [isSignedIn, user, router, setAuthDetails, updateProfile]);
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-4">
+      <LoaderCircleIcon size={48} className="animate-spin" />
+      <p className="text-lg">Completing sign in...</p>
+    </div>
+  );
 }

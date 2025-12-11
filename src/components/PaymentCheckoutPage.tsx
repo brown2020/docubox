@@ -72,23 +72,16 @@ export default function PaymentCheckoutPage({ amount }: Props) {
       });
 
       if (paymentResult.error) {
-        // Log and display the error message in a type-safe way
         setErrorMessage(paymentResult.error.message || "Payment failed");
-        console.error("Payment failed:", paymentResult.error.message);
-      } else {
-        console.log("Payment successful!");
-        // Handle successful payment, e.g., show success message or redirect
       }
+      // Success case: Stripe redirects to return_url automatically
     } catch (err: unknown) {
-      // Ensure type-safe error handling
       if (err instanceof Error) {
         setErrorMessage(
           err.message || "Payment validation failed. Please try again."
         );
-        console.error("Payment validation error:", err.message);
       } else {
         setErrorMessage("An unknown error occurred. Please try again.");
-        console.error("Unexpected error:", err);
       }
     }
 

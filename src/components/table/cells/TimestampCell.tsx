@@ -21,3 +21,4 @@ export function TimestampCell({ timestamp }: TimestampCellProps) {
     </TableCell>
   );
 }
+

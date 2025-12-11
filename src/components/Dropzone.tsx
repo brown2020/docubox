@@ -1,12 +1,13 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { useCallback, useRef, useState } from "react";
 import DropzoneComponent from "react-dropzone";
 import toast from "react-hot-toast";
 import { LoadingState } from "./common/LoadingState";
 import { Progress } from "./ui/progress-bar";
+import { Skeleton } from "./ui/skeleton";
 import { useNavigationStore } from "@/zustand/useNavigationStore";
 import { fileService } from "@/services/fileService";
 import { logger } from "@/lib/logger";
@@ -18,6 +19,7 @@ export default function Dropzone() {
   const [uploadProgress, setUploadProgress] = useState("0");
   const [processing, setProcessing] = useState(false);
   const { user } = useUser();
+  const { isLoaded, isSignedIn } = useAuth();
   const folderId = useNavigationStore((state) => state.folderId);
 
   // Use ref to track loading state in async callbacks
@@ -103,6 +105,15 @@ export default function Dropzone() {
     },
     [uploadPost]
   );
+
+  // Show skeleton while auth is loading or user is not signed in
+  if (!isLoaded || !isSignedIn) {
+    return (
+      <section className="my-4">
+        <Skeleton className="w-full h-52 rounded-lg" />
+      </section>
+    );
+  }
 
   return (
     <DropzoneComponent minSize={0} maxSize={MAX_FILE_SIZE} onDrop={onDrop}>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useEffect, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { collection, orderBy, query, where } from "firebase/firestore";
 import { useCollection } from "react-firebase-hooks/firestore";
 import { db } from "@/firebase";
@@ -33,9 +33,10 @@ export function useFilesList({
   folderId,
 }: UseFilesListOptions): UseFilesListReturn {
   const { user } = useUser();
+  const { isLoaded, isSignedIn } = useAuth();
   const [allFiles, setAllFiles] = useState<FileType[]>([]);
 
-  // Build Firestore query
+  // Build Firestore query - only create if user is authenticated
   const _where = isTrashView
     ? where("deletedAt", "!=", null)
     : where("deletedAt", "==", null);
@@ -44,9 +45,13 @@ export function useFilesList({
     ? orderBy("deletedAt", sort)
     : orderBy("timestamp", sort);
 
-  const [docs] = useCollection(
-    user && query(collection(db, "users", user.id, "files"), _where, _orderBy)
-  );
+  // Only query Firestore when user is authenticated
+  const firestoreQuery =
+    isLoaded && isSignedIn && user
+      ? query(collection(db, "users", user.id, "files"), _where, _orderBy)
+      : null;
+
+  const [docs] = useCollection(firestoreQuery);
 
   // Update files when docs change
   useEffect(() => {
@@ -111,7 +116,8 @@ export function useFilesList({
     });
   }, [allFiles, folderId, searchInput, folderSizes]);
 
-  const isLoading = docs?.docs.length === undefined;
+  // Loading if Clerk hasn't loaded yet OR if we're signed in and docs haven't loaded
+  const isLoading = !isLoaded || (isSignedIn && docs?.docs === undefined);
 
   return { files, allFiles, isLoading, folderSizes };
 }

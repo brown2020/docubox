@@ -8,9 +8,10 @@ import {
   useEffect,
   useRef,
 } from "react";
-import { useDrag, useDrop } from "react-dnd";
+import { useDrop } from "react-dnd";
 import { TableRow } from "../ui/table";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useDraggableItem } from "@/hooks/useDraggableItem";
 
 export type DustbinProps = {
   id: string;
@@ -19,6 +20,10 @@ export type DustbinProps = {
   isTrashItem?: boolean;
 };
 
+/**
+ * Draggable and droppable folder wrapper component.
+ * Supports both drag (moving folder) and drop (receiving files/folders).
+ */
 export const Folder: FunctionComponent<PropsWithChildren<DustbinProps>> = ({
   id,
   onDrop,
@@ -26,19 +31,20 @@ export const Folder: FunctionComponent<PropsWithChildren<DustbinProps>> = ({
   hasTableRow = true,
   isTrashItem = false,
 }) => {
-  const elementRef = useRef<HTMLTableRowElement>(null);
+  const dropRef = useRef<HTMLElement>(null);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
 
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: "folder",
-    item: { id },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  }));
+  // Use shared draggable hook
+  const { elementRef, isDragging, opacity } =
+    useDraggableItem<HTMLTableRowElement>({
+      id,
+      type: "folder",
+      disabled: isTrashItem,
+    });
 
+  // Setup drop functionality
   const [, drop] = useDrop(
     () => ({
       accept: ["file", "folder"],
@@ -61,36 +67,36 @@ export const Folder: FunctionComponent<PropsWithChildren<DustbinProps>> = ({
     replace(`${pathname}?${params.toString()}`);
   }, [searchParams, id, pathname, replace]);
 
+  // Combine drag and drop refs
   useEffect(() => {
-    if (elementRef) {
+    if (elementRef.current && !isTrashItem) {
       drop(elementRef);
-      drag(elementRef);
     }
-  }, [elementRef, drag, drop]);
+  }, [elementRef, drop, isTrashItem]);
 
-  const opacity = isDragging ? 0.5 : 1;
-
-  return hasTableRow ? (
-    <Suspense fallback={<div>Loading...</div>}>
-      <TableRow
-        className="w-full cursor-pointer transition-opacity"
-        style={{ opacity }}
-        onDoubleClick={isTrashItem ? undefined : openFolder}
-        ref={isTrashItem ? undefined : elementRef}
-      >
-        {children}
-      </TableRow>
-    </Suspense>
+  const content = hasTableRow ? (
+    <TableRow
+      className="w-full cursor-pointer transition-opacity"
+      style={{ opacity }}
+      onDoubleClick={isTrashItem ? undefined : openFolder}
+      ref={isTrashItem ? undefined : elementRef}
+    >
+      {children}
+    </TableRow>
   ) : (
-    <Suspense fallback={<div>Loading...</div>}>
-      <div
-        className="cursor-grab hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-opacity"
-        style={{ opacity }}
-        onDoubleClick={isTrashItem ? undefined : openFolder}
-        ref={isTrashItem ? undefined : elementRef}
-      >
-        {children}
-      </div>
-    </Suspense>
+    <div
+      className="cursor-grab hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-opacity"
+      style={{ opacity }}
+      onDoubleClick={isTrashItem ? undefined : openFolder}
+      ref={
+        isTrashItem
+          ? undefined
+          : (elementRef as React.RefObject<HTMLDivElement>)
+      }
+    >
+      {children}
+    </div>
   );
+
+  return <Suspense fallback={<div>Loading...</div>}>{content}</Suspense>;
 };

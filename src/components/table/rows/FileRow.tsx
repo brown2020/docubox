@@ -1,11 +1,11 @@
 "use client";
 
 import { FileType } from "@/types/filetype";
-import { Row, flexRender } from "@tanstack/react-table";
+import { Row } from "@tanstack/react-table";
 import { Button } from "../../ui/button";
 import { TableCell } from "../../ui/table";
 import { File } from "../File";
-import { TimestampCell, FilenameCell, DownloadCell } from "../cells";
+import { renderTableCell } from "../utils/renderCell";
 import {
   EyeIcon,
   FileTerminal,
@@ -50,48 +50,15 @@ export function FileRow({
       id={row.getValue("id")}
       key={"file" + row.id}
       data-state={row.getIsSelected() && "selected"}
+      isTrashItem={isTrashView}
     >
-      {row.getVisibleCells().map((cell) => {
-        if (cell.column.id === "timestamp") {
-          return (
-            <TimestampCell key={cell.id} timestamp={cell.getValue() as Date} />
-          );
-        }
-
-        if (cell.column.id === "filename") {
-          return (
-            <FilenameCell
-              key={cell.id}
-              filename={cell.getValue() as string}
-              onEdit={() =>
-                openRenameModal(
-                  fileData.docId,
-                  fileData.filename,
-                  fileData.tags
-                )
-              }
-            />
-          );
-        }
-
-        if (cell.column.id === "downloadUrl") {
-          return (
-            <DownloadCell
-              key={cell.id}
-              downloadUrl={cell.getValue() as string}
-            />
-          );
-        }
-
-        return (
-          <TableCell
-            key={cell.id}
-            className="py-2 px-4 text-gray-600 dark:text-white"
-          >
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </TableCell>
-        );
-      })}
+      {row.getVisibleCells().map((cell) =>
+        renderTableCell(cell, {
+          onEditFilename: () =>
+            openRenameModal(fileData.docId, fileData.filename, fileData.tags),
+          showDownload: true,
+        })
+      )}
       <TableCell className="flex space-x-2 py-2 px-4 justify-end">
         {isTrashView ? (
           <Button

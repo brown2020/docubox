@@ -6,6 +6,7 @@ import useProfileStore from "@/zustand/useProfileStore";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { validatePaymentIntent } from "@/actions/paymentActions";
+import { logger } from "@/lib/logger";
 
 type Props = {
   payment_intent: string;
@@ -86,7 +87,7 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
           setMessage("Payment validation failed");
         }
       } catch (error) {
-        console.error("[PaymentSuccessPage] Error:", error);
+        logger.error("PaymentSuccessPage", "Error handling payment", error);
         setMessage("Error handling payment success");
       } finally {
         setLoading(false);

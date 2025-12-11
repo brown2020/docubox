@@ -3,46 +3,15 @@
 import { Element, Chunk } from "@/types/types";
 import { UnstructuredClient } from "unstructured-client";
 import { Strategy } from "unstructured-client/sdk/models/shared/index.js";
-import { extractErrorMessage, getHttpErrorMessage } from "@/lib/errors";
+import {
+  APIError,
+  extractErrorMessage,
+  getHttpErrorMessage,
+} from "@/lib/errors";
 import { logger } from "@/lib/logger";
+import { fetchFileFromStorage } from "@/lib/storage";
 
 const SERVICE_NAME = "Unstructured API";
-
-/**
- * Fetches a file from Firebase Storage and returns it as an ArrayBuffer.
- */
-async function fetchFileFromStorage(fileUrl: string): Promise<ArrayBuffer> {
-  let response: Response;
-
-  try {
-    response = await fetch(fileUrl);
-  } catch (error) {
-    throw new Error(
-      `Network error while fetching file: ${extractErrorMessage(error)}`
-    );
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch file from storage: ${response.status} ${response.statusText}`
-    );
-  }
-
-  const buffer = await response.arrayBuffer();
-
-  if (buffer.byteLength === 0) {
-    throw new Error(
-      "The file appears to be empty. Please upload a valid file."
-    );
-  }
-
-  logger.debug("parseFile", {
-    action: "fetchFileFromStorage",
-    byteLength: buffer.byteLength,
-  });
-
-  return buffer;
-}
 
 /**
  * Parses the Unstructured API response into an array of Elements.
@@ -65,11 +34,13 @@ function parseResponseToElements(response: unknown): Element[] {
 
     // Check for error response
     if (obj.statusCode && obj.statusCode !== 200) {
+      const statusCode = obj.statusCode as number;
       const errorDetail =
-        obj.body || obj.message || obj.detail || "Unknown API error";
-      throw new Error(
-        `${SERVICE_NAME} error (${obj.statusCode}): ${errorDetail}`
-      );
+        (obj.body as string) ||
+        (obj.message as string) ||
+        (obj.detail as string) ||
+        "Unknown API error";
+      throw APIError.fromResponse(SERVICE_NAME, statusCode, errorDetail);
     }
 
     if (Array.isArray(obj.elements)) return obj.elements as Element[];
@@ -117,31 +88,6 @@ function createUnstructuredClient(
     security: { apiKeyAuth: apiKey },
     serverURL: apiURL,
   });
-}
-
-/**
- * Maps common error patterns to user-friendly messages.
- */
-function mapErrorToUserFriendly(errorMsg: string): string {
-  const lowerMsg = errorMsg.toLowerCase();
-
-  if (lowerMsg.includes("401") || lowerMsg.includes("unauthorized")) {
-    return `${SERVICE_NAME} authentication failed. Please verify your API key is correct.`;
-  }
-  if (lowerMsg.includes("403") || lowerMsg.includes("forbidden")) {
-    return `${SERVICE_NAME} access denied. Your API key may not have the required permissions.`;
-  }
-  if (lowerMsg.includes("402") || lowerMsg.includes("payment")) {
-    return `${SERVICE_NAME} payment required. Please check your account billing status.`;
-  }
-  if (lowerMsg.includes("429") || lowerMsg.includes("rate limit")) {
-    return `${SERVICE_NAME} rate limit exceeded. Please wait a moment and try again.`;
-  }
-  if (lowerMsg.includes("500") || lowerMsg.includes("internal server")) {
-    return `${SERVICE_NAME} server error. The service may be temporarily unavailable.`;
-  }
-
-  return errorMsg;
 }
 
 /**
@@ -215,12 +161,18 @@ export async function parseFile(
 
     return chunks;
   } catch (error) {
-    // Re-throw our custom errors as-is
+    // Re-throw APIError and known errors as-is
+    if (error instanceof APIError) {
+      throw error;
+    }
+
     if (error instanceof Error) {
       if (
         error.message.startsWith(SERVICE_NAME) ||
         error.message.startsWith("No content") ||
-        error.message.startsWith("Failed to parse")
+        error.message.startsWith("Failed to") ||
+        error.message.startsWith("Network error") ||
+        error.message.startsWith("The file appears")
       ) {
         throw error;
       }
@@ -232,8 +184,13 @@ export async function parseFile(
       stack: error instanceof Error ? error.stack : undefined,
     });
 
+    // Use getHttpErrorMessage for better error messages
     throw new Error(
-      `Error processing file: ${mapErrorToUserFriendly(errorMsg)}`
+      `Error processing file: ${getHttpErrorMessage(
+        500,
+        SERVICE_NAME,
+        errorMsg
+      )}`
     );
   }
 }

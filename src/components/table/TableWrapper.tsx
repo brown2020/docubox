@@ -1,6 +1,6 @@
 "use client";
 
-import { FileType } from "@/types/filetype";
+import { FileType, isFolder } from "@/types/filetype";
 import { mapDocsToFileTypes } from "@/utils/mapFirestoreDoc";
 import { Button } from "../ui/button";
 import { DataTable } from "./DataTable";
@@ -48,10 +48,10 @@ export default function TableWrapper() {
 
   // Use new focused stores
   const { folderId, setFolderId } = useFileSelectionStore();
-  const { setIsCreateFolderModalOpen } = useModalStore();
+  const { open } = useModalStore();
 
   const openCreateFolderModal = () => {
-    setIsCreateFolderModalOpen(true);
+    open("createFolder");
   };
 
   // Use the 'useCollection' hook to fetch Firestore documents
@@ -80,7 +80,7 @@ export default function TableWrapper() {
       let totalSize = 0;
 
       for (const child of children) {
-        if (child.type === "folder") {
+        if (isFolder(child)) {
           totalSize += calculateSize(child.docId);
         } else {
           totalSize += child.size || 0;
@@ -92,9 +92,7 @@ export default function TableWrapper() {
     };
 
     // Pre-calculate all folder sizes
-    initialFiles
-      .filter((f) => f.type === "folder")
-      .forEach((f) => calculateSize(f.docId));
+    initialFiles.filter(isFolder).forEach((f) => calculateSize(f.docId));
 
     return sizes;
   }, [initialFiles]);
@@ -117,7 +115,7 @@ export default function TableWrapper() {
 
     // Apply pre-calculated folder sizes
     return files.map((file) => {
-      if (file.type === "folder") {
+      if (isFolder(file)) {
         return { ...file, size: folderSizes.get(file.docId) || 0 };
       }
       return file;

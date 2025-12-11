@@ -8,3 +8,4 @@ export {
   parseAPIErrorResponse,
   APIError,
 } from "./errors";
+export { fetchFileFromStorage, fetchFileAsBlob } from "./storage";

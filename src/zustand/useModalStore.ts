@@ -1,60 +1,116 @@
 import { create } from "zustand";
 
 /**
+ * Supported modal types in the application.
+ */
+export type ModalType =
+  | "delete"
+  | "rename"
+  | "parseData"
+  | "createFolder"
+  | "questionAnswer"
+  | null;
+
+/**
+ * Modal data that can be passed when opening a modal.
+ */
+export interface ModalData {
+  fileId?: string;
+  filename?: string;
+  folderId?: string | null;
+  isFolder?: boolean;
+  tags?: string[];
+  unstructuredFileData?: string;
+  summary?: string;
+  [key: string]: unknown;
+}
+
+/**
  * Store for managing modal visibility states.
- * Keeps modal concerns separate from other app state.
+ * Uses a generic pattern to reduce boilerplate.
  */
 interface ModalStore {
-  // Delete Modal
+  // Current open modal (null if none)
+  openModal: ModalType;
+  // Data associated with the current modal
+  modalData: ModalData;
+
+  // Generic modal actions
+  open: (modal: ModalType, data?: ModalData) => void;
+  close: () => void;
+  updateData: (data: Partial<ModalData>) => void;
+
+  // Legacy compatibility getters (computed from openModal)
   isDeleteModalOpen: boolean;
-  setIsDeleteModalOpen: (isOpen: boolean) => void;
-
-  // Rename Modal
   isRenameModalOpen: boolean;
-  setIsRenameModalOpen: (isOpen: boolean) => void;
-
-  // Parsed Data Modal
   isShowParseDataModelOpen: boolean;
-  setIsShowParseDataModelOpen: (isOpen: boolean) => void;
-
-  // Create Folder Modal
   isCreateFolderModalOpen: boolean;
-  setIsCreateFolderModalOpen: (isOpen: boolean) => void;
-
-  // Question Answer Modal
   isQuestionAnswerModalOpen: boolean;
+
+  // Legacy compatibility setters
+  setIsDeleteModalOpen: (isOpen: boolean) => void;
+  setIsRenameModalOpen: (isOpen: boolean) => void;
+  setIsShowParseDataModelOpen: (isOpen: boolean) => void;
+  setIsCreateFolderModalOpen: (isOpen: boolean) => void;
   setQuestionAnswerModalOpen: (isOpen: boolean) => void;
 
-  // Reset all modals
+  // Close all modals
   closeAllModals: () => void;
 }
 
-export const useModalStore = create<ModalStore>((set) => ({
-  isDeleteModalOpen: false,
-  setIsDeleteModalOpen: (isOpen) => set({ isDeleteModalOpen: isOpen }),
+export const useModalStore = create<ModalStore>((set, get) => ({
+  openModal: null,
+  modalData: {},
 
-  isRenameModalOpen: false,
-  setIsRenameModalOpen: (isOpen) => set({ isRenameModalOpen: isOpen }),
+  // Generic modal actions
+  open: (modal, data = {}) => set({ openModal: modal, modalData: data }),
+  close: () => set({ openModal: null, modalData: {} }),
+  updateData: (data) =>
+    set((state) => ({ modalData: { ...state.modalData, ...data } })),
 
-  isShowParseDataModelOpen: false,
-  setIsShowParseDataModelOpen: (isOpen) =>
-    set({ isShowParseDataModelOpen: isOpen }),
+  // Legacy compatibility - computed getters
+  get isDeleteModalOpen() {
+    return get().openModal === "delete";
+  },
+  get isRenameModalOpen() {
+    return get().openModal === "rename";
+  },
+  get isShowParseDataModelOpen() {
+    return get().openModal === "parseData";
+  },
+  get isCreateFolderModalOpen() {
+    return get().openModal === "createFolder";
+  },
+  get isQuestionAnswerModalOpen() {
+    return get().openModal === "questionAnswer";
+  },
 
-  isCreateFolderModalOpen: false,
-  setIsCreateFolderModalOpen: (isOpen) =>
-    set({ isCreateFolderModalOpen: isOpen }),
-
-  isQuestionAnswerModalOpen: false,
-  setQuestionAnswerModalOpen: (isOpen) =>
-    set({ isQuestionAnswerModalOpen: isOpen }),
-
-  closeAllModals: () =>
+  // Legacy compatibility setters
+  setIsDeleteModalOpen: (isOpen) =>
     set({
-      isDeleteModalOpen: false,
-      isRenameModalOpen: false,
-      isShowParseDataModelOpen: false,
-      isCreateFolderModalOpen: false,
-      isQuestionAnswerModalOpen: false,
+      openModal: isOpen ? "delete" : null,
+      modalData: isOpen ? get().modalData : {},
     }),
-}));
+  setIsRenameModalOpen: (isOpen) =>
+    set({
+      openModal: isOpen ? "rename" : null,
+      modalData: isOpen ? get().modalData : {},
+    }),
+  setIsShowParseDataModelOpen: (isOpen) =>
+    set({
+      openModal: isOpen ? "parseData" : null,
+      modalData: isOpen ? get().modalData : {},
+    }),
+  setIsCreateFolderModalOpen: (isOpen) =>
+    set({
+      openModal: isOpen ? "createFolder" : null,
+      modalData: isOpen ? get().modalData : {},
+    }),
+  setQuestionAnswerModalOpen: (isOpen) =>
+    set({
+      openModal: isOpen ? "questionAnswer" : null,
+      modalData: isOpen ? get().modalData : {},
+    }),
 
+  closeAllModals: () => set({ openModal: null, modalData: {} }),
+}));

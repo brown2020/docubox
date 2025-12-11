@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import { FileType } from "@/types/filetype";
+import { FileType, isFolder } from "@/types/filetype";
 import { useUploadStore } from "@/zustand/useUploadStore";
 import { useUser } from "@clerk/nextjs";
 import { FileRow, FolderRow } from "./rows";
@@ -107,7 +107,7 @@ export function DataTable<TData, TValue>({
             table
               .getRowModel()
               .rows.map((row) =>
-                row.getValue("type") !== "folder" ? (
+                !isFolder(row.original as FileType) ? (
                   <FileRow
                     key={row.id}
                     row={row as Row<FileType>}

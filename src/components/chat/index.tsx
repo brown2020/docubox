@@ -1,5 +1,3 @@
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/firebase";
 import { ArrowUp, LoaderCircleIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
@@ -19,6 +17,8 @@ import { useDocument } from "@/hooks/useDocument";
 import { useApiProfileData } from "@/hooks/useApiProfileData";
 import { DEFAULT_MODEL } from "@/lib/ai";
 import { logger } from "@/lib/logger";
+import { fileService } from "@/services/fileService";
+import { LoadingState } from "../common/LoadingState";
 
 // Types for Ragie API responses
 interface ScoredChunk {
@@ -90,21 +90,18 @@ export const Chat = ({ fileId }: IChatProps) => {
   const _uploadToRagie = useCallback(
     async (
       userId: string,
-      doc: { id: string; downloadUrl: string; filename: string }
+      docData: { id: string; downloadUrl: string; filename: string }
     ) => {
       try {
         setUploadingToRagie(true);
         const handleUploadfile = async (apiKey: string) => {
           const response = await uploadToRagie(
-            doc.id,
-            doc.downloadUrl,
-            doc.filename,
+            docData.id,
+            docData.downloadUrl,
+            docData.filename,
             apiKey
           );
-          await updateDoc(docRef(db, "users", userId, "files", doc.id), {
-            isUploadedToRagie: true,
-            ragieFileId: response.id,
-          });
+          await fileService.updateRagieStatus(userId, docData.id, response.id);
           await checkDocumentReadiness(response.id, apiKey);
         };
         await handleAPIAndCredits("ragie", apiProfileData, handleUploadfile);
@@ -122,9 +119,6 @@ export const Chat = ({ fileId }: IChatProps) => {
     },
     [apiProfileData, setQuestionAnswerModalOpen]
   );
-
-  // Helper to get doc ref
-  const docRef = doc;
 
   const onDocumentLoad = useCallback(async () => {
     if (user?.id && document) {
@@ -152,9 +146,7 @@ export const Chat = ({ fileId }: IChatProps) => {
       if (!user) return;
 
       try {
-        await updateDoc(doc(db, "users", user.id, "files", fileId), {
-          qaRecords: _records,
-        });
+        await fileService.updateQARecords(user.id, fileId, _records);
       } catch (error) {
         logger.error("Chat", "Error updating QA Records", error);
         throw new Error("Something went wrong while updating QA Records");
@@ -268,12 +260,7 @@ export const Chat = ({ fileId }: IChatProps) => {
   return (
     <div style={{ height: "65dvh" }} className="flex flex-col gap-2">
       <div className="grow border rounded-md bg-slate-100 max-h-[65dvh] overflow-y-auto px-5 pt-5 pb-2">
-        {isLoading && (
-          <div className="flex flex-col justify-center items-center h-full">
-            <LoaderCircleIcon size={48} className="animate-spin" />
-            <small>Loading Document...</small>
-          </div>
-        )}
+        {isLoading && <LoadingState message="Loading Document..." />}
 
         {!isLoading &&
           history.map((record, index) => (

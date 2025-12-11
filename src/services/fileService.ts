@@ -320,4 +320,16 @@ export const fileService = {
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? docSnap.data() : null;
   },
+
+  /**
+   * Update file summary
+   */
+  async updateSummary(
+    userId: string,
+    fileId: string,
+    summary: string | null
+  ): Promise<void> {
+    await updateDoc(doc(db, "users", userId, "files", fileId), { summary });
+    logger.debug("fileService", { action: "updateSummary", fileId });
+  },
 };

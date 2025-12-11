@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,9 +9,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Chat } from "./chat";
 import { useModalStore } from "@/zustand/useModalStore";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
+import { LoadingState } from "./common/LoadingState";
+
+// Dynamic import for heavy Chat component with markdown rendering
+const Chat = dynamic(
+  () => import("./chat").then((mod) => ({ default: mod.Chat })),
+  {
+    loading: () => <LoadingState message="Loading chat..." size={32} />,
+    ssr: false,
+  }
+);
 
 export const QuestionAnswerModal = () => {
   const { isQuestionAnswerModalOpen, setQuestionAnswerModalOpen } =

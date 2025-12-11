@@ -18,10 +18,9 @@ import {
 import { FileType } from "@/types/filetype";
 import { useUploadStore } from "@/zustand/useUploadStore";
 import { useUser } from "@clerk/nextjs";
-import { db } from "@/firebase";
-import { doc, updateDoc } from "firebase/firestore";
 import { FileRow, FolderRow } from "./rows";
 import { useFileModals } from "@/hooks";
+import { fileService } from "@/services/fileService";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -60,9 +59,7 @@ export function DataTable<TData, TValue>({
 
   const restoreDeletedFile = async (fileId: string) => {
     if (user) {
-      await updateDoc(doc(db, "users", user.id, "files", fileId), {
-        deletedAt: null,
-      });
+      await fileService.restore(user.id, fileId);
     }
   };
 

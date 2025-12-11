@@ -1,4 +1,7 @@
-export const COLOR_EXTENSION_MAP: { [key: string]: string } = {
+/**
+ * Color mapping for file extension labels.
+ */
+export const COLOR_EXTENSION_MAP: Record<string, string> = {
   pdf: "#0160fe",
   docx: "#2b579a",
   doc: "#2b579a",
@@ -17,7 +20,10 @@ export const COLOR_EXTENSION_MAP: { [key: string]: string } = {
   eml: "#81D4FA",
 };
 
-export const UNCOMMON_EXTENSIONS_MAP: { [key: string]: string } = {
+/**
+ * Mapping for uncommon MIME type extensions to standard extensions.
+ */
+export const UNCOMMON_EXTENSIONS_MAP: Record<string, string> = {
   "vnd.ms-outlook": "msg",
   rfc822: "eml",
   "svg+xml": "svg",

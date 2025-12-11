@@ -4,12 +4,12 @@ import { deleteFileFromRagie } from "@/actions/ragieActions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalContent } from "@/components/ui/modal-content";
 import { db } from "@/firebase";
 import { useModalStore } from "@/zustand/useModalStore";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
@@ -154,7 +154,7 @@ export function DeleteModal() {
       open={isDeleteModalOpen}
       onOpenChange={(isOpen) => setIsDeleteModalOpen(isOpen)}
     >
-      <DialogContent className="sm:max-w-md bg-slate-200 dark:bg-slate-600">
+      <ModalContent>
         <DialogHeader>
           <DialogTitle>Are you sure you want to delete?</DialogTitle>
           <DialogDescription className="bg-slate-200 dark:bg-slate-600">
@@ -189,7 +189,7 @@ export function DeleteModal() {
             <span>Delete</span>
           </Button>
         </DialogFooter>
-      </DialogContent>
+      </ModalContent>
     </Dialog>
   );
 }

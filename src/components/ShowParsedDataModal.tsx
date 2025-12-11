@@ -8,11 +8,11 @@ import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { WideModalContent } from "@/components/ui/modal-content";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { useModalStore } from "@/zustand/useModalStore";
@@ -247,7 +247,7 @@ export function ShowParsedDataModal() {
       open={isShowParseDataModelOpen}
       onOpenChange={(isOpen) => setIsShowParseDataModelOpen(isOpen)}
     >
-      <DialogContent className="w-full max-w-5xl p-6 rounded-lg shadow-md bg-slate-200 dark:bg-slate-600">
+      <WideModalContent>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
             Parsed Data
@@ -318,7 +318,7 @@ export function ShowParsedDataModal() {
             Close
           </Button>
         </DialogFooter>
-      </DialogContent>
+      </WideModalContent>
     </Dialog>
   );
 }

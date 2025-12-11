@@ -2,10 +2,8 @@
 
 import { FileType } from "@/types/filetype";
 import { ColumnDef } from "@tanstack/react-table";
-import { FileIcon, defaultStyles } from "react-file-icon";
 import prettyBytes from "pretty-bytes";
-import { COLOR_EXTENSION_MAP, UNCOMMON_EXTENSIONS_MAP } from "@/constants";
-import { FolderOpen } from "lucide-react";
+import { FileTypeIcon } from "@/components/common/FileTypeIcon";
 
 export const columns: ColumnDef<FileType>[] = [
   {
@@ -21,28 +19,7 @@ export const columns: ColumnDef<FileType>[] = [
     header: "Type",
     cell: ({ renderValue }) => {
       const type = renderValue() as string;
-      if (type === "folder") {
-        return (
-          <div className="w-10">
-            <FolderOpen size={40} />
-          </div>
-        );
-      }
-      const extension: string = type.split("/")[1];
-      return (
-        <div className="w-10">
-          <FileIcon
-            extension={UNCOMMON_EXTENSIONS_MAP[extension] || extension}
-            labelColor={
-              COLOR_EXTENSION_MAP[
-                UNCOMMON_EXTENSIONS_MAP[extension] || extension
-              ]
-            }
-            // @ts-expect-error: The 'defaultStyles' may not have a property for every possible extension.
-            {...defaultStyles[UNCOMMON_EXTENSIONS_MAP[extension] || extension]}
-          />
-        </div>
-      );
+      return <FileTypeIcon type={type} />;
     },
   },
   {

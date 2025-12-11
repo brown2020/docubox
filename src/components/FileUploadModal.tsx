@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -14,9 +14,10 @@ import { useUser } from "@clerk/nextjs";
 import { Chunk } from "@/types/types";
 import { parseFile } from "@/actions/parse";
 import { uploadUnstructuredFile } from "@/actions/unstructuredActions";
-import useProfileStore from "@/zustand/useProfileStore";
 import { handleAPIAndCredits } from "@/utils/useApiAndCreditKeys";
+import { useApiProfileData } from "@/hooks/useApiProfileData";
 import toast from "react-hot-toast";
+import { logger } from "@/lib/logger";
 
 export default function FileUploadModal() {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -26,15 +27,8 @@ export default function FileUploadModal() {
     useUploadStore();
   const { setUnstructuredFileData } = useFileSelectionStore();
 
-  // Select only needed fields from profile store
-  const profile = useProfileStore((state) => state.profile);
-  const minusCredits = useProfileStore((state) => state.minusCredits);
-
-  // Memoize profile data for API handler (simplified interface)
-  const apiProfileData = useMemo(
-    () => ({ profile, minusCredits }),
-    [profile, minusCredits]
-  );
+  // Use custom hook for profile data
+  const apiProfileData = useApiProfileData();
 
   const { user } = useUser();
 
@@ -67,6 +61,7 @@ export default function FileUploadModal() {
         if (error instanceof Error) {
           toast.error(error.message);
         } else {
+          logger.error("FileUploadModal", "Error during file parsing", error);
           toast.error("An error occurred during file parsing.");
         }
       }

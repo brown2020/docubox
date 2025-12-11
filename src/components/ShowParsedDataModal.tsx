@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { useUser } from "@clerk/nextjs";
 
@@ -22,11 +22,14 @@ import { Chunk, Element } from "@/types/types";
 import { generateSummary } from "@/actions/generateSummary";
 import useProfileStore from "@/zustand/useProfileStore";
 import { getCreditCost } from "@/constants/credits";
-import { FileType } from "@/types/filetype";
 import { LoaderCircleIcon } from "lucide-react";
 import { downloadUnstructuredFile } from "@/actions/unstructuredActions";
+import { useDocument } from "@/hooks/useDocument";
+import { logger } from "@/lib/logger";
 
 export function ShowParsedDataModal() {
+  const { user } = useUser();
+
   // Use focused stores
   const { isShowParseDataModelOpen, setIsShowParseDataModelOpen } =
     useModalStore();
@@ -38,62 +41,46 @@ export function ShowParsedDataModal() {
     setFileId,
     setFileSummary,
   } = useFileSelectionStore();
-  const { user } = useUser();
+
+  // Use custom hook for document fetching
+  const { document, isLoading: isDocLoading } = useDocument(user?.id, fileId, {
+    immediate: !unstructuredFileData,
+  });
+
   const isAIAlreadyCalled = useRef(false);
   const [loading, setLoading] = useState(false);
-  const [isDocLoading, setDocLoading] = useState(false);
   const [isUnstructuredLoading, setUnstructuredLoading] = useState(false);
-  const [document, setDocument] = useState<FileType>();
 
   const [parsedData, setParsedData] = useState<Chunk[] | []>([]);
   const [summary, setSummary] = useState("");
+
   const useCredits = useProfileStore((state) => state.profile.useCredits);
   const apiKey = useProfileStore((state) => state.profile.openai_api_key);
   const currentCredits = useProfileStore((state) => state.profile.credits);
   const minusCredits = useProfileStore((state) => state.minusCredits);
 
-  const getDocument = useCallback(async () => {
-    if (user?.id && fileId) {
-      setDocLoading(true);
-
-      const docRef = doc(db, "users", user.id, "files", fileId);
-      const docSnap = await getDoc(docRef);
-
-      if (!docSnap.exists()) {
-        setDocLoading(false);
-        return;
-      }
-
-      const data = docSnap.data();
-      setDocument(data as FileType);
-      setDocLoading(false);
-    }
-  }, [fileId, user?.id]);
-
-  useEffect(() => {
-    if (!unstructuredFileData) {
-      getDocument();
-    }
-  }, [unstructuredFileData, getDocument]);
-
   const fetchUnstructuredData = useCallback(async () => {
-    if (user && document && document.unstructuredFile) {
+    if (
+      user &&
+      document &&
+      document.unstructuredFile &&
+      !unstructuredFileData
+    ) {
       try {
         setUnstructuredLoading(true);
         const data = await downloadUnstructuredFile(document.unstructuredFile);
-        // // Fetch the content of the unstructured file
-        // const unStructureRef = ref(storage, document.unstructuredFile);
-        // const url = await getDownloadURL(unStructureRef);
-        // const response = await fetch(url);
-        // const data = await response.json();
         setUnstructuredFileData(data);
       } catch (error) {
-        console.error(error);
+        logger.error(
+          "ShowParsedDataModal",
+          "Error fetching unstructured data",
+          error
+        );
       } finally {
         setUnstructuredLoading(false);
       }
     }
-  }, [document, user, setUnstructuredLoading, setUnstructuredFileData]);
+  }, [document, user, unstructuredFileData, setUnstructuredFileData]);
 
   useEffect(() => {
     fetchUnstructuredData();
@@ -144,7 +131,7 @@ export function ShowParsedDataModal() {
       }
     } catch (error) {
       isAIAlreadyCalled.current = false;
-      console.error("[ShowParsedDataModal] Error generating summary:", error);
+      logger.error("ShowParsedDataModal", "Error generating summary", error);
     } finally {
       setLoading(false);
     }
@@ -168,7 +155,7 @@ export function ShowParsedDataModal() {
 
     // Group elements by their parent ID, if applicable
     const groupedContent = contentArray.reduce((acc, item) => {
-      const parentId = item.metadata.parent_id || "root"; // "root" for elements without a parent
+      const parentId = item.metadata.parent_id || "root";
       if (!acc[parentId]) {
         acc[parentId] = [];
       }
@@ -192,7 +179,6 @@ export function ShowParsedDataModal() {
                 );
 
               case "UncategorizedText":
-                // Ignore elements that are just numbers if PageNumber is also present
                 if (/^\d+$/.test(item.text || "")) {
                   return null;
                 }
@@ -242,10 +228,19 @@ export function ShowParsedDataModal() {
     setParsedData(JSON.parse(unstructuredFileData));
   }, [unstructuredFileData]);
 
+  const handleClose = () => {
+    setIsShowParseDataModelOpen(false);
+    setFileId(null);
+    setUnstructuredFileData("");
+    setFileSummary(undefined);
+  };
+
+  const isDataLoading = isDocLoading || isUnstructuredLoading;
+
   return (
     <Dialog
       open={isShowParseDataModelOpen}
-      onOpenChange={(isOpen) => setIsShowParseDataModelOpen(isOpen)}
+      onOpenChange={(isOpen) => !isOpen && handleClose()}
     >
       <WideModalContent>
         <DialogHeader>
@@ -253,7 +248,7 @@ export function ShowParsedDataModal() {
             Parsed Data
           </DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="raw" className=" overflow-hidden">
+        <Tabs defaultValue="raw" className="overflow-hidden">
           <div className="flex justify-center my-2">
             <TabsList>
               <TabsTrigger value="raw">Raw Data</TabsTrigger>
@@ -270,7 +265,7 @@ export function ShowParsedDataModal() {
           </div>
           <div className="overflow-auto h-[70vh] p-4 bg-gray-50 rounded-lg w-full">
             <TabsContent value="raw" className="w-full h-[98%]">
-              {isDocLoading || isUnstructuredLoading ? (
+              {isDataLoading ? (
                 <div className="flex flex-col justify-center items-center h-full">
                   <LoaderCircleIcon size={48} className="animate-spin" />
                   <small>Loading Raw Data...</small>
@@ -308,12 +303,7 @@ export function ShowParsedDataModal() {
             size="sm"
             className="px-4"
             variant="ghost"
-            onClick={() => {
-              setIsShowParseDataModelOpen(false);
-              setFileId(null);
-              setUnstructuredFileData("");
-              setFileSummary(undefined);
-            }}
+            onClick={handleClose}
           >
             Close
           </Button>

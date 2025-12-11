@@ -9,14 +9,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ModalContent } from "@/components/ui/modal-content";
-import { db } from "@/firebase";
 import { useModalStore } from "@/zustand/useModalStore";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { useUser } from "@clerk/nextjs";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useState } from "react";
 import { Input } from "./ui/input";
 import toast from "react-hot-toast";
+import { fileService } from "@/services/fileService";
+import { logger } from "@/lib/logger";
 
 export function AddNewFolderModal() {
   const { user } = useUser();
@@ -40,26 +40,16 @@ export function AddNewFolderModal() {
 
     const toastId = toast.loading("Creating folder...");
     try {
-      await addDoc(collection(db, "users", user.id, "files"), {
-        filename: input.trim(),
-        folderId,
-        userId: user.id,
-        timestamp: serverTimestamp(),
-        type: "folder",
-        fullName: user.fullName,
-        profileImg: user.imageUrl,
-        size: 0,
-        lastModified: serverTimestamp(),
-        unstructuredFile: null,
-        summary: null,
-        deletedAt: null,
+      await fileService.createFolder(user.id, input.trim(), folderId, {
+        fullName: user.fullName || "",
+        imageUrl: user.imageUrl || "",
       });
 
       toast.success("Folder created successfully!", { id: toastId });
       setInput("");
       setIsCreateFolderModalOpen(false);
     } catch (error) {
-      console.error("Error creating folder:", error);
+      logger.error("AddNewFolderModal", "Error creating folder", error);
       toast.error("Error creating folder!", { id: toastId });
     }
   }

@@ -1,9 +1,9 @@
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { ArrowUp, LoaderCircleIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   checkDocumentReadiness,
   retrieveChunks,
@@ -13,11 +13,12 @@ import { generateWithChunks } from "@/actions/generateActions";
 import { useUser } from "@clerk/nextjs";
 import { QARecord } from "./QARecord";
 import toast from "react-hot-toast";
-import { FileType } from "@/types/filetype";
-import useProfileStore from "@/zustand/useProfileStore";
 import { handleAPIAndCredits } from "@/utils/useApiAndCreditKeys";
 import { useModalStore } from "@/zustand/useModalStore";
+import { useDocument } from "@/hooks/useDocument";
+import { useApiProfileData } from "@/hooks/useApiProfileData";
 import { DEFAULT_MODEL } from "@/lib/ai";
+import { logger } from "@/lib/logger";
 
 // Types for Ragie API responses
 interface ScoredChunk {
@@ -59,67 +60,48 @@ export const Chat = ({ fileId }: IChatProps) => {
   const [generatedContent, setGeneratedContent] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState<IQARecord[]>([]);
-  const [document, setDocument] = useState<FileType>();
-  const [isDeleting, setDeleting] = useState(false);
-  const [isDocLoading, setDocLoading] = useState(false);
   const [isUploadingToRagie, setUploadingToRagie] = useState(false);
 
-  // Select only needed fields from stores
-  const profile = useProfileStore((state) => state.profile);
-  const minusCredits = useProfileStore((state) => state.minusCredits);
+  // Use custom hooks for cleaner code
+  const {
+    document,
+    isLoading: isDocLoading,
+    refetch: refetchDocument,
+  } = useDocument(user?.id, fileId);
+  const apiProfileData = useApiProfileData();
   const setQuestionAnswerModalOpen = useModalStore(
     (state) => state.setQuestionAnswerModalOpen
   );
 
-  // Memoize profile data for API handler (simplified interface)
-  const apiProfileData = useMemo(
-    () => ({ profile, minusCredits }),
-    [profile, minusCredits]
-  );
-
-  const getDocument = useCallback(async () => {
-    if (user?.id) {
-      setDocLoading(true);
-
-      const docRef = doc(db, "users", user.id, "files", fileId);
-      const docSnap = await getDoc(docRef);
-
-      if (!docSnap.exists()) {
-        setDocLoading(false);
-        return;
-      }
-
-      const data = docSnap.data();
-
-      // Ensure all records have IDs (for backwards compatibility with existing data)
-      const qaRecords = (data?.qaRecords || []).map(
-        (record: Omit<IQARecord, "id"> & { id?: string }) => ({
-          ...record,
-          id: record.id || generateRecordId(),
-        })
-      );
+  // Load QA records when document is fetched
+  useEffect(() => {
+    if (document) {
+      const qaRecords = (
+        ((document as Record<string, unknown>).qaRecords as IQARecord[]) || []
+      ).map((record: Omit<IQARecord, "id"> & { id?: string }) => ({
+        ...record,
+        id: record.id || generateRecordId(),
+      }));
       setHistory(qaRecords);
-      setDocument(data as FileType);
-      setDocLoading(false);
     }
-  }, [fileId, user?.id]);
+  }, [document]);
 
   // Function to upload a document to Ragie using server action
   const _uploadToRagie = useCallback(
     async (
       userId: string,
-      _document: { id: string; downloadUrl: string; filename: string }
+      doc: { id: string; downloadUrl: string; filename: string }
     ) => {
       try {
         setUploadingToRagie(true);
         const handleUploadfile = async (apiKey: string) => {
           const response = await uploadToRagie(
-            _document.id,
-            _document.downloadUrl,
-            _document.filename,
+            doc.id,
+            doc.downloadUrl,
+            doc.filename,
             apiKey
           );
-          await updateDoc(doc(db, "users", userId, "files", _document.id), {
+          await updateDoc(docRef(db, "users", userId, "files", doc.id), {
             isUploadedToRagie: true,
             ragieFileId: response.id,
           });
@@ -131,7 +113,7 @@ export const Chat = ({ fileId }: IChatProps) => {
           toast.error(error.message);
           setQuestionAnswerModalOpen(false);
         } else {
-          console.error("Error uploading to Ragie: ", error);
+          logger.error("Chat", "Error uploading to Ragie", error);
           throw Error("Error uploading to Ragie");
         }
       } finally {
@@ -141,6 +123,9 @@ export const Chat = ({ fileId }: IChatProps) => {
     [apiProfileData, setQuestionAnswerModalOpen]
   );
 
+  // Helper to get doc ref
+  const docRef = doc;
+
   const onDocumentLoad = useCallback(async () => {
     if (user?.id && document) {
       const { docId, filename, downloadUrl } = document;
@@ -148,7 +133,7 @@ export const Chat = ({ fileId }: IChatProps) => {
       try {
         await _uploadToRagie(user?.id, { id: docId, filename, downloadUrl });
       } catch (error) {
-        console.error(error);
+        logger.error("Chat", "Error while uploading file to Ragie", error);
         throw new Error("Error while uploading file to Ragie.ai");
       }
     }
@@ -157,14 +142,10 @@ export const Chat = ({ fileId }: IChatProps) => {
   useEffect(() => {
     if (document && !document.isUploadedToRagie) {
       onDocumentLoad().then(() => {
-        getDocument();
+        refetchDocument();
       });
     }
-  }, [document, onDocumentLoad, getDocument]);
-
-  useEffect(() => {
-    getDocument();
-  }, [fileId, getDocument]);
+  }, [document, onDocumentLoad, refetchDocument]);
 
   const updateQARecords = useCallback(
     async (_records: IQARecord[]) => {
@@ -175,7 +156,7 @@ export const Chat = ({ fileId }: IChatProps) => {
           qaRecords: _records,
         });
       } catch (error) {
-        console.error("[updateQARecords] Error:", error);
+        logger.error("Chat", "Error updating QA Records", error);
         throw new Error("Something went wrong while updating QA Records");
       }
     },
@@ -193,7 +174,7 @@ export const Chat = ({ fileId }: IChatProps) => {
         setHistory(updatedRecords);
         setGeneratedContent("");
       } catch (error) {
-        console.error("[updateDocument] Error:", error);
+        logger.error("Chat", "Error updating document", error);
       }
     },
     [user?.id, history, updateQARecords]
@@ -254,7 +235,7 @@ export const Chat = ({ fileId }: IChatProps) => {
 
       await handleAPIAndCredits("open-ai", apiProfileData, handleContent);
     } catch (error) {
-      console.error("Error during retrieval or generation:", error);
+      logger.error("Chat", "Error during retrieval or generation", error);
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
@@ -270,54 +251,56 @@ export const Chat = ({ fileId }: IChatProps) => {
   const handleDeleteQARecord = async (index: number) => {
     if (!user) return;
 
-    history.splice(index, 1);
+    const updatedHistory = [...history];
+    updatedHistory.splice(index, 1);
 
     try {
-      setDeleting(true);
-      await updateQARecords(history);
-      setHistory([...history]);
+      await updateQARecords(updatedHistory);
+      setHistory(updatedHistory);
       toast.success("Record is removed.");
     } catch (error) {
-      console.error(error);
-    } finally {
-      setDeleting(false);
+      logger.error("Chat", "Error deleting QA record", error);
     }
   };
+
+  const isLoading = isDocLoading || isUploadingToRagie;
+
   return (
     <div style={{ height: "65dvh" }} className="flex flex-col gap-2">
       <div className="grow border rounded-md bg-slate-100 max-h-[65dvh] overflow-y-auto px-5 pt-5 pb-2">
-        {(isDocLoading || isUploadingToRagie) && (
+        {isLoading && (
           <div className="flex flex-col justify-center items-center h-full">
             <LoaderCircleIcon size={48} className="animate-spin" />
             <small>Loading Document...</small>
           </div>
         )}
 
-        {history.map((record, index) => (
-          <QARecord
-            key={record.id}
-            question={record.question}
-            answer={record.answer}
-            onDelete={() => handleDeleteQARecord(index)}
-            isDeleting={isDeleting}
-          />
-        ))}
+        {!isLoading &&
+          history.map((record, index) => (
+            <QARecord
+              key={record.id}
+              question={record.question}
+              answer={record.answer}
+              onDelete={() => handleDeleteQARecord(index)}
+              isDeleting={false}
+            />
+          ))}
 
-        {generatedContent && (
+        {!isLoading && generatedContent && (
           <QARecord
             key="new-record"
             question={newQuestionRef.current}
             answer={generatedContent}
-            isDeleting={isDeleting}
+            isDeleting={false}
           />
         )}
       </div>
-      <div className="flex gap-x-3 items-center ">
+      <div className="flex gap-x-3 items-center">
         <Textarea
           placeholder="Type your question here."
           className="resize-none bg-slate-200 focus-visible:ring-1 focus-visible:ring-offset-0 dark:bg-slate-600 border-gray-400 border-[1px]"
           value={newQuestion}
-          disabled={isUploadingToRagie || isGenerating}
+          disabled={isLoading || isGenerating}
           onChange={(e) => setNewQuestion(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {

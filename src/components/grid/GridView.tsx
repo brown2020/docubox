@@ -1,9 +1,6 @@
 import { FunctionComponent } from "react";
 import { Card } from "./Card";
 import { FileType } from "@/types/filetype";
-import { RenameModal } from "../RenameModal";
-import { ShowParsedDataModal } from "../ShowParsedDataModal";
-import { DeleteModal } from "../DeleteModal";
 import { File } from "../table/File";
 import { Folder } from "../table/Folder";
 import { useUser } from "@clerk/nextjs";
@@ -29,8 +26,9 @@ export const GridView: FunctionComponent<Props> = ({
   const onDrop = (docId: string, folderId: string) => {
     if (user) moveFileHandler(user?.id, docId, folderId);
   };
+
   return (
-    <div className=" flex gap-2 ">
+    <div className="flex gap-2">
       {data.map((i) =>
         i.type !== "folder" ? (
           <File
@@ -71,9 +69,6 @@ export const GridView: FunctionComponent<Props> = ({
           </Folder>
         )
       )}
-      <DeleteModal />
-      <RenameModal />
-      <ShowParsedDataModal />
     </div>
   );
 };

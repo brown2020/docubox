@@ -17,13 +17,9 @@ import {
 } from "../ui/table";
 import { FileType } from "@/types/filetype";
 import { useUploadStore } from "@/zustand/useUploadStore";
-import { DeleteModal } from "../DeleteModal";
-import { RenameModal } from "../RenameModal";
-import { ShowParsedDataModal } from "../ShowParsedDataModal";
 import { useUser } from "@clerk/nextjs";
 import { db } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
-import { QuestionAnswerModal } from "../QuestionAnswerModal";
 import { FileRow, FolderRow } from "./rows";
 import { useFileModals } from "@/hooks";
 
@@ -89,10 +85,6 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="rounded-lg border border-gray-200 shadow-md overflow-hidden">
-      <ShowParsedDataModal />
-      <DeleteModal />
-      <RenameModal />
-      <QuestionAnswerModal />
       <Table className="min-w-full divide-y divide-gray-200">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -120,6 +112,7 @@ export function DataTable<TData, TValue>({
               .rows.map((row) =>
                 row.getValue("type") !== "folder" ? (
                   <FileRow
+                    key={row.id}
                     row={row as Row<FileType>}
                     fileData={row.original as FileType}
                     isTrashView={isTrashView}
@@ -132,6 +125,7 @@ export function DataTable<TData, TValue>({
                   />
                 ) : (
                   <FolderRow
+                    key={row.id}
                     row={row as Row<FileType>}
                     folderData={row.original as FileType}
                     isTrashView={isTrashView}

@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "react-hot-toast";
 import FileUploadModal from "@/components/FileUploadModal";
+import { ModalProvider } from "@/components/providers/ModalProvider";
 
 export const metadata: Metadata = {
   title: "Docubox",
@@ -34,6 +35,7 @@ export default function RootLayout({
             </div>
             <Toaster />
             <FileUploadModal />
+            <ModalProvider />
           </ThemeProvider>
         </body>
       </html>

@@ -73,7 +73,7 @@ export const Chat = ({ fileId }: IChatProps) => {
     if (user?.id) {
       setDocLoading(true);
 
-      const docRef = doc(db, `users`, user?.id, "files", fileId);
+      const docRef = doc(db, "users", user.id, "files", fileId);
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {

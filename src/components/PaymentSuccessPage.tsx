@@ -11,21 +11,31 @@ type Props = {
   payment_intent: string;
 };
 
+interface PaymentData {
+  id: string;
+  amount: number;
+  status: string;
+  created: number;
+}
+
+const initialPaymentData: PaymentData = {
+  id: "",
+  amount: 0,
+  status: "",
+  created: 0,
+};
+
 export default function PaymentSuccessPage({ payment_intent }: Props) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
-
-  const [created, setCreated] = useState(0);
-  const [id, setId] = useState("");
-  const [amount, setAmount] = useState(0);
-  const [status, setStatus] = useState("");
+  const [paymentData, setPaymentData] =
+    useState<PaymentData>(initialPaymentData);
 
   const addPayment = usePaymentsStore((state) => state.addPayment);
   const checkIfPaymentProcessed = usePaymentsStore(
     (state) => state.checkIfPaymentProcessed
   );
   const addCredits = useProfileStore((state) => state.addCredits);
-
   const uid = useAuthStore((state) => state.uid);
 
   useEffect(() => {
@@ -44,26 +54,23 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
           const existingPayment = await checkIfPaymentProcessed(data.id);
           if (existingPayment) {
             setMessage("Payment has already been processed.");
-
-            // Convert Timestamp to milliseconds before setting state
-            if (existingPayment.createdAt) {
-              setCreated(existingPayment.createdAt.toMillis());
-            } else {
-              setCreated(0); // Fallback if createdAt is null
-            }
-
-            setId(existingPayment.id);
-            setAmount(existingPayment.amount);
-            setStatus(existingPayment.status);
+            setPaymentData({
+              id: existingPayment.id,
+              amount: existingPayment.amount,
+              status: existingPayment.status,
+              created: existingPayment.createdAt?.toMillis() ?? 0,
+            });
             setLoading(false);
             return;
           }
 
           setMessage("Payment successful");
-          setCreated(data.created * 1000); // data.created is a UNIX timestamp in seconds
-          setId(data.id);
-          setAmount(data.amount);
-          setStatus(data.status);
+          setPaymentData({
+            id: data.id,
+            amount: data.amount,
+            status: data.status,
+            created: data.created * 1000, // UNIX timestamp in seconds to ms
+          });
 
           // Add payment to store
           await addPayment({
@@ -93,17 +100,17 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
     <main className="max-w-6xl flex flex-col gap-2.5 mx-auto p-10 text-black text-center border m-10 rounded-md border-black">
       {loading ? (
         <div>validating...</div>
-      ) : id ? (
+      ) : paymentData.id ? (
         <div className="mb-10">
           <h1 className="text-4xl font-extrabold mb-2">Thank you!</h1>
           <h2 className="text-2xl">You successfully purchased credits</h2>
           <div className="bg-white p-2 rounded-md my-5 text-4xl font-bold mx-auto">
-            ${amount / 100}
+            ${paymentData.amount / 100}
           </div>
           <div>Uid: {uid}</div>
-          <div>Id: {id}</div>
-          <div>Created: {new Date(created).toLocaleString()}</div>
-          <div>Status: {status}</div>
+          <div>Id: {paymentData.id}</div>
+          <div>Created: {new Date(paymentData.created).toLocaleString()}</div>
+          <div>Status: {paymentData.status}</div>
         </div>
       ) : (
         <div>{message}</div>

@@ -74,11 +74,11 @@ export function DeleteModal() {
       // If it's a folder, recursively delete its contents
       if (data.type === "folder") {
         await deleteFolderContents(document.id, userId);
-        await deleteDoc(doc(db, `users/${userId}/files/`, document.id));
+        await deleteDoc(doc(db, "users", userId, "files", document.id));
       } else {
         const fileName = `${data.docId}_${data.filename}`;
         await deleteFileFromStorage(fileName);
-        await deleteDoc(doc(db, `users/${userId}/files/`, data.docId));
+        await deleteDoc(doc(db, "users", userId, "files", data.docId));
       }
     });
 
@@ -99,7 +99,7 @@ export function DeleteModal() {
       if (parentFolderId) {
         setFolderId(null);
       }
-      const docRef = doc(db, `users/${user.id}/files/`, fileId);
+      const docRef = doc(db, "users", user.id, "files", fileId);
 
       if (!isFolder) {
         const docSnap = await getDoc(docRef);

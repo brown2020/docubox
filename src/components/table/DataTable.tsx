@@ -5,6 +5,7 @@ import {
   flexRender,
   getCoreRowModel,
   useReactTable,
+  Row,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -15,28 +16,18 @@ import {
   TableRow,
 } from "../ui/table";
 import { FileType } from "@/types/filetype";
-import {
-  EyeIcon,
-  MessageCircleQuestionIcon,
-  TrashIcon,
-  UndoIcon,
-  FileTerminal,
-} from "lucide-react";
-import { Button } from "../ui/button";
 import { useModalStore } from "@/zustand/useModalStore";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { useUploadStore } from "@/zustand/useUploadStore";
 import { DeleteModal } from "../DeleteModal";
 import { RenameModal } from "../RenameModal";
 import { ShowParsedDataModal } from "../ShowParsedDataModal";
-import { File } from "./File";
-import { Folder } from "./Folder";
 import { useUser } from "@clerk/nextjs";
 import { db } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { QuestionAnswerModal } from "../QuestionAnswerModal";
 import { downloadUnstructuredFile } from "@/actions/unstructuredActions";
-import { TimestampCell, FilenameCell, DownloadCell } from "./cells";
+import { FileRow, FolderRow } from "./rows";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -172,236 +163,35 @@ export function DataTable<TData, TValue>({
         </TableHeader>
         <TableBody>
           {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) =>
-              row.getValue("type") !== "folder" ? (
-                <File
-                  id={row.getValue("id")}
-                  key={"file" + row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const fileData = row.original as FileType;
-
-                    if (cell.column.id === "timestamp") {
-                      return (
-                        <TimestampCell
-                          key={cell.id}
-                          timestamp={cell.getValue() as Date}
-                        />
-                      );
+            table
+              .getRowModel()
+              .rows.map((row) =>
+                row.getValue("type") !== "folder" ? (
+                  <FileRow
+                    row={row as Row<FileType>}
+                    fileData={row.original as FileType}
+                    isTrashView={isTrashView}
+                    openRenameModal={openRenameModal}
+                    openDeleteModal={openDeleteModal}
+                    openParseDataViewModal={openParseDataViewModal}
+                    handleOpenQuestionAnswerModal={
+                      handleOpenQuestionAnswerModal
                     }
-
-                    if (cell.column.id === "filename") {
-                      return (
-                        <FilenameCell
-                          key={cell.id}
-                          filename={cell.getValue() as string}
-                          onEdit={() =>
-                            openRenameModal(
-                              fileData.docId,
-                              fileData.filename,
-                              fileData.tags
-                            )
-                          }
-                        />
-                      );
-                    }
-
-                    if (cell.column.id === "downloadUrl") {
-                      return (
-                        <DownloadCell
-                          key={cell.id}
-                          downloadUrl={cell.getValue() as string}
-                        />
-                      );
-                    }
-
-                    return (
-                      <TableCell
-                        key={cell.id}
-                        className="py-2 px-4 text-gray-600 dark:text-white"
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    );
-                  })}
-                  <TableCell className="flex space-x-2 py-2 px-4 justify-end">
-                    {isTrashView ? (
-                      <Button
-                        variant={"outline"}
-                        size="icon"
-                        onClick={() => {
-                          restoreDeletedFile((row.original as FileType).docId);
-                        }}
-                        className="text-blue-500 hover:bg-blue-100"
-                      >
-                        <UndoIcon size={20} />
-                      </Button>
-                    ) : (
-                      <div className="flex space-x-2 items-center">
-                        {!(row.original as FileType).unstructuredFile && (
-                          <Button
-                            variant={"outline"}
-                            size="icon"
-                            className="text-blue-500 hover:bg-blue-100"
-                            onClick={() => {
-                              handleParsingClick(row.original as FileType);
-                            }}
-                          >
-                            <FileTerminal size={20} />
-                          </Button>
-                        )}
-                        <Button
-                          variant={"outline"}
-                          size="icon"
-                          className="text-blue-500 hover:bg-blue-100"
-                          // disabled={!(row.original as FileType).unstructuredFile}
-                          onClick={() =>
-                            handleOpenQuestionAnswerModal(
-                              (row.original as FileType).docId
-                            )
-                          }
-                        >
-                          <MessageCircleQuestionIcon size={20} />
-                        </Button>
-                        <Button
-                          variant={"outline"}
-                          size="icon"
-                          onClick={() => {
-                            openParseDataViewModal(
-                              (row.original as FileType).docId,
-                              (row.original as FileType).unstructuredFile,
-                              (row.original as FileType).summary
-                            );
-                          }}
-                          disabled={
-                            !(row.original as FileType).unstructuredFile
-                          }
-                          className={"text-blue-500 hover:bg-blue-100"}
-                        >
-                          <EyeIcon size={20} />
-                        </Button>
-                      </div>
-                    )}
-                    <Button
-                      variant={"outline"}
-                      size="icon"
-                      onClick={() =>
-                        openDeleteModal(
-                          (row.original as FileType).docId,
-                          (row.original as FileType).folderId,
-                          (row.original as FileType).type === "folder"
-                        )
-                      }
-                      className="text-red-500 hover:bg-red-100"
-                    >
-                      <TrashIcon size={20} />
-                    </Button>
-                  </TableCell>
-                </File>
-              ) : (
-                <Folder
-                  id={row.getValue("id")}
-                  key={"folder" + row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  onDrop={onDrop}
-                  isTrashItem={isTrashView}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const folderData = row.original as FileType;
-
-                    if (cell.column.id === "timestamp") {
-                      return (
-                        <TimestampCell
-                          key={cell.id}
-                          timestamp={cell.getValue() as Date}
-                        />
-                      );
-                    }
-
-                    if (cell.column.id === "filename") {
-                      return (
-                        <FilenameCell
-                          key={cell.id}
-                          filename={cell.getValue() as string}
-                          onEdit={() =>
-                            openRenameModal(
-                              folderData.docId,
-                              folderData.filename,
-                              folderData.tags
-                            )
-                          }
-                        />
-                      );
-                    }
-
-                    return (
-                      <TableCell
-                        key={cell.id}
-                        className="py-2 px-4 text-gray-600 dark:text-white"
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    );
-                  })}
-                  <TableCell
-                    key={"actions"}
-                    className="flex space-x-2 py-2 px-4 justify-end"
-                  >
-                    {isTrashView ? (
-                      <Button
-                        variant={"outline"}
-                        size="icon"
-                        onClick={() => {
-                          restoreDeletedFile((row.original as FileType).docId);
-                        }}
-                        className="text-blue-500 hover:bg-blue-100"
-                      >
-                        <UndoIcon size={20} />
-                      </Button>
-                    ) : (
-                      row.getValue("type") !== "folder" && (
-                        <Button
-                          variant={"outline"}
-                          size="icon"
-                          onClick={() => {
-                            openParseDataViewModal(
-                              (row.original as FileType).docId,
-                              (row.original as FileType).unstructuredFile,
-                              (row.original as FileType).summary
-                            );
-                          }}
-                          className="text-blue-500 hover:bg-blue-100"
-                        >
-                          <EyeIcon size={20} />
-                        </Button>
-                      )
-                    )}
-
-                    <Button
-                      variant={"outline"}
-                      size="icon"
-                      onClick={() =>
-                        openDeleteModal(
-                          (row.original as FileType).docId,
-                          (row.original as FileType).folderId,
-                          (row.original as FileType).type === "folder"
-                        )
-                      }
-                      className="text-red-500 hover:bg-red-100"
-                    >
-                      <TrashIcon size={20} />
-                    </Button>
-                  </TableCell>
-                </Folder>
+                    handleParsingClick={handleParsingClick}
+                    restoreDeletedFile={restoreDeletedFile}
+                  />
+                ) : (
+                  <FolderRow
+                    row={row as Row<FileType>}
+                    folderData={row.original as FileType}
+                    isTrashView={isTrashView}
+                    openRenameModal={openRenameModal}
+                    openDeleteModal={openDeleteModal}
+                    onDrop={onDrop}
+                    restoreDeletedFile={restoreDeletedFile}
+                  />
+                )
               )
-            )
           ) : (
             <TableRow key={"no Found"}>
               <TableCell

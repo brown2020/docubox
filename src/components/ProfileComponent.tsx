@@ -4,6 +4,7 @@ import Link from "next/link";
 import useProfileStore from "@/zustand/useProfileStore";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { ApiKeyInput } from "./common/ApiKeyInput";
 
 export default function ProfileComponent() {
   const profile = useProfileStore((state) => state.profile);
@@ -70,7 +71,7 @@ export default function ProfileComponent() {
           </div>
           <Link
             className="bg-primary text-white px-3 py-2 rounded-md hover:opacity-50 flex-1 text-center"
-            href={"/payment-attempt"}
+            href="/payment-attempt"
           >
             Buy 10,000 Credits
           </Link>
@@ -82,39 +83,27 @@ export default function ProfileComponent() {
       </div>
 
       <div className="flex flex-col px-5 py-3 gap-3 border border-gray-500 rounded-md">
-        <label htmlFor="unstructured-api-key" className="text-sm font-medium">
-          Unstructured API Key:
-        </label>
-        <input
-          type="password"
+        <ApiKeyInput
           id="unstructured-api-key"
+          label="Unstructured API Key"
           value={unstructuredApiKey}
-          onChange={(e) => setUnstructuredApiKey(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-2 h-10"
+          onChange={setUnstructuredApiKey}
           placeholder="Enter your Unstructured API Key"
         />
 
-        <label htmlFor="openai-api-key" className="text-sm font-medium">
-          OpenAI API Key:
-        </label>
-        <input
-          type="password"
+        <ApiKeyInput
           id="openai-api-key"
+          label="OpenAI API Key"
           value={openaiApiKey}
-          onChange={(e) => setOpenaiApiKey(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-2 h-10"
+          onChange={setOpenaiApiKey}
           placeholder="Enter your OpenAI API Key"
         />
 
-        <label htmlFor="ragie-api-key" className="text-sm font-medium">
-          Ragie API Key:
-        </label>
-        <input
-          type="password"
+        <ApiKeyInput
           id="ragie-api-key"
+          label="Ragie API Key"
           value={ragieApiKey}
-          onChange={(e) => setRagieApiKey(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-2 h-10"
+          onChange={setRagieApiKey}
           placeholder="Enter your Ragie API Key"
         />
 

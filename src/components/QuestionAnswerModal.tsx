@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
@@ -7,13 +7,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Chat } from "./chat"
-import { useAppStore } from "@/zustand/useAppStore"
+} from "@/components/ui/dialog";
+import { Chat } from "./chat";
+import { useModalStore } from "@/zustand/useModalStore";
+import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 
 export const QuestionAnswerModal = () => {
-
-  const { isQuestionAnswerModalOpen, fileId, setQuestionAnswerModalOpen } = useAppStore()
+  const { isQuestionAnswerModalOpen, setQuestionAnswerModalOpen } =
+    useModalStore();
+  const { fileId } = useFileSelectionStore();
 
   if (!fileId) return null;
 
@@ -26,21 +28,21 @@ export const QuestionAnswerModal = () => {
         <DialogHeader>
           <DialogTitle>Q&A Session</DialogTitle>
           <DialogDescription>
-            Ask questions about the uploaded File, and get AI-powered responses directly from the document.
+            Ask questions about the uploaded file, and get AI-powered responses
+            directly from the document.
           </DialogDescription>
         </DialogHeader>
-        <div className="">
+        <div>
           <Chat fileId={fileId} />
         </div>
         <DialogFooter className="sm:justify-end">
           <DialogClose asChild>
-            <Button type="button" className="px-4"
-            variant="ghost">
+            <Button type="button" className="px-4" variant="ghost">
               Close
             </Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};

@@ -16,8 +16,6 @@ import {
   TableRow,
 } from "../ui/table";
 import { FileType } from "@/types/filetype";
-import { useModalStore } from "@/zustand/useModalStore";
-import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { useUploadStore } from "@/zustand/useUploadStore";
 import { DeleteModal } from "../DeleteModal";
 import { RenameModal } from "../RenameModal";
@@ -26,8 +24,8 @@ import { useUser } from "@clerk/nextjs";
 import { db } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { QuestionAnswerModal } from "../QuestionAnswerModal";
-import { downloadUnstructuredFile } from "@/actions/unstructuredActions";
 import { FileRow, FolderRow } from "./rows";
+import { useFileModals } from "@/hooks";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -49,57 +47,16 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
   });
 
-  // Use focused stores
+  // Use shared modal handlers
   const {
-    setIsDeleteModalOpen,
-    setIsRenameModalOpen,
-    setIsShowParseDataModelOpen,
-    setQuestionAnswerModalOpen,
-  } = useModalStore();
-
-  const {
-    setFileId,
-    setFilename,
-    setTags,
-    setUnstructuredFileData,
-    setFileSummary,
-    setFolderId,
-    setIsFolder,
-  } = useFileSelectionStore();
+    openDeleteModal,
+    openRenameModal,
+    openParseDataViewModal,
+    openQuestionAnswerModal,
+  } = useFileModals();
 
   const { uploadingFiles, addUploadingFile, updateUploadingFile } =
     useUploadStore();
-  const openDeleteModal = (
-    fileId: string,
-    folderId: string | null = null,
-    isFolder: boolean = false
-  ) => {
-    setFileId(fileId);
-    setIsDeleteModalOpen(true);
-    setFolderId(folderId);
-    setIsFolder(isFolder);
-  };
-  const openParseDataViewModal = async (
-    docId: string,
-    filedataurl: string,
-    summary: string
-  ) => {
-    setFileId(docId);
-    setIsShowParseDataModelOpen(true);
-    const data = await downloadUnstructuredFile(filedataurl);
-    setUnstructuredFileData(data);
-    setFileSummary({ docId, summary });
-  };
-  const openRenameModal = (
-    fileId: string,
-    filename: string,
-    tags: string[] = []
-  ) => {
-    setFileId(fileId);
-    setFilename(filename);
-    setTags(tags);
-    setIsRenameModalOpen(true);
-  };
 
   const onDrop = (docId: string, folderId: string) => {
     if (user) moveFileHandler(user?.id, docId, folderId);
@@ -111,11 +68,6 @@ export function DataTable<TData, TValue>({
         deletedAt: null,
       });
     }
-  };
-
-  const handleOpenQuestionAnswerModal = (fileId: string) => {
-    setFileId(fileId);
-    setQuestionAnswerModalOpen(true);
   };
 
   const handleParsingClick = (file: FileType) => {
@@ -174,9 +126,7 @@ export function DataTable<TData, TValue>({
                     openRenameModal={openRenameModal}
                     openDeleteModal={openDeleteModal}
                     openParseDataViewModal={openParseDataViewModal}
-                    handleOpenQuestionAnswerModal={
-                      handleOpenQuestionAnswerModal
-                    }
+                    handleOpenQuestionAnswerModal={openQuestionAnswerModal}
                     handleParsingClick={handleParsingClick}
                     restoreDeletedFile={restoreDeletedFile}
                   />

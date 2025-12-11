@@ -111,14 +111,7 @@ export default function Dropzone() {
 
       try {
         for (const file of acceptedFiles) {
-          const reader = new FileReader();
-          reader.onerror = () => {
-            toast.error("Error reading file");
-          };
-          reader.onload = async () => {
-            await uploadPost(file);
-          };
-          reader.readAsArrayBuffer(file);
+          await uploadPost(file);
         }
       } catch (err) {
         toast.error((err as Error).message || "An error occurred");

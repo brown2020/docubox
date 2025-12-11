@@ -40,8 +40,16 @@ interface IChatProps {
 }
 
 interface IQARecord {
+  id: string;
   question: string;
   answer: string;
+}
+
+/**
+ * Generates a unique ID for QA records.
+ */
+function generateRecordId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
 export const Chat = ({ fileId }: IChatProps) => {
@@ -83,7 +91,13 @@ export const Chat = ({ fileId }: IChatProps) => {
 
       const data = docSnap.data();
 
-      const qaRecords = data?.qaRecords || [];
+      // Ensure all records have IDs (for backwards compatibility with existing data)
+      const qaRecords = (data?.qaRecords || []).map(
+        (record: Omit<IQARecord, "id"> & { id?: string }) => ({
+          ...record,
+          id: record.id || generateRecordId(),
+        })
+      );
       setHistory(qaRecords);
       setDocument(data as FileType);
       setDocLoading(false);
@@ -231,7 +245,11 @@ export const Chat = ({ fileId }: IChatProps) => {
           DEFAULT_MODEL
         );
         setGeneratedContent(answer.trim());
-        await updateDocument({ question: newQuestion, answer });
+        await updateDocument({
+          id: generateRecordId(),
+          question: newQuestion,
+          answer,
+        });
       };
 
       await handleAPIAndCredits("open-ai", apiProfileData, handleContent);
@@ -275,11 +293,11 @@ export const Chat = ({ fileId }: IChatProps) => {
           </div>
         )}
 
-        {history.map(({ question, answer }, index) => (
+        {history.map((record, index) => (
           <QARecord
-            key={index}
-            question={question}
-            answer={answer}
+            key={record.id}
+            question={record.question}
+            answer={record.answer}
             onDelete={() => handleDeleteQARecord(index)}
             isDeleting={isDeleting}
           />

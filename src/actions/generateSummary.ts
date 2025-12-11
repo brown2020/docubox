@@ -2,6 +2,7 @@
 
 import { generateText } from "ai";
 import { getOpenAIClient, getModel, DEFAULT_MODEL } from "@/lib/ai";
+import { logger } from "@/lib/logger";
 
 const CHUNK_SIZE = 3000; // ~4096 tokens for GPT models
 
@@ -57,7 +58,7 @@ export async function generateSummary(
 
     return summaries.join("\n\n");
   } catch (error) {
-    console.error("[generateSummary] Error:", error);
+    logger.error("generateSummary", "Error generating summary", error);
     return null;
   }
 }

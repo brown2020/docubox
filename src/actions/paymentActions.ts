@@ -1,7 +1,7 @@
-// paymentActions.ts
 "use server";
 
 import Stripe from "stripe";
+import { logger } from "@/lib/logger";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
@@ -20,7 +20,7 @@ export async function createPaymentIntent(amount: number) {
 
     return paymentIntent.client_secret;
   } catch (error) {
-    console.error("Error creating payment intent:", error);
+    logger.error("paymentActions", "Error creating payment intent", error);
     throw new Error("Failed to create payment intent");
   }
 }
@@ -44,7 +44,7 @@ export async function validatePaymentIntent(paymentIntentId: string) {
       throw new Error("Payment was not successful");
     }
   } catch (error) {
-    console.error("Error validating payment intent:", error);
+    logger.error("paymentActions", "Error validating payment intent", error);
     throw new Error("Failed to validate payment intent");
   }
 }

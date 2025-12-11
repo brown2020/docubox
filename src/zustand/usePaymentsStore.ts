@@ -10,6 +10,7 @@ import {
 import { useAuthStore } from "./useAuthStore";
 import toast from "react-hot-toast";
 import { db } from "@/firebase";
+import { logger } from "@/lib/logger";
 
 export type PaymentType = {
   id: string;
@@ -46,7 +47,7 @@ export const usePaymentsStore = create<PaymentsStoreState>((set) => ({
   fetchPayments: async () => {
     const uid = useAuthStore.getState().uid;
     if (!uid) {
-      console.error("Invalid UID for fetchPayments");
+      logger.error("usePaymentsStore", "Invalid UID for fetchPayments");
       return;
     }
 
@@ -66,7 +67,7 @@ export const usePaymentsStore = create<PaymentsStoreState>((set) => ({
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "An unknown error occurred";
-      console.error("Error fetching payments:", errorMessage);
+      logger.error("usePaymentsStore", "Error fetching payments", error);
       set({ paymentsError: errorMessage, paymentsLoading: false });
     }
   },
@@ -74,7 +75,7 @@ export const usePaymentsStore = create<PaymentsStoreState>((set) => ({
   addPayment: async (payment) => {
     const uid = useAuthStore.getState().uid;
     if (!uid) {
-      console.error("Invalid UID for addPayment");
+      logger.error("usePaymentsStore", "Invalid UID for addPayment");
       return;
     }
 
@@ -120,7 +121,7 @@ export const usePaymentsStore = create<PaymentsStoreState>((set) => ({
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "An unknown error occurred";
-      console.error("Error adding payment:", errorMessage);
+      logger.error("usePaymentsStore", "Error adding payment", error);
       set({ paymentsError: errorMessage, paymentsLoading: false });
     }
   },

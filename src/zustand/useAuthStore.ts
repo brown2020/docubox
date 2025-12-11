@@ -1,6 +1,7 @@
 import { db } from "@/firebase";
 import { Timestamp, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { create } from "zustand";
+import { logger } from "@/lib/logger";
 
 interface AuthState {
   uid: string;
@@ -89,6 +90,6 @@ export async function syncAuthToFirestore(
   try {
     await setDoc(userRef, sanitizedDetails, { merge: true });
   } catch (error) {
-    console.error("[syncAuthToFirestore] Error:", error);
+    logger.error("useAuthStore", "Error syncing to Firestore", error);
   }
 }

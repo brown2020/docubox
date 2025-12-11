@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { useAuthStore } from "./useAuthStore";
 import { db } from "@/firebase";
+import { logger } from "@/lib/logger";
 
 /**
  * User profile type with API keys and credit information.
@@ -118,7 +119,7 @@ const useProfileStore = create<ProfileState>((set, get) => ({
       await setDoc(userRef, newProfile);
       set({ profile: newProfile });
     } catch (error) {
-      console.error("[fetchProfile] Error:", error);
+      logger.error("useProfileStore", "Error fetching profile", error);
     }
   },
 
@@ -134,7 +135,7 @@ const useProfileStore = create<ProfileState>((set, get) => ({
       set({ profile: updatedProfile });
       await updateDoc(userRef, updatedProfile);
     } catch (error) {
-      console.error("[updateProfile] Error:", error);
+      logger.error("useProfileStore", "Error updating profile", error);
       // Revert on error - could refetch profile here
     }
   },
@@ -153,7 +154,7 @@ const useProfileStore = create<ProfileState>((set, get) => ({
       set({ profile: { ...profile, credits: newCredits } });
       await updateDoc(userRef, { credits: newCredits });
     } catch (error) {
-      console.error("[addCredits] Error:", error);
+      logger.error("useProfileStore", "Error adding credits", error);
       // Revert on error
       set({ profile });
     }
@@ -178,7 +179,7 @@ const useProfileStore = create<ProfileState>((set, get) => ({
       await updateDoc(userRef, { credits: newCredits });
       return true;
     } catch (error) {
-      console.error("[minusCredits] Error:", error);
+      logger.error("useProfileStore", "Error deducting credits", error);
       // Revert on error
       set({ profile });
       return false;

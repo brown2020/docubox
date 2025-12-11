@@ -1,23 +1,24 @@
-import { create } from "zustand"
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore"
-import { useAuthStore } from "./useAuthStore"
-import { db } from "@/firebase/firebaseClient"
+import { create } from "zustand";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { useAuthStore } from "./useAuthStore";
+import { db } from "@/firebase/firebaseClient";
 
-// Updated ProfileType to include new API keys
+/**
+ * User profile type with API keys and credit information.
+ */
 export interface ProfileType {
-  email: string
-  contactEmail: string
-  displayName: string
-  photoUrl: string
-  emailVerified: boolean
-  credits: number
-  unstructured_api_key: string
-  openai_api_key: string
-  ragie_api_key: string
-  useCredits: boolean
+  email: string;
+  contactEmail: string;
+  displayName: string;
+  photoUrl: string;
+  emailVerified: boolean;
+  credits: number;
+  unstructured_api_key: string;
+  openai_api_key: string;
+  ragie_api_key: string;
+  useCredits: boolean;
 }
 
-// Updated defaultProfile with new API keys initialized
 const defaultProfile: ProfileType = {
   email: "",
   contactEmail: "",
@@ -29,56 +30,67 @@ const defaultProfile: ProfileType = {
   openai_api_key: "",
   ragie_api_key: "",
   useCredits: true,
-}
+};
+
+const DEFAULT_INITIAL_CREDITS = 1000;
 
 interface AuthState {
-  authEmail?: string
-  authDisplayName?: string
-  authPhotoUrl?: string
-  authEmailVerified?: boolean
+  authEmail?: string;
+  authDisplayName?: string;
+  authPhotoUrl?: string;
+  authEmailVerified?: boolean;
 }
 
 export interface ProfileState {
-  profile: ProfileType
-  fetchProfile: () => void
-  updateProfile: (newProfile: Partial<ProfileType>) => Promise<void>
-  useCredits: (amount: number) => Promise<boolean>
-  addCredits: (amount: number) => Promise<void>
-  minusCredits: (amount: number) => Promise<boolean>
+  profile: ProfileType;
+  fetchProfile: () => Promise<void>;
+  updateProfile: (newProfile: Partial<ProfileType>) => Promise<void>;
+  addCredits: (amount: number) => Promise<void>;
+  minusCredits: (amount: number) => Promise<boolean>;
 }
 
-// Merge profile with new API keys if they exist in authState
-const mergeProfileWithDefaults = (
+/**
+ * Merges profile data with defaults and auth state.
+ */
+function mergeProfileWithDefaults(
   profile: Partial<ProfileType>,
   authState: AuthState
-): ProfileType => ({
-  ...defaultProfile,
-  ...profile,
-  credits: profile.credits && profile.credits >= 100 ? profile.credits : 1000,
-  email: authState.authEmail || profile.email || "",
-  contactEmail: profile.contactEmail || authState.authEmail || "",
-  displayName: profile.displayName || authState.authDisplayName || "",
-  photoUrl: profile.photoUrl || authState.authPhotoUrl || "",
-})
+): ProfileType {
+  return {
+    ...defaultProfile,
+    ...profile,
+    credits:
+      profile.credits && profile.credits >= 100
+        ? profile.credits
+        : DEFAULT_INITIAL_CREDITS,
+    email: authState.authEmail || profile.email || "",
+    contactEmail: profile.contactEmail || authState.authEmail || "",
+    displayName: profile.displayName || authState.authDisplayName || "",
+    photoUrl: profile.photoUrl || authState.authPhotoUrl || "",
+  };
+}
+
+/**
+ * Gets the Firestore reference for the user's profile document.
+ */
+function getProfileRef(uid: string) {
+  return doc(db, `users/${uid}/profile/userData`);
+}
 
 const useProfileStore = create<ProfileState>((set, get) => ({
   profile: defaultProfile,
 
   fetchProfile: async () => {
-    const {
-      uid,
-      authEmail,
-      authDisplayName,
-      authPhotoUrl,
-      authEmailVerified,
-    } = useAuthStore.getState()
+    const { uid, authEmail, authDisplayName, authPhotoUrl, authEmailVerified } =
+      useAuthStore.getState();
 
-    if (!uid) return
+    if (!uid) return;
+
     try {
-      const userRef = doc(db, `users/${uid}/profile/userData`)
-      const docSnap = await getDoc(userRef)
+      const userRef = getProfileRef(uid);
+      const docSnap = await getDoc(userRef);
 
-      let newProfile: ProfileType
+      let newProfile: ProfileType;
 
       if (docSnap.exists()) {
         newProfile = mergeProfileWithDefaults(docSnap.data() as ProfileType, {
@@ -86,119 +98,92 @@ const useProfileStore = create<ProfileState>((set, get) => ({
           authDisplayName,
           authPhotoUrl,
           authEmailVerified,
-        })
-        console.log("Profile found:", newProfile)
+        });
       } else {
+        // Create new profile for first-time users
         newProfile = {
           email: authEmail || "",
           contactEmail: "",
           displayName: authDisplayName || "",
           photoUrl: authPhotoUrl || "",
           emailVerified: authEmailVerified || false,
-          credits: 1000,
+          credits: DEFAULT_INITIAL_CREDITS,
           openai_api_key: "",
           ragie_api_key: "",
           unstructured_api_key: "",
           useCredits: true,
-        }
-        console.log("No profile found. Creating new profile document.")
+        };
       }
 
-      await setDoc(userRef, newProfile)
-      set({ profile: newProfile })
+      await setDoc(userRef, newProfile);
+      set({ profile: newProfile });
     } catch (error) {
-      console.error("Error fetching or creating profile:", error)
+      console.error("[fetchProfile] Error:", error);
     }
   },
 
   updateProfile: async (newProfile: Partial<ProfileType>) => {
-    const uid = useAuthStore.getState().uid
-    if (!uid) return
-
-    console.log("Updating profile:", newProfile)
+    const uid = useAuthStore.getState().uid;
+    if (!uid) return;
 
     try {
-      const userRef = doc(db, `users/${uid}/profile/userData`)
-      const updatedProfile = { ...get().profile, ...newProfile }
+      const userRef = getProfileRef(uid);
+      const updatedProfile = { ...get().profile, ...newProfile };
 
-      set({ profile: updatedProfile })
-      await updateDoc(userRef, updatedProfile)
-      console.log("Profile updated successfully")
+      // Optimistic update
+      set({ profile: updatedProfile });
+      await updateDoc(userRef, updatedProfile);
     } catch (error) {
-      console.error("Error updating profile:", error)
-    }
-  },
-
-  useCredits: async (amount: number) => {
-    const uid = useAuthStore.getState().uid
-    if (!uid) return false
-
-    const profile = get().profile
-    if (profile.credits < amount) {
-      return false
-    }
-
-    try {
-      const newCredits = profile.credits - amount
-      const userRef = doc(db, `users/${uid}/profile/userData`)
-
-      await updateDoc(userRef, { credits: newCredits })
-      set({ profile: { ...profile, credits: newCredits } })
-
-      return true
-    } catch (error) {
-      console.error("Error using credits:", error)
-      return false
-    }
-  },
-
-  minusCredits: async (amount: number) => {
-    const uid = useAuthStore.getState().uid
-    if (!uid) return false
-
-    const profile = get().profile
-    if (profile.credits < amount) return false
-
-    try {
-      const newCredits = profile.credits - amount
-      await updateCredits(uid, newCredits)
-      set({ profile: { ...profile, credits: newCredits } })
-      return true
-    } catch (error) {
-      handleProfileError("using credits", error)
-      return false
+      console.error("[updateProfile] Error:", error);
+      // Revert on error - could refetch profile here
     }
   },
 
   addCredits: async (amount: number) => {
-    const uid = useAuthStore.getState().uid
-    if (!uid) return
+    const uid = useAuthStore.getState().uid;
+    if (!uid || amount <= 0) return;
 
-    const profile = get().profile
-    const newCredits = profile.credits + amount
+    const profile = get().profile;
+    const newCredits = profile.credits + amount;
 
     try {
-      const userRef = doc(db, `users/${uid}/profile/userData`)
+      const userRef = getProfileRef(uid);
 
-      await updateDoc(userRef, { credits: newCredits })
-      set({ profile: { ...profile, credits: newCredits } })
+      // Optimistic update
+      set({ profile: { ...profile, credits: newCredits } });
+      await updateDoc(userRef, { credits: newCredits });
     } catch (error) {
-      console.error("Error adding credits:", error)
+      console.error("[addCredits] Error:", error);
+      // Revert on error
+      set({ profile });
     }
   },
-}))
 
-// Helper function to update credits
-async function updateCredits(uid: string, credits: number): Promise<void> {
-  const userRef = doc(db, `users/${uid}/profile/userData`)
-  await updateDoc(userRef, { credits })
-}
+  minusCredits: async (amount: number) => {
+    const uid = useAuthStore.getState().uid;
+    if (!uid || amount <= 0) return false;
 
-// Helper function to handle errors
-function handleProfileError(action: string, error: unknown): void {
-  const errorMessage =
-    error instanceof Error ? error.message : "An unknown error occurred"
-  console.error(`Error ${action}:`, errorMessage)
-}
+    const profile = get().profile;
+    if (profile.credits < amount) {
+      return false;
+    }
 
-export default useProfileStore
+    const newCredits = profile.credits - amount;
+
+    try {
+      const userRef = getProfileRef(uid);
+
+      // Optimistic update
+      set({ profile: { ...profile, credits: newCredits } });
+      await updateDoc(userRef, { credits: newCredits });
+      return true;
+    } catch (error) {
+      console.error("[minusCredits] Error:", error);
+      // Revert on error
+      set({ profile });
+      return false;
+    }
+  },
+}));
+
+export default useProfileStore;

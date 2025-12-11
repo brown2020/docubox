@@ -1,35 +1,35 @@
-import { FileType } from "@/typings/filetype"
-import { FunctionComponent } from "react"
-import { COLOR_EXTENSION_MAP, UNCOMMON_EXTENSIONS_MAP } from "@/constants"
-import { FileIcon, defaultStyles } from "react-file-icon"
-import prettyBytes from "pretty-bytes"
-import { EllipsisVertical, FolderOpen } from "lucide-react"
+import { FileType } from "@/types/filetype";
+import { FunctionComponent } from "react";
+import { COLOR_EXTENSION_MAP, UNCOMMON_EXTENSIONS_MAP } from "@/constants";
+import { FileIcon, defaultStyles } from "react-file-icon";
+import prettyBytes from "pretty-bytes";
+import { EllipsisVertical, FolderOpen } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu"
+} from "../ui/dropdown-menu";
 
 type Props = {
-  data: FileType
-  openRenameModal: (fileId: string, filename: string, tags: string[]) => void
-  openViewModal: (docId: string, filedata: string, summary: string) => void
-  openDeleteModal: () => void
-}
+  data: FileType;
+  openRenameModal: (fileId: string, filename: string, tags: string[]) => void;
+  openViewModal: (docId: string, filedata: string, summary: string) => void;
+  openDeleteModal: () => void;
+};
 export const Card: FunctionComponent<Props> = ({
   data,
   openRenameModal,
   openViewModal,
   openDeleteModal,
 }) => {
-  const extension: string = data.type.split("/")[1]
+  const extension: string = data.type.split("/")[1];
   return (
     <TooltipProvider>
       <Tooltip>
@@ -40,15 +40,19 @@ export const Card: FunctionComponent<Props> = ({
                 <EllipsisVertical />
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                {
-                  data.type !== 'folder' && <DropdownMenuItem
-                  onClick={() =>
-                    openViewModal(data.docId, data.unstructuredFile, data.summary)
-                  }
-                >
-                  View
-                </DropdownMenuItem>
-                }
+                {data.type !== "folder" && (
+                  <DropdownMenuItem
+                    onClick={() =>
+                      openViewModal(
+                        data.docId,
+                        data.unstructuredFile,
+                        data.summary
+                      )
+                    }
+                  >
+                    View
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   onClick={() =>
                     openRenameModal(data.docId, data.filename, data.tags)
@@ -116,5 +120,5 @@ export const Card: FunctionComponent<Props> = ({
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
-  )
-}
+  );
+};

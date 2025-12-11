@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { FileType } from "@/typings/filetype"
-import { ColumnDef } from "@tanstack/react-table"
-import { FileIcon, defaultStyles } from "react-file-icon"
-import prettyBytes from "pretty-bytes"
-import { COLOR_EXTENSION_MAP, UNCOMMON_EXTENSIONS_MAP } from "@/constants"
-import { FolderOpen } from "lucide-react"
+import { FileType } from "@/types/filetype";
+import { ColumnDef } from "@tanstack/react-table";
+import { FileIcon, defaultStyles } from "react-file-icon";
+import prettyBytes from "pretty-bytes";
+import { COLOR_EXTENSION_MAP, UNCOMMON_EXTENSIONS_MAP } from "@/constants";
+import { FolderOpen } from "lucide-react";
 
 export const columns: ColumnDef<FileType>[] = [
   {
@@ -20,15 +20,15 @@ export const columns: ColumnDef<FileType>[] = [
     accessorKey: "type",
     header: "Type",
     cell: ({ renderValue }) => {
-      const type = renderValue() as string
+      const type = renderValue() as string;
       if (type === "folder") {
         return (
           <div className="w-10">
             <FolderOpen size={40} />
           </div>
-        )
+        );
       }
-      const extension: string = type.split("/")[1]
+      const extension: string = type.split("/")[1];
       return (
         <div className="w-10">
           <FileIcon
@@ -42,7 +42,7 @@ export const columns: ColumnDef<FileType>[] = [
             {...defaultStyles[UNCOMMON_EXTENSIONS_MAP[extension] || extension]}
           />
         </div>
-      )
+      );
     },
   },
   {
@@ -57,11 +57,11 @@ export const columns: ColumnDef<FileType>[] = [
     accessorKey: "size",
     header: "Size",
     cell: ({ renderValue }) => {
-      return <span>{prettyBytes(renderValue() as number)}</span>
+      return <span>{prettyBytes(renderValue() as number)}</span>;
     },
   },
   {
     accessorKey: "downloadUrl",
     header: "Link",
   },
-]
+];

@@ -1,47 +1,74 @@
 "use client";
 
 import { getApiKey } from "@/actions/getApiKeys";
-import { creditsToMinus } from "@/utils/credits";
+import { getCreditCost, type APIType } from "@/constants/credits";
 import { ProfileState } from "@/zustand/useProfileStore";
 
-export type APIType = "unstructured" | "open-ai" | "ragie";
+// Re-export APIType for backwards compatibility
+export type { APIType };
 
-const defaultCredits = {
-    "open-ai": 4,
-    "unstructured": 4,
-    "ragie": 8
-}
+/**
+ * Maps API type to the corresponding profile field name.
+ */
+const API_KEY_FIELDS: Record<APIType, keyof ProfileState["profile"]> = {
+  "open-ai": "openai_api_key",
+  unstructured: "unstructured_api_key",
+  ragie: "ragie_api_key",
+};
 
+/**
+ * Formats API type name for display in error messages.
+ */
+const formatAPIName = (apiType: APIType): string => {
+  if (apiType === "open-ai") return "OpenAI";
+  return apiType.charAt(0).toUpperCase() + apiType.slice(1);
+};
+
+/**
+ * Handles API key resolution and credit deduction for API calls.
+ * If useCredits is enabled, uses environment API key and deducts credits.
+ * Otherwise, uses the user's own API key from their profile.
+ */
 const handleAPIAndCredits = async (
-    apiType: APIType,
-    profileData: ProfileState,
-    callback: (apiKey: string) => Promise<void>
+  apiType: APIType,
+  profileData: ProfileState,
+  callback: (apiKey: string) => Promise<void>
 ): Promise<void> => {
-    const apiKeyField = apiType === "open-ai" ? "openai_api_key" : apiType === "ragie" ? "ragie_api_key" : `unstructured_api_key`;
-    const apiKey = profileData.profile[apiKeyField as keyof ProfileState["profile"]];
+  const { profile, minusCredits } = profileData;
+  const requiredCredits = getCreditCost(apiType);
 
-    const creditEnvKey = apiType === "open-ai" ? "NEXT_PUBLIC_CREDITS_PER_OPEN_AI" : `NEXT_PUBLIC_CREDITS_PER_${apiType.toUpperCase()}`;
-    const requiredCredits = Number(process.env[creditEnvKey] || defaultCredits[apiType]);
-
-    if (profileData.profile.useCredits) {
-        if (profileData.profile.credits < requiredCredits) {
-            throw new Error("Insufficient credits");
-        }
-        const envApiKey = await getApiKey(apiType);
-        if (!envApiKey) {
-            throw new Error(`Missing environment API key for ${apiType}`);
-        }
-
-        await callback(envApiKey);
-        profileData.minusCredits(creditsToMinus(apiType));
-    } else {
-        if (!apiKey) {
-            throw new Error(
-                `No API key found for ${apiType === "open-ai" ? "OpenAI" : apiType.charAt(0).toUpperCase() + apiType.slice(1)} API / Credits not enabled`
-            );
-        }
-        await callback(apiKey as string);
+  if (profile.useCredits) {
+    // Using platform credits - validate and use env API key
+    if (profile.credits < requiredCredits) {
+      throw new Error(
+        `Insufficient credits. You need ${requiredCredits} credits but only have ${profile.credits}.`
+      );
     }
+
+    const envApiKey = await getApiKey(apiType);
+    if (!envApiKey) {
+      throw new Error(
+        `Platform API key for ${formatAPIName(apiType)} is not configured.`
+      );
+    }
+
+    await callback(envApiKey);
+    await minusCredits(requiredCredits);
+  } else {
+    // Using user's own API key
+    const apiKeyField = API_KEY_FIELDS[apiType];
+    const apiKey = profile[apiKeyField];
+
+    if (!apiKey) {
+      throw new Error(
+        `No ${formatAPIName(
+          apiType
+        )} API key found. Please add your API key in profile settings or enable credits.`
+      );
+    }
+
+    await callback(apiKey as string);
+  }
 };
 
 export { handleAPIAndCredits };

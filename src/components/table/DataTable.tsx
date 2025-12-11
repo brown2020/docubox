@@ -1,10 +1,11 @@
-"use client"
+"use client";
+
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
-} from "@tanstack/react-table"
+} from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -12,107 +13,121 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../ui/table"
-import { FileType } from "@/typings/filetype"
-import { EyeIcon, MessageCircleQuestionIcon, PencilIcon, TrashIcon, UndoIcon, FileTerminal } from "lucide-react"
-import { Button } from "../ui/button"
-import { useAppStore } from "@/zustand/useAppStore"
-import { DeleteModal } from "../DeleteModal"
-import { RenameModal } from "../RenameModal"
-import { ShowParsedDataModal } from "../ShowParsedDataModal"
-import { File } from "./File"
-import { Folder } from "./Folder"
-import { useUser } from "@clerk/nextjs"
-import Link from "next/link"
-import { db } from "@/firebase"
-import { doc, updateDoc } from "firebase/firestore"
-import { QuestionAnswerModal } from "../QuestionAnswerModal"
-import { downloadUnstructuredFile } from "@/actions/unstructuredActions"
+} from "../ui/table";
+import { FileType } from "@/types/filetype";
+import {
+  EyeIcon,
+  MessageCircleQuestionIcon,
+  PencilIcon,
+  TrashIcon,
+  UndoIcon,
+  FileTerminal,
+} from "lucide-react";
+import { Button } from "../ui/button";
+import { useModalStore } from "@/zustand/useModalStore";
+import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
+import { useUploadStore } from "@/zustand/useUploadStore";
+import { DeleteModal } from "../DeleteModal";
+import { RenameModal } from "../RenameModal";
+import { ShowParsedDataModal } from "../ShowParsedDataModal";
+import { File } from "./File";
+import { Folder } from "./Folder";
+import { useUser } from "@clerk/nextjs";
+import Link from "next/link";
+import { db } from "@/firebase";
+import { doc, updateDoc } from "firebase/firestore";
+import { QuestionAnswerModal } from "../QuestionAnswerModal";
+import { downloadUnstructuredFile } from "@/actions/unstructuredActions";
 
 interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
-  moveFileHandler: (userId: string, docId: string, folderId: string) => void
-  isTrashView?: boolean
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+  moveFileHandler: (userId: string, docId: string, folderId: string) => void;
+  isTrashView?: boolean;
 }
+
 export function DataTable<TData, TValue>({
   columns,
   data,
   moveFileHandler,
   isTrashView,
 }: DataTableProps<TData, TValue>) {
-  const { user } = useUser()
+  const { user } = useUser();
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-  })
+  });
+
+  // Use focused stores
+  const {
+    setIsDeleteModalOpen,
+    setIsRenameModalOpen,
+    setIsShowParseDataModelOpen,
+    isShowParseDataModelOpen,
+    setQuestionAnswerModalOpen,
+  } = useModalStore();
+
   const {
     setFileId,
     setFilename,
     setTags,
-    setIsDeleteModalOpen,
-    setIsRenameModalOpen,
     setUnstructuredFileData,
-    setIsShowParseDataModelOpen,
-    isShowParseDataModelOpen,
     setFileSummary,
     setFolderId,
     setIsFolder,
-    setQuestionAnswerModalOpen,
-    uploadingFiles,
-    addUploadingFile,
-    updateUploadingFile,
-  } = useAppStore()
+  } = useFileSelectionStore();
+
+  const { uploadingFiles, addUploadingFile, updateUploadingFile } =
+    useUploadStore();
   const openDeleteModal = (
     fileId: string,
     folderId: string | null = null,
     isFolder: boolean = false
   ) => {
-    setFileId(fileId)
-    setIsDeleteModalOpen(true)
-    setFolderId(folderId)
-    setIsFolder(isFolder)
-  }
+    setFileId(fileId);
+    setIsDeleteModalOpen(true);
+    setFolderId(folderId);
+    setIsFolder(isFolder);
+  };
   const openParseDataViewModal = async (
     docId: string,
     filedataurl: string,
     summary: string
   ) => {
-    setFileId(docId)
+    setFileId(docId);
     setIsShowParseDataModelOpen(true);
     const data = await downloadUnstructuredFile(filedataurl);
     setUnstructuredFileData(data);
     setFileSummary({ docId, summary });
-  }
+  };
   const openRenameModal = (
     fileId: string,
     filename: string,
     tags: string[] = []
   ) => {
-    setFileId(fileId)
-    setFilename(filename)
-    setTags(tags)
-    setIsRenameModalOpen(true)
-  }
+    setFileId(fileId);
+    setFilename(filename);
+    setTags(tags);
+    setIsRenameModalOpen(true);
+  };
 
   const onDrop = (docId: string, folderId: string) => {
-    if (user) moveFileHandler(user?.id, docId, folderId)
-  }
+    if (user) moveFileHandler(user?.id, docId, folderId);
+  };
 
   const restoreDeletedFile = async (fileId: string) => {
     if (user) {
       await updateDoc(doc(db, "users", user.id, "files", fileId), {
         deletedAt: null,
-      })
+      });
     }
-  }
-
+  };
 
   const handleOpenQuestionAnswerModal = (fileId: string) => {
-    setFileId(fileId)
+    setFileId(fileId);
     setQuestionAnswerModalOpen(true);
-  }
+  };
 
   const handleParsingClick = (file: FileType) => {
     if (uploadingFiles.find((f) => f.fileId === file.docId)) {
@@ -120,17 +135,16 @@ export function DataTable<TData, TValue>({
       setTimeout(() => {
         updateUploadingFile(file.docId, { isParsing: false });
       }, 2000);
-    }
-    else {
+    } else {
       addUploadingFile({
         fileId: file.docId,
         fileName: file.filename,
         downloadUrl: file.downloadUrl,
         loading: true,
         isParsing: false,
-      })
+      });
     }
-  }
+  };
 
   return (
     <div className="rounded-lg border border-gray-200 shadow-md overflow-hidden">
@@ -150,9 +164,9 @@ export function DataTable<TData, TValue>({
                   {header.isPlaceholder
                     ? null
                     : flexRender(
-                      header.column.columnDef.header,
-                      header.getContext()
-                    )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                 </TableHead>
               ))}
             </TableRow>
@@ -160,7 +174,7 @@ export function DataTable<TData, TValue>({
         </TableHeader>
         <TableBody>
           {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
+            table.getRowModel().rows.map((row) =>
               row.getValue("type") !== "folder" ? (
                 <File
                   id={row.getValue("id")}
@@ -217,7 +231,7 @@ export function DataTable<TData, TValue>({
                         variant={"outline"}
                         size="icon"
                         onClick={() => {
-                          restoreDeletedFile((row.original as FileType).docId)
+                          restoreDeletedFile((row.original as FileType).docId);
                         }}
                         className="text-blue-500 hover:bg-blue-100"
                       >
@@ -225,14 +239,16 @@ export function DataTable<TData, TValue>({
                       </Button>
                     ) : (
                       <div className="flex space-x-2 items-center">
-                        {(!(row.original as FileType).unstructuredFile) && (
-                            <Button
-                              variant={"outline"}
-                              size="icon"
-                              className="text-blue-500 hover:bg-blue-100"
-                              onClick={() => { handleParsingClick((row.original as FileType)) }}
-                            >
-                              <FileTerminal size={20} />
+                        {!(row.original as FileType).unstructuredFile && (
+                          <Button
+                            variant={"outline"}
+                            size="icon"
+                            className="text-blue-500 hover:bg-blue-100"
+                            onClick={() => {
+                              handleParsingClick(row.original as FileType);
+                            }}
+                          >
+                            <FileTerminal size={20} />
                           </Button>
                         )}
                         <Button
@@ -240,7 +256,12 @@ export function DataTable<TData, TValue>({
                           size="icon"
                           className="text-blue-500 hover:bg-blue-100"
                           // disabled={!(row.original as FileType).unstructuredFile}
-                          onClick={() => handleOpenQuestionAnswerModal((row.original as FileType).docId)}>
+                          onClick={() =>
+                            handleOpenQuestionAnswerModal(
+                              (row.original as FileType).docId
+                            )
+                          }
+                        >
                           <MessageCircleQuestionIcon size={20} />
                         </Button>
                         <Button
@@ -251,15 +272,16 @@ export function DataTable<TData, TValue>({
                               (row.original as FileType).docId,
                               (row.original as FileType).unstructuredFile,
                               (row.original as FileType).summary
-                            )
+                            );
                           }}
-                          disabled={!(row.original as FileType).unstructuredFile}
+                          disabled={
+                            !(row.original as FileType).unstructuredFile
+                          }
                           className={"text-blue-500 hover:bg-blue-100"}
                         >
                           <EyeIcon size={20} />
                         </Button>
                       </div>
-
                     )}
                     <Button
                       variant={"outline"}
@@ -330,7 +352,7 @@ export function DataTable<TData, TValue>({
                         variant={"outline"}
                         size="icon"
                         onClick={() => {
-                          restoreDeletedFile((row.original as FileType).docId)
+                          restoreDeletedFile((row.original as FileType).docId);
                         }}
                         className="text-blue-500 hover:bg-blue-100"
                       >
@@ -346,7 +368,7 @@ export function DataTable<TData, TValue>({
                               (row.original as FileType).docId,
                               (row.original as FileType).unstructuredFile,
                               (row.original as FileType).summary
-                            )
+                            );
                           }}
                           className="text-blue-500 hover:bg-blue-100"
                         >
@@ -372,7 +394,7 @@ export function DataTable<TData, TValue>({
                   </TableCell>
                 </Folder>
               )
-            ))
+            )
           ) : (
             <TableRow key={"no Found"}>
               <TableCell
@@ -386,5 +408,5 @@ export function DataTable<TData, TValue>({
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

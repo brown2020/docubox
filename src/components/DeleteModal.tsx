@@ -11,10 +11,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { db } from "@/firebase";
-import { useAppStore } from "@/zustand/useAppStore";
+import { useModalStore } from "@/zustand/useModalStore";
+import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { useUser } from "@clerk/nextjs";
-import { collection, deleteDoc, doc, getDoc, getDocs, query, updateDoc, where } from "firebase/firestore";
-import { deleteObject, getStorage, listAll, ref } from "firebase/storage"
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  updateDoc,
+  where,
+} from "firebase/firestore";
+import { deleteObject, getStorage, listAll, ref } from "firebase/storage";
 import { usePathname } from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -22,21 +32,33 @@ export function DeleteModal() {
   const { user } = useUser();
   const pathname = usePathname();
 
-  const isTrashPageActive = pathname.includes('trash');
+  const isTrashPageActive = pathname.includes("trash");
 
-  const { isDeleteModalOpen, setIsDeleteModalOpen, fileId, setFileId, folderId: parentFolderId, setFolderId, isFolder } =
-    useAppStore();
+  // Use focused stores
+  const { isDeleteModalOpen, setIsDeleteModalOpen } = useModalStore();
+  const {
+    fileId,
+    setFileId,
+    folderId: parentFolderId,
+    setFolderId,
+    isFolder,
+  } = useFileSelectionStore();
 
-  const storage = getStorage()
+  const storage = getStorage();
 
   async function deleteFileFromStorage(fileName: string) {
     const filePath = `users/${user?.id}/files/${fileName}`;
     const fileRef = ref(storage, filePath);
     await deleteObject(fileRef);
 
-    const undstructureFileRef = ref(storage, `users/${user?.id}/unstructured/${fileId}_${fileName}`);
+    const undstructureFileRef = ref(
+      storage,
+      `users/${user?.id}/unstructured/${fileId}_${fileName}`
+    );
     const listResults = await listAll(undstructureFileRef);
-    const deletePromises = listResults.items.map((itemRef) => deleteObject(itemRef));
+    const deletePromises = listResults.items.map((itemRef) =>
+      deleteObject(itemRef)
+    );
     await Promise.all(deletePromises);
   }
 
@@ -54,7 +76,7 @@ export function DeleteModal() {
         await deleteFolderContents(document.id, userId);
         await deleteDoc(doc(db, `users/${userId}/files/`, document.id));
       } else {
-        const fileName = `${data.docId}_${data.filename}`
+        const fileName = `${data.docId}_${data.filename}`;
         await deleteFileFromStorage(fileName);
         await deleteDoc(doc(db, `users/${userId}/files/`, data.docId));
       }
@@ -71,11 +93,11 @@ export function DeleteModal() {
 
     try {
       if (isFolder) {
-        await deleteFolderContents(fileId, user.id)
+        await deleteFolderContents(fileId, user.id);
       }
 
       if (parentFolderId) {
-        setFolderId(null)
+        setFolderId(null);
       }
       const docRef = doc(db, `users/${user.id}/files/`, fileId);
 
@@ -84,9 +106,10 @@ export function DeleteModal() {
         const document = docSnap.data();
         if (document) {
           console.info("Ragie file Id: ", document.ragieFileId);
-          if (document.ragieFileId) await deleteFileFromRagie(document.ragieFileId);
-          const fileName = `${document.docId}_${document.filename}`
-          await deleteFileFromStorage(fileName)
+          if (document.ragieFileId)
+            await deleteFileFromRagie(document.ragieFileId);
+          const fileName = `${document.docId}_${document.filename}`;
+          await deleteFileFromStorage(fileName);
         }
       }
 
@@ -109,7 +132,7 @@ export function DeleteModal() {
     const toastId = toast.loading("Deleting file/folder...");
     try {
       await updateDoc(doc(db, "users", user.id, "files", fileId), {
-        deletedAt: new Date()
+        deletedAt: new Date(),
       });
       toast.success("File deleted successfully!", { id: toastId });
     } catch (error) {
@@ -120,10 +143,9 @@ export function DeleteModal() {
     }
   }
 
-
   async function deleteFile() {
     if (isTrashPageActive) {
-      await deleteFilePermanent()
+      await deleteFilePermanent();
     } else {
       await softDelete();
     }
@@ -138,10 +160,13 @@ export function DeleteModal() {
         <DialogHeader>
           <DialogTitle>Are you sure you want to delete?</DialogTitle>
           <DialogDescription className="bg-slate-200 dark:bg-slate-600">
-            {
-              isTrashPageActive ? `This action cannot be undone. This will permanently delete your ${isFolder ? "Folder" : "File"}!`
-                : `Deleting a ${isFolder ? "Folder" : "File"} will move it to the trash. To permanently delete it, you will need to empty the trash.`
-            }
+            {isTrashPageActive
+              ? `This action cannot be undone. This will permanently delete your ${
+                  isFolder ? "Folder" : "File"
+                }!`
+              : `Deleting a ${
+                  isFolder ? "Folder" : "File"
+                } will move it to the trash. To permanently delete it, you will need to empty the trash.`}
           </DialogDescription>
         </DialogHeader>
 

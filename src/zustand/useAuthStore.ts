@@ -43,49 +43,52 @@ const defaultAuthState: AuthState = {
   credits: 0,
 };
 
-export const useAuthStore = create<AuthStore>((set, get) => ({
+export const useAuthStore = create<AuthStore>((set) => ({
   ...defaultAuthState,
 
-  setAuthDetails: async (details: Partial<AuthState>) => {
-    const { ...oldState } = get();
-    const newState = { ...oldState, ...details };
-    set(newState);
-    await updateUserDetailsInFirestore(newState, get().uid);
+  /**
+   * Updates auth details in state.
+   * Firestore sync is handled separately via syncAuthToFirestore.
+   */
+  setAuthDetails: (details: Partial<AuthState>) => {
+    set((state) => ({ ...state, ...details }));
   },
 
   clearAuthDetails: () => set({ ...defaultAuthState }),
 }));
 
-async function updateUserDetailsInFirestore(
+/**
+ * Syncs auth state to Firestore.
+ * Call this externally after auth state changes if you need persistence.
+ */
+export async function syncAuthToFirestore(
   details: Partial<AuthState>,
   uid: string
-) {
-  if (uid) {
-    const userRef = doc(db, `users/${uid}`);
-    console.log("Updating auth details in Firestore:", details);
+): Promise<void> {
+  if (!uid) return;
 
-    // Create a sanitized object for Firestore
-    const sanitizedDetails = {
-      firebaseUid: details.firebaseUid,
-      authEmail: details.authEmail,
-      authDisplayName: details.authDisplayName,
-      authPhotoUrl: details.authPhotoUrl,
-      authEmailVerified: details.authEmailVerified,
-      authReady: details.authReady,
-      authPending: details.authPending,
-      isAdmin: details.isAdmin,
-      isAllowed: details.isAllowed,
-      isInvited: details.isInvited,
-      premium: details.premium,
-      credits: details.credits,
-      lastSignIn: serverTimestamp(), // Ensure lastSignIn is always updated
-    };
+  const userRef = doc(db, `users/${uid}`);
 
-    try {
-      await setDoc(userRef, sanitizedDetails, { merge: true });
-      console.log("Auth details updated successfully in Firestore.");
-    } catch (error) {
-      console.error("Error updating auth details in Firestore:", error);
-    }
+  // Create a sanitized object for Firestore
+  const sanitizedDetails = {
+    firebaseUid: details.firebaseUid,
+    authEmail: details.authEmail,
+    authDisplayName: details.authDisplayName,
+    authPhotoUrl: details.authPhotoUrl,
+    authEmailVerified: details.authEmailVerified,
+    authReady: details.authReady,
+    authPending: details.authPending,
+    isAdmin: details.isAdmin,
+    isAllowed: details.isAllowed,
+    isInvited: details.isInvited,
+    premium: details.premium,
+    credits: details.credits,
+    lastSignIn: serverTimestamp(),
+  };
+
+  try {
+    await setDoc(userRef, sanitizedDetails, { merge: true });
+  } catch (error) {
+    console.error("[syncAuthToFirestore] Error:", error);
   }
 }

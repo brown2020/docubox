@@ -3,7 +3,7 @@ import { db } from "@/firebase";
 import { ArrowUp, LoaderCircleIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   checkDocumentReadiness,
   retrieveChunks,
@@ -13,27 +13,27 @@ import { generateWithChunks } from "@/actions/generateActions";
 import { useUser } from "@clerk/nextjs";
 import { QARecord } from "./QARecord";
 import toast from "react-hot-toast";
-import { FileType } from "@/typings/filetype";
+import { FileType } from "@/types/filetype";
 import useProfileStore from "@/zustand/useProfileStore";
 import { handleAPIAndCredits } from "@/utils/useApiAndCreditKeys";
-import { useAppStore } from "@/zustand/useAppStore";
+import { useModalStore } from "@/zustand/useModalStore";
+import { DEFAULT_MODEL } from "@/lib/ai";
 
-// Define a type for the chunk structure
-type Chunk = {
+// Types for Ragie API responses
+interface ScoredChunk {
   text: string;
   score: number;
-};
+}
 
-// Define a type for the server response
-type RetrievalResponse = {
-  scored_chunks: Chunk[];
-};
+interface RetrievalResponse {
+  scored_chunks: ScoredChunk[];
+}
 
-type RetrievalError = {
+interface RetrievalError {
   error: true;
   status: number;
   message: string;
-};
+}
 
 interface IChatProps {
   fileId: string;
@@ -46,19 +46,35 @@ interface IQARecord {
 
 export const Chat = ({ fileId }: IChatProps) => {
   const { user } = useUser();
-  const [newQuestion, setNewQuestion] = useState<string>("");
+  const [newQuestion, setNewQuestion] = useState("");
   const newQuestionRef = useRef("");
-  const [generatedContent, setGeneratedContent] = useState<string>("");
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [generatedContent, setGeneratedContent] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState<IQARecord[]>([]);
   const [document, setDocument] = useState<FileType>();
   const [isDeleting, setDeleting] = useState(false);
-
   const [isDocLoading, setDocLoading] = useState(false);
   const [isUploadingToRagie, setUploadingToRagie] = useState(false);
 
-  const userProfileState = useProfileStore((state) => state);
-  const { setQuestionAnswerModalOpen } = useAppStore();
+  // Select only needed fields from stores (better memoization)
+  const profile = useProfileStore((state) => state.profile);
+  const minusCredits = useProfileStore((state) => state.minusCredits);
+  const setQuestionAnswerModalOpen = useModalStore(
+    (state) => state.setQuestionAnswerModalOpen
+  );
+
+  // Create profile state for API handler - only needs profile and minusCredits
+  const userProfileState = useMemo(
+    () => ({
+      profile,
+      minusCredits,
+      // These are required by the type but not used in handleAPIAndCredits
+      fetchProfile: async () => {},
+      updateProfile: async () => {},
+      addCredits: async () => {},
+    }),
+    [profile, minusCredits]
+  );
 
   const getDocument = useCallback(async () => {
     if (user?.id) {
@@ -215,9 +231,9 @@ export const Chat = ({ fileId }: IChatProps) => {
       const handleContent = async () => {
         setNewQuestion("");
         const answer = await generateWithChunks(
-          (data as RetrievalResponse).scored_chunks.map((chunk) => chunk.text), // Pass only the chunk texts
+          (data as RetrievalResponse).scored_chunks.map((chunk) => chunk.text),
           newQuestion,
-          "gpt-4.1" // Adjust the model name as needed
+          DEFAULT_MODEL
         );
         setGeneratedContent(answer.trim());
         await updateDocument({ question: newQuestion, answer });

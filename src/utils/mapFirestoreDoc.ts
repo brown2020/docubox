@@ -1,5 +1,5 @@
 import { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
-import { FileType } from "@/typings/filetype";
+import { FileType } from "@/types/filetype";
 
 /**
  * Maps a Firestore document snapshot to a FileType object.

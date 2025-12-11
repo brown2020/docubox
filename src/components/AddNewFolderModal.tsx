@@ -10,33 +10,42 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { db } from "@/firebase";
-import { useAppStore } from "@/zustand/useAppStore";
+import { useModalStore } from "@/zustand/useModalStore";
+import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { useUser } from "@clerk/nextjs";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-
 import { useState } from "react";
 import { Input } from "./ui/input";
-
 import toast from "react-hot-toast";
 
 export function AddNewFolderModal() {
   const { user } = useUser();
   const [input, setInput] = useState("");
 
-  const { isCreateFolderModalOpen, setIsCreateFolderModalOpen, folderId } =
-    useAppStore();
-  
+  // Use focused stores
+  const { isCreateFolderModalOpen, setIsCreateFolderModalOpen } =
+    useModalStore();
+  const { folderId } = useFileSelectionStore();
+
+  const isValidInput = input.trim().length > 0;
+
   async function createFolder() {
     if (!user) return;
 
-    const toastId = toast.loading("creating folder...");
+    // Validate input
+    if (!isValidInput) {
+      toast.error("Please enter a folder name");
+      return;
+    }
+
+    const toastId = toast.loading("Creating folder...");
     try {
       await addDoc(collection(db, "users", user.id, "files"), {
-        filename: input,
+        filename: input.trim(),
         folderId,
         userId: user.id,
         timestamp: serverTimestamp(),
-        type: 'folder',
+        type: "folder",
         fullName: user.fullName,
         profileImg: user.imageUrl,
         size: 0,
@@ -47,33 +56,34 @@ export function AddNewFolderModal() {
       });
 
       toast.success("Folder created successfully!", { id: toastId });
-    } catch (error) {
-      console.log(error);
-      toast.error("Error creating folder!", { id: toastId });
-    } finally {
       setInput("");
       setIsCreateFolderModalOpen(false);
+    } catch (error) {
+      console.error("Error creating folder:", error);
+      toast.error("Error creating folder!", { id: toastId });
     }
   }
 
+  const handleClose = () => {
+    setInput("");
+    setIsCreateFolderModalOpen(false);
+  };
+
   return (
-    <Dialog
-      open={isCreateFolderModalOpen}
-      onOpenChange={(isOpen) => setIsCreateFolderModalOpen(isOpen)}
-    >
+    <Dialog open={isCreateFolderModalOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md bg-slate-200 dark:bg-slate-600">
         <DialogHeader>
           <DialogTitle className="pb-2">Create Folder</DialogTitle>
-
-          <DialogDescription>
-            Folder Name
-          </DialogDescription>
+          <DialogDescription>Folder Name</DialogDescription>
           <Input
-            id="link"
-            defaultValue={''}
+            id="folder-name"
+            value={input}
+            placeholder="Enter folder name"
             onChange={(e) => setInput(e.target.value)}
-            onKeyDownCapture={(e) => {
-              if (e.key === "Enter") createFolder();
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && isValidInput) {
+                createFolder();
+              }
             }}
           />
         </DialogHeader>
@@ -82,17 +92,18 @@ export function AddNewFolderModal() {
           <Button
             size="sm"
             className="px-3 flex-1"
-            variant={"ghost"}
-            onClick={() => setIsCreateFolderModalOpen(false)}
+            variant="ghost"
+            onClick={handleClose}
           >
             <span className="sr-only">Cancel</span>
             <span>Cancel</span>
           </Button>
           <Button
             type="submit"
-            size={"sm"}
+            size="sm"
             className="px-3 flex-1"
-            onClick={() => createFolder()}
+            onClick={createFolder}
+            disabled={!isValidInput}
           >
             <span className="sr-only">Save</span>
             <span>Save</span>

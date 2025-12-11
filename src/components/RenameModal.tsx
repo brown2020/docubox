@@ -10,13 +10,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { db } from "@/firebase";
-import { useAppStore } from "@/zustand/useAppStore";
+import { useModalStore } from "@/zustand/useModalStore";
+import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { useUser } from "@clerk/nextjs";
 import { doc, updateDoc } from "firebase/firestore";
-
 import { useEffect, useState } from "react";
 import { Input } from "./ui/input";
-
 import toast from "react-hot-toast";
 import TagInput from "./ui/tagInput";
 
@@ -25,23 +24,25 @@ export function RenameModal() {
   const [input, setInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
 
-  const { isRenameModalOpen, setIsRenameModalOpen, fileId, filename, tags: tagsList } =
-    useAppStore();
-  
+  // Use focused stores
+  const { isRenameModalOpen, setIsRenameModalOpen } = useModalStore();
+  const { fileId, filename, tags: tagsList } = useFileSelectionStore();
+
   useEffect(() => {
     if (fileId) {
       setTags(tagsList);
     }
-  }, [fileId, setTags, tagsList])
-  
+  }, [fileId, setTags, tagsList]);
+
   async function renameFile() {
-    if (!user || !fileId || (!input && !tags)) return;
+    // Require at least a filename or tags to update
+    if (!user || !fileId || (!input.trim() && tags.length === 0)) return;
 
     const toastId = toast.loading("updating file...");
     try {
       await updateDoc(doc(db, "users", user.id, "files", fileId), {
         filename: input,
-        tags
+        tags,
       });
       toast.success("File updated successfully!", { id: toastId });
     } catch (error) {
@@ -62,9 +63,7 @@ export function RenameModal() {
         <DialogHeader>
           <DialogTitle className="pb-2">File Update</DialogTitle>
 
-          <DialogDescription>
-            Filename
-          </DialogDescription>
+          <DialogDescription>Filename</DialogDescription>
           <Input
             id="link"
             defaultValue={filename}
@@ -74,9 +73,7 @@ export function RenameModal() {
             }}
           />
 
-          <DialogDescription>
-            Tags
-          </DialogDescription>
+          <DialogDescription>Tags</DialogDescription>
           <TagInput tags={tags} setTags={setTags} />
         </DialogHeader>
 

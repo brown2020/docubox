@@ -1,27 +1,9 @@
-const parseEnvVarToNumber = (
-  envVar: string | undefined,
-  fallback: number
-): number => {
-  return envVar ? parseInt(envVar, 10) : fallback
-}
+import { getCreditCost, type APIType } from "@/constants/credits";
 
-export const creditsToMinus = (model: 'open-ai' | 'unstructured' | 'ragie'): number => {
-  if (model === "open-ai") {
-    return parseEnvVarToNumber(
-      process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI,
-      4
-    )
-  } else if (model == "unstructured") {
-    return parseEnvVarToNumber(
-      process.env.NEXT_PUBLIC_CREDITS_PER_UNSTRUCTURED,
-      4
-    )
-  }  else if (model == "ragie") {
-    return parseEnvVarToNumber(
-      process.env.NEXT_PUBLIC_CREDITS_PER_RAGIE,
-      4
-    )
-  }
-
-  return 4
-}
+/**
+ * Gets the number of credits to deduct for a given API operation.
+ * @deprecated Use getCreditCost from @/constants/credits directly
+ */
+export const creditsToMinus = (model: APIType): number => {
+  return getCreditCost(model);
+};

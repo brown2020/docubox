@@ -1,23 +1,18 @@
 "use server";
 
 import { ModelMessage, generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { getOpenAIClient, getModel, DEFAULT_MODEL } from "@/lib/ai";
 
-async function getModel(modelName: string) {
-  switch (modelName) {
-    case "gpt-4.1":
-      return openai("gpt-4.1");
-    default:
-      throw new Error(`Unsupported model name: ${modelName}`);
-  }
-}
-
+/**
+ * Generates a response using the AI model.
+ */
 async function generateResponse(
   systemPrompt: string,
   userPrompt: string,
-  modelName: string
-) {
-  const model = await getModel(modelName);
+  modelName: string = DEFAULT_MODEL
+): Promise<string> {
+  const client = getOpenAIClient();
+  const model = getModel(client, modelName);
 
   const messages: ModelMessage[] = [
     {
@@ -38,11 +33,14 @@ async function generateResponse(
   return text;
 }
 
-// New function to handle generation using previously retrieved chunks
+/**
+ * Generates a response based on retrieved document chunks.
+ * Uses RAG (Retrieval Augmented Generation) pattern.
+ */
 export async function generateWithChunks(
   chunks: string[],
   query: string,
-  modelName: string
+  modelName: string = DEFAULT_MODEL
 ): Promise<string> {
   // Combine the retrieved chunks into a single text block
   const chunkText = chunks.join("\n");

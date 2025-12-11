@@ -15,27 +15,29 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { useAppStore } from "@/zustand/useAppStore";
+import { useModalStore } from "@/zustand/useModalStore";
+import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import Spinner from "./common/spinner";
 import { Chunk, Element } from "@/types/types";
 import { generateSummary } from "@/actions/generateSummary";
 import useProfileStore from "@/zustand/useProfileStore";
-import { creditsToMinus } from "@/utils/credits";
-import { FileType } from "@/typings/filetype";
+import { getCreditCost } from "@/constants/credits";
+import { FileType } from "@/types/filetype";
 import { LoaderCircleIcon } from "lucide-react";
 import { downloadUnstructuredFile } from "@/actions/unstructuredActions";
 
 export function ShowParsedDataModal() {
+  // Use focused stores
+  const { isShowParseDataModelOpen, setIsShowParseDataModelOpen } =
+    useModalStore();
   const {
-    isShowParseDataModelOpen,
-    setIsShowParseDataModelOpen,
     unstructuredFileData,
     setUnstructuredFileData,
     fileSummary,
     fileId,
     setFileId,
     setFileSummary,
-  } = useAppStore();
+  } = useFileSelectionStore();
   const { user } = useUser();
   const isAIAlreadyCalled = useRef(false);
   const [loading, setLoading] = useState(false);
@@ -108,12 +110,10 @@ export function ShowParsedDataModal() {
     }
     isAIAlreadyCalled.current = true;
     try {
-      if (
-        useCredits &&
-        currentCredits <
-          Number(process.env.NEXT_PUBLIC_CREDITS_PER_OPEN_AI || 4)
-      )
+      const requiredCredits = getCreditCost("open-ai");
+      if (useCredits && currentCredits < requiredCredits) {
         return;
+      }
 
       setLoading(true);
       const summary = await generateSummary(
@@ -130,7 +130,7 @@ export function ShowParsedDataModal() {
       }
 
       if (summary && useCredits) {
-        await minusCredits(creditsToMinus("open-ai"));
+        await minusCredits(requiredCredits);
       }
     } catch (error) {
       isAIAlreadyCalled.current = false;

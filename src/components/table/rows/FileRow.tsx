@@ -1,19 +1,13 @@
 "use client";
 
 import { memo } from "react";
-import { FileType } from "@/types/filetype";
+import { FileType, isParsed } from "@/types/filetype";
 import { Row } from "@tanstack/react-table";
 import { Button } from "../../ui/button";
-import { TableCell } from "../../ui/table";
 import { File } from "../File";
 import { renderTableCell } from "../utils/renderCell";
-import {
-  EyeIcon,
-  FileTerminal,
-  MessageCircleQuestionIcon,
-  TrashIcon,
-  UndoIcon,
-} from "lucide-react";
+import { ActionCell } from "../cells/ActionCell";
+import { EyeIcon, FileTerminal, MessageCircleQuestionIcon } from "lucide-react";
 
 interface FileRowProps {
   row: Row<FileType>;
@@ -46,6 +40,8 @@ export const FileRow = memo(function FileRow({
   handleParsingClick,
   restoreDeletedFile,
 }: FileRowProps) {
+  const hasParsedData = isParsed(fileData);
+
   return (
     <File
       id={row.getValue("id")}
@@ -60,24 +56,22 @@ export const FileRow = memo(function FileRow({
           showDownload: true,
         })
       )}
-      <TableCell className="flex space-x-2 py-2 px-4 justify-end">
-        {isTrashView ? (
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => restoreDeletedFile(fileData.docId)}
-            className="text-blue-500 hover:bg-blue-100"
-          >
-            <UndoIcon size={20} />
-          </Button>
-        ) : (
+      <ActionCell
+        fileId={fileData.docId}
+        isTrashView={isTrashView}
+        onRestore={() => restoreDeletedFile(fileData.docId)}
+        onDelete={() =>
+          openDeleteModal(fileData.docId, fileData.folderId ?? null, false)
+        }
+        additionalActions={
           <div className="flex space-x-2 items-center">
-            {!fileData.unstructuredFile && (
+            {!hasParsedData && (
               <Button
                 variant="outline"
                 size="icon"
                 className="text-blue-500 hover:bg-blue-100"
                 onClick={() => handleParsingClick(fileData)}
+                aria-label="Parse file"
               >
                 <FileTerminal size={20} />
               </Button>
@@ -87,6 +81,7 @@ export const FileRow = memo(function FileRow({
               size="icon"
               className="text-blue-500 hover:bg-blue-100"
               onClick={() => handleOpenQuestionAnswerModal(fileData.docId)}
+              aria-label="Ask questions"
             >
               <MessageCircleQuestionIcon size={20} />
             </Button>
@@ -100,24 +95,15 @@ export const FileRow = memo(function FileRow({
                   fileData.summary
                 )
               }
-              disabled={!fileData.unstructuredFile}
+              disabled={!hasParsedData}
               className="text-blue-500 hover:bg-blue-100"
+              aria-label="View parsed data"
             >
               <EyeIcon size={20} />
             </Button>
           </div>
-        )}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() =>
-            openDeleteModal(fileData.docId, fileData.folderId ?? null, false)
-          }
-          className="text-red-500 hover:bg-red-100"
-        >
-          <TrashIcon size={20} />
-        </Button>
-      </TableCell>
+        }
+      />
     </File>
   );
 });

@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 import { Card } from "./Card";
-import { FileType } from "@/types/filetype";
+import { FileType, isFolder } from "@/types/filetype";
 import { File } from "../table/File";
 import { Folder } from "../table/Folder";
 import { useUser } from "@clerk/nextjs";
@@ -29,41 +29,39 @@ export const GridView: FunctionComponent<Props> = ({
 
   return (
     <div className="flex gap-2">
-      {data.map((i) =>
-        i.type !== "folder" ? (
+      {data.map((item) =>
+        !isFolder(item) ? (
           <File
-            id={i.docId}
-            key={i.docId}
+            id={item.docId}
+            key={item.docId}
             hasTableRow={false}
             isTrashItem={isTrashView}
           >
             <Card
-              key={i.docId}
-              data={i}
+              key={item.docId}
+              data={item}
               openRenameModal={openRenameModal}
               openViewModal={openParseDataViewModal}
               openDeleteModal={() =>
-                openDeleteModal(i.docId, i.folderId, i.type === "folder")
+                openDeleteModal(item.docId, item.folderId, false)
               }
             />
           </File>
         ) : (
           <Folder
-            id={i.docId}
-            key={i.docId}
-            onDrop={(docId: string, folderId: string) =>
-              onDrop(docId, folderId)
-            }
+            id={item.docId}
+            key={item.docId}
+            onDrop={onDrop}
             hasTableRow={false}
             isTrashItem={isTrashView}
           >
             <Card
-              key={i.docId}
-              data={i}
+              key={item.docId}
+              data={item}
               openRenameModal={openRenameModal}
               openViewModal={openParseDataViewModal}
               openDeleteModal={() =>
-                openDeleteModal(i.docId, i.folderId, i.type === "folder")
+                openDeleteModal(item.docId, item.folderId, true)
               }
             />
           </Folder>

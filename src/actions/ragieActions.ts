@@ -1,7 +1,12 @@
 "use server";
 
-import { parseAPIErrorResponse, extractErrorMessage } from "@/lib/errors";
+import {
+  parseAPIErrorResponse,
+  extractErrorMessage,
+  APIError,
+} from "@/lib/errors";
 import { logger } from "@/lib/logger";
+import { fetchFileAsBlob } from "@/lib/storage";
 
 const BASE_URL = "https://api.ragie.ai";
 const SERVICE_NAME = "Ragie API";
@@ -93,7 +98,7 @@ export async function checkDocumentReadiness(
         status: response.status,
         attempt: attempts,
       });
-      throw new Error(errorMessage);
+      throw new APIError(SERVICE_NAME, response.status, errorMessage);
     }
 
     const data = await response.json();
@@ -140,60 +145,8 @@ export async function uploadToRagie(
 
   logger.debug("uploadToRagie", { fileId, fileName });
 
-  // Fetch file from storage
-  let fileResponse: Response;
-  try {
-    fileResponse = await fetch(fileUrl);
-  } catch (error) {
-    throw new Error(
-      `Network error while fetching file for upload: ${extractErrorMessage(
-        error
-      )}`
-    );
-  }
-
-  if (!fileResponse.ok) {
-    throw new Error(
-      `Failed to fetch file for upload: ${fileResponse.status} ${fileResponse.statusText}`
-    );
-  }
-
-  const fileStream = fileResponse.body;
-  if (!fileStream) {
-    throw new Error(
-      "File stream is not available. The file may be empty or corrupted."
-    );
-  }
-
-  // Read file into blob
-  const reader = fileStream.getReader();
-  const chunks: BlobPart[] = [];
-  let totalBytes = 0;
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      totalBytes += value.byteLength;
-    }
-  } catch (error) {
-    throw new Error(`Error reading file: ${extractErrorMessage(error)}`);
-  }
-
-  if (totalBytes === 0) {
-    throw new Error("Cannot upload an empty file to Ragie.");
-  }
-
-  logger.debug("uploadToRagie", {
-    totalBytes,
-    contentType: fileResponse.headers.get("content-type"),
-  });
-
-  const fileBlob = new Blob(chunks, {
-    type:
-      fileResponse.headers.get("content-type") || "application/octet-stream",
-  });
+  // Fetch file from storage using shared utility
+  const { blob: fileBlob } = await fetchFileAsBlob(fileUrl, "uploadToRagie");
 
   const formData = new FormData();
   formData.append("file", fileBlob, fileName);
@@ -211,7 +164,7 @@ export async function uploadToRagie(
   if (!response.ok) {
     const errorMessage = await parseAPIErrorResponse(response, SERVICE_NAME);
     logger.error("uploadToRagie", "Upload failed", { status: response.status });
-    throw new Error(errorMessage);
+    throw new APIError(SERVICE_NAME, response.status, errorMessage);
   }
 
   const result = await response.json();
@@ -308,7 +261,7 @@ export async function deleteFileFromRagie(
 
   if (!response.ok) {
     const errorMessage = await parseAPIErrorResponse(response, SERVICE_NAME);
-    throw new Error(errorMessage);
+    throw new APIError(SERVICE_NAME, response.status, errorMessage);
   }
 
   // Handle 204 No Content (common for DELETE operations)

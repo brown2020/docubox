@@ -1,4 +1,4 @@
-import { FileType } from "@/types/filetype";
+import { FileType, isFolder } from "@/types/filetype";
 import { memo } from "react";
 import prettyBytes from "pretty-bytes";
 import { EllipsisVertical } from "lucide-react";
@@ -28,6 +28,8 @@ export const Card = memo(function Card({
   openViewModal,
   openDeleteModal,
 }: Props) {
+  const isFolderItem = isFolder(data);
+
   return (
     <Tooltip>
       <div className="w-40 h-56 p-3 flex justify-between flex-col rounded-lg relative border">
@@ -37,7 +39,7 @@ export const Card = memo(function Card({
               <EllipsisVertical />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              {data.type !== "folder" && (
+              {!isFolderItem && (
                 <DropdownMenuItem
                   onClick={() =>
                     openViewModal(
@@ -74,7 +76,11 @@ export const Card = memo(function Card({
             </p>
             <div className="flex items-center text-gray-500">
               <small>
-                {data.size !== 0 ? prettyBytes(data.size) : "Empty Folder"}
+                {data.size !== 0
+                  ? prettyBytes(data.size)
+                  : isFolderItem
+                  ? "Empty Folder"
+                  : "0 B"}
               </small>
             </div>
           </div>
@@ -95,7 +101,11 @@ export const Card = memo(function Card({
           </li>
           <li>
             <span className="text-gray-500">Size:</span>{" "}
-            {data.size !== 0 ? prettyBytes(data.size) : "Empty Folder"}
+            {data.size !== 0
+              ? prettyBytes(data.size)
+              : isFolderItem
+              ? "Empty Folder"
+              : "0 B"}
           </li>
         </ul>
       </TooltipContent>

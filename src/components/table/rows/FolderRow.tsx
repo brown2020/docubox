@@ -3,11 +3,9 @@
 import { memo } from "react";
 import { FileType } from "@/types/filetype";
 import { Row } from "@tanstack/react-table";
-import { Button } from "../../ui/button";
-import { TableCell } from "../../ui/table";
 import { Folder } from "../Folder";
 import { renderTableCell } from "../utils/renderCell";
-import { TrashIcon, UndoIcon } from "lucide-react";
+import { ActionCell } from "../cells/ActionCell";
 
 interface FolderRowProps {
   row: Row<FileType>;
@@ -51,28 +49,14 @@ export const FolderRow = memo(function FolderRow({
           showDownload: false, // Folders don't have download links
         })
       )}
-      <TableCell key="actions" className="flex space-x-2 py-2 px-4 justify-end">
-        {isTrashView && (
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => restoreDeletedFile(folderData.docId)}
-            className="text-blue-500 hover:bg-blue-100"
-          >
-            <UndoIcon size={20} />
-          </Button>
-        )}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() =>
-            openDeleteModal(folderData.docId, folderData.folderId ?? null, true)
-          }
-          className="text-red-500 hover:bg-red-100"
-        >
-          <TrashIcon size={20} />
-        </Button>
-      </TableCell>
+      <ActionCell
+        fileId={folderData.docId}
+        isTrashView={isTrashView}
+        onRestore={() => restoreDeletedFile(folderData.docId)}
+        onDelete={() =>
+          openDeleteModal(folderData.docId, folderData.folderId ?? null, true)
+        }
+      />
     </Folder>
   );
 });

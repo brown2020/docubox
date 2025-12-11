@@ -5,7 +5,7 @@ export {
   type ProfileType,
   type ProfileState,
 } from "./useProfileStore";
-export { useModalStore } from "./useModalStore";
+export { useModalStore, type ModalType, type ModalData } from "./useModalStore";
 export { useFileSelectionStore } from "./useFileSelectionStore";
 export { useUploadStore, type UploadingFile } from "./useUploadStore";
 export { useInitializeStores } from "./useInitializeStores";

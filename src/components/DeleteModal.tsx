@@ -115,12 +115,11 @@ export function DeleteModal() {
 
       await deleteDoc(docRef);
 
-      toast.success("File deleted from storage!", { id: toastId });
       toast.success("File deleted successfully!", { id: toastId });
       setIsDeleteModalOpen(false);
       setFileId("");
     } catch (error) {
-      console.log(error);
+      console.error("[DeleteModal] Error deleting file:", error);
       toast.error("Error deleting file!", { id: toastId });
     } finally {
       setIsDeleteModalOpen(false);
@@ -136,7 +135,7 @@ export function DeleteModal() {
       });
       toast.success("File deleted successfully!", { id: toastId });
     } catch (error) {
-      console.log(error);
+      console.error("[DeleteModal] Error soft deleting file:", error);
       toast.error("Error deleting file!", { id: toastId });
     } finally {
       setIsDeleteModalOpen(false);

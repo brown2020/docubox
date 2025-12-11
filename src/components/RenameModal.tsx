@@ -46,7 +46,7 @@ export function RenameModal() {
       });
       toast.success("File updated successfully!", { id: toastId });
     } catch (error) {
-      console.log(error);
+      console.error("[RenameModal] Error updating file:", error);
       toast.error("Error updating file!", { id: toastId });
     } finally {
       setInput("");

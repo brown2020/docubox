@@ -1,61 +1,63 @@
-"use client"
-import { db, storage } from "@/firebase"
-import { cn } from "@/lib/utils"
-import { useUser } from "@clerk/nextjs"
+"use client";
+
+import { db, storage } from "@/firebase";
+import { cn } from "@/lib/utils";
+import { useUser } from "@clerk/nextjs";
 import {
   addDoc,
   collection,
   doc,
   serverTimestamp,
   updateDoc,
-} from "firebase/firestore"
-import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage"
-import { useState } from "react"
-import DropzoneComponent from "react-dropzone"
-import toast from "react-hot-toast"
-import Spinner from "./common/spinner"
-import { Progress } from "./ui/progress-bar"
-import { useAppStore } from "@/zustand/useAppStore"
+} from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+import { useState } from "react";
+import DropzoneComponent from "react-dropzone";
+import toast from "react-hot-toast";
+import Spinner from "./common/spinner";
+import { Progress } from "./ui/progress-bar";
+import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
+
+const MAX_FILE_SIZE = 20971520; // 20MB
 
 export default function Dropzone() {
-  const maxSize = 20971520
-  const [loading, setLoading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState("0")
-  const [processing, setProcessing] = useState(false)
-  const { user } = useUser()
-  const { folderId } = useAppStore()
+  const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("0");
+  const [processing, setProcessing] = useState(false);
+  const { user } = useUser();
+  const folderId = useFileSelectionStore((state) => state.folderId);
 
   const onDrop = async (acceptedFiles: File[]) => {
-    if (acceptedFiles.length === 0) return
+    if (acceptedFiles.length === 0) return;
 
-    setProcessing(true)
+    setProcessing(true);
 
-    const formData = new FormData()
-    formData.append("file", acceptedFiles[0])
+    const formData = new FormData();
+    formData.append("file", acceptedFiles[0]);
 
     try {
       acceptedFiles.forEach((file) => {
-        const reader = new FileReader()
-        reader.onabort = () => console.log("file reading was aborted")
-        reader.onerror = () => console.log("file reading has failed")
+        const reader = new FileReader();
+        reader.onabort = () => console.log("file reading was aborted");
+        reader.onerror = () => console.log("file reading has failed");
         reader.onload = async () => {
-          await uploadPost(file)
-        }
-        reader.readAsArrayBuffer(file)
-      })
+          await uploadPost(file);
+        };
+        reader.readAsArrayBuffer(file);
+      });
     } catch (err) {
-      toast.error((err as Error).message || "An error occurred")
+      toast.error((err as Error).message || "An error occurred");
     } finally {
-      setProcessing(false)
+      setProcessing(false);
     }
-  }
+  };
   const uploadPost = async (selectedFile: File) => {
-    if (loading) return
-    if (!user) return
+    if (loading) return;
+    if (!user) return;
 
-    setLoading(true)
+    setLoading(true);
 
-    const toastId = toast.loading("Uploading file...")
+    const toastId = toast.loading("Uploading file...");
     try {
       const docRef = await addDoc(collection(db, "users", user.id, "files"), {
         userId: user.id,
@@ -72,20 +74,20 @@ export default function Dropzone() {
         folderId,
         isUploadedToRagie: false,
         ragieFileId: null,
-      })
+      });
 
       const imageRef = ref(
         storage,
         `users/${user.id}/files/${docRef.id}_${selectedFile.name}`
-      )
+      );
       const uploadTask = uploadBytesResumable(imageRef, selectedFile);
 
       uploadTask.on(
         "state_changed",
         (snapshot) => {
           const progress =
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-          setUploadProgress(progress.toFixed(2))
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress(progress.toFixed(2));
         },
         (error) => {
           console.log(error);
@@ -93,34 +95,32 @@ export default function Dropzone() {
         },
         async () => {
           try {
-            const downloadUrl = await getDownloadURL(imageRef,)
+            const downloadUrl = await getDownloadURL(imageRef);
             await updateDoc(doc(db, "users", user.id, "files", docRef.id), {
               downloadUrl,
               docId: docRef.id,
               filename: selectedFile.name,
             });
 
-            toast.success("File uploaded successfully!", { id: toastId })
+            toast.success("File uploaded successfully!", { id: toastId });
           } catch (error) {
             console.log(error);
             toast.error("Error fetching download URL!", { id: toastId });
           } finally {
-            setLoading(false)
+            setLoading(false);
           }
         }
-      )
+      );
     } catch (error) {
-      console.log(error)
-      toast.error("Error uploading file!", { id: toastId })
+      console.log(error);
+      toast.error("Error uploading file!", { id: toastId });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
-
-
+  };
 
   return (
-    <DropzoneComponent minSize={0} maxSize={maxSize} onDrop={onDrop}>
+    <DropzoneComponent minSize={0} maxSize={MAX_FILE_SIZE} onDrop={onDrop}>
       {({
         getRootProps,
         getInputProps,
@@ -129,7 +129,8 @@ export default function Dropzone() {
         fileRejections,
       }) => {
         const isFileTooLarge =
-          fileRejections.length > 0 && fileRejections[0].file.size > maxSize
+          fileRejections.length > 0 &&
+          fileRejections[0].file.size > MAX_FILE_SIZE;
         return (
           <section className="my-4 hover:cursor-pointer">
             <div
@@ -171,8 +172,8 @@ export default function Dropzone() {
               )}
             </div>
           </section>
-        )
+        );
       }}
     </DropzoneComponent>
-  )
+  );
 }

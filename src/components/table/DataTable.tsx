@@ -18,7 +18,6 @@ import { FileType } from "@/types/filetype";
 import {
   EyeIcon,
   MessageCircleQuestionIcon,
-  PencilIcon,
   TrashIcon,
   UndoIcon,
   FileTerminal,
@@ -33,11 +32,11 @@ import { ShowParsedDataModal } from "../ShowParsedDataModal";
 import { File } from "./File";
 import { Folder } from "./Folder";
 import { useUser } from "@clerk/nextjs";
-import Link from "next/link";
 import { db } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { QuestionAnswerModal } from "../QuestionAnswerModal";
 import { downloadUnstructuredFile } from "@/actions/unstructuredActions";
+import { TimestampCell, FilenameCell, DownloadCell } from "./cells";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -64,7 +63,6 @@ export function DataTable<TData, TValue>({
     setIsDeleteModalOpen,
     setIsRenameModalOpen,
     setIsShowParseDataModelOpen,
-    isShowParseDataModelOpen,
     setQuestionAnswerModalOpen,
   } = useModalStore();
 
@@ -148,7 +146,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="rounded-lg border border-gray-200 shadow-md overflow-hidden">
-      {isShowParseDataModelOpen && <ShowParsedDataModal />}
+      <ShowParsedDataModal />
       <DeleteModal />
       <RenameModal />
       <QuestionAnswerModal />
@@ -181,50 +179,55 @@ export function DataTable<TData, TValue>({
                   key={"file" + row.id}
                   data-state={row.getIsSelected() && "selected"}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className="py-2 px-4 text-gray-600 dark:text-white"
-                    >
-                      {cell.column.id === "timestamp" ? (
-                        <div className="flex flex-col">
-                          <div className="text-sm font-medium">
-                            {(cell.getValue() as Date).toLocaleDateString()}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-white">
-                            {(cell.getValue() as Date).toLocaleTimeString()}
-                          </div>
-                        </div>
-                      ) : cell.column.id === "filename" ? (
-                        <div
-                          onClick={() =>
+                  {row.getVisibleCells().map((cell) => {
+                    const fileData = row.original as FileType;
+
+                    if (cell.column.id === "timestamp") {
+                      return (
+                        <TimestampCell
+                          key={cell.id}
+                          timestamp={cell.getValue() as Date}
+                        />
+                      );
+                    }
+
+                    if (cell.column.id === "filename") {
+                      return (
+                        <FilenameCell
+                          key={cell.id}
+                          filename={cell.getValue() as string}
+                          onEdit={() =>
                             openRenameModal(
-                              (row.original as FileType).docId,
-                              (row.original as FileType).filename,
-                              (row.original as FileType).tags
+                              fileData.docId,
+                              fileData.filename,
+                              fileData.tags
                             )
                           }
-                          className="flex items-center text-blue-600 hover:underline cursor-pointer gap-2"
-                        >
-                          <div>{cell.getValue() as string}</div>
-                          <PencilIcon size={15} className="ml-2" />
-                        </div>
-                      ) : cell.column.id === "downloadUrl" ? (
-                        <Link
-                          href={cell.getValue() as string}
-                          target="_blank"
-                          className="underline text-blue-500 hover:text-blue-700"
-                        >
-                          Download
-                        </Link>
-                      ) : (
-                        flexRender(
+                        />
+                      );
+                    }
+
+                    if (cell.column.id === "downloadUrl") {
+                      return (
+                        <DownloadCell
+                          key={cell.id}
+                          downloadUrl={cell.getValue() as string}
+                        />
+                      );
+                    }
+
+                    return (
+                      <TableCell
+                        key={cell.id}
+                        className="py-2 px-4 text-gray-600 dark:text-white"
+                      >
+                        {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()
-                        )
-                      )}
-                    </TableCell>
-                  ))}
+                        )}
+                      </TableCell>
+                    );
+                  })}
                   <TableCell className="flex space-x-2 py-2 px-4 justify-end">
                     {isTrashView ? (
                       <Button
@@ -307,42 +310,46 @@ export function DataTable<TData, TValue>({
                   onDrop={onDrop}
                   isTrashItem={isTrashView}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className="py-2 px-4 text-gray-600 dark:text-white"
-                    >
-                      {cell.column.id === "timestamp" ? (
-                        <div className="flex flex-col">
-                          <div className="text-sm font-medium">
-                            {(cell.getValue() as Date).toLocaleDateString()}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-white">
-                            {(cell.getValue() as Date).toLocaleTimeString()}
-                          </div>
-                        </div>
-                      ) : cell.column.id === "filename" ? (
-                        <div
-                          onClick={() =>
+                  {row.getVisibleCells().map((cell) => {
+                    const folderData = row.original as FileType;
+
+                    if (cell.column.id === "timestamp") {
+                      return (
+                        <TimestampCell
+                          key={cell.id}
+                          timestamp={cell.getValue() as Date}
+                        />
+                      );
+                    }
+
+                    if (cell.column.id === "filename") {
+                      return (
+                        <FilenameCell
+                          key={cell.id}
+                          filename={cell.getValue() as string}
+                          onEdit={() =>
                             openRenameModal(
-                              (row.original as FileType).docId,
-                              (row.original as FileType).filename,
-                              (row.original as FileType).tags
+                              folderData.docId,
+                              folderData.filename,
+                              folderData.tags
                             )
                           }
-                          className="flex items-center text-blue-600 hover:underline cursor-pointer gap-2"
-                        >
-                          <div>{cell.getValue() as string}</div>
-                          <PencilIcon size={15} className="ml-2" />
-                        </div>
-                      ) : (
-                        flexRender(
+                        />
+                      );
+                    }
+
+                    return (
+                      <TableCell
+                        key={cell.id}
+                        className="py-2 px-4 text-gray-600 dark:text-white"
+                      >
+                        {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()
-                        )
-                      )}
-                    </TableCell>
-                  ))}
+                        )}
+                      </TableCell>
+                    );
+                  })}
                   <TableCell
                     key={"actions"}
                     className="flex space-x-2 py-2 px-4 justify-end"

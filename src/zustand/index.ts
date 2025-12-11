@@ -9,6 +9,12 @@ export { useModalStore } from "./useModalStore";
 export { useFileSelectionStore } from "./useFileSelectionStore";
 export { useUploadStore, type UploadingFile } from "./useUploadStore";
 export { useInitializeStores } from "./useInitializeStores";
+export { usePaymentsStore } from "./usePaymentsStore";
 
-// Backwards compatibility - deprecated
+/**
+ * @deprecated Use focused stores instead:
+ * - useModalStore for modal states
+ * - useFileSelectionStore for file selection
+ * - useUploadStore for upload progress
+ */
 export { useAppStore } from "./useAppStore";

@@ -21,24 +21,18 @@ import toast from "react-hot-toast";
 export default function FileUploadModal() {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Use focused stores instead of monolithic useAppStore
+  // Use focused stores
   const { uploadingFiles, setOnFileAddedCallback, removeUploadingFile } =
     useUploadStore();
   const { setUnstructuredFileData } = useFileSelectionStore();
 
-  // Select only needed fields from profile store (better memoization)
+  // Select only needed fields from profile store
   const profile = useProfileStore((state) => state.profile);
   const minusCredits = useProfileStore((state) => state.minusCredits);
 
-  // Memoize profile state for API handler
-  const userProfileState = useMemo(
-    () => ({
-      profile,
-      minusCredits,
-      fetchProfile: async () => {},
-      updateProfile: async () => {},
-      addCredits: async () => {},
-    }),
+  // Memoize profile data for API handler (simplified interface)
+  const apiProfileData = useMemo(
+    () => ({ profile, minusCredits }),
     [profile, minusCredits]
   );
 
@@ -65,7 +59,7 @@ export default function FileUploadModal() {
 
         await handleAPIAndCredits(
           "unstructured",
-          userProfileState,
+          apiProfileData,
           handleParseFile
         );
       } catch (error) {
@@ -84,7 +78,7 @@ export default function FileUploadModal() {
     setUnstructuredFileData,
     removeUploadingFile,
     user,
-    userProfileState,
+    apiProfileData,
   ]);
 
   if (uploadingFiles.length === 0) {

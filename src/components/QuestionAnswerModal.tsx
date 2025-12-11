@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useModalStore } from "@/zustand/useModalStore";
+import { useModalStore, useIsModalOpen } from "@/zustand/useModalStore";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { LoadingState } from "./common/LoadingState";
 
@@ -23,17 +23,14 @@ const Chat = dynamic(
 );
 
 export const QuestionAnswerModal = () => {
-  const { isQuestionAnswerModalOpen, setQuestionAnswerModalOpen } =
-    useModalStore();
+  const isOpen = useIsModalOpen("questionAnswer");
+  const close = useModalStore((s) => s.close);
   const { fileId } = useFileSelectionStore();
 
   if (!fileId) return null;
 
   return (
-    <Dialog
-      open={isQuestionAnswerModalOpen}
-      onOpenChange={setQuestionAnswerModalOpen}
-    >
+    <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>
       <DialogContent className="w-full max-w-5xl bg-slate-200 dark:bg-slate-600">
         <DialogHeader>
           <DialogTitle>Q&A Session</DialogTitle>

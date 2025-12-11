@@ -6,33 +6,30 @@ import { Row } from "@tanstack/react-table";
 import { Folder } from "../Folder";
 import { renderTableCell } from "../utils/renderCell";
 import { ActionCell } from "../cells/ActionCell";
+import { useFileActions } from "../FileActionsContext";
 
 interface FolderRowProps {
   row: Row<FileType>;
   folderData: FileType;
   isTrashView?: boolean;
-  openRenameModal: (fileId: string, filename: string, tags: string[]) => void;
-  openDeleteModal: (
-    fileId: string,
-    folderId: string | null,
-    isFolder: boolean
-  ) => void;
   onDrop: (docId: string, folderId: string) => void;
-  restoreDeletedFile: (fileId: string) => Promise<void>;
 }
 
+/**
+ * Folder row component using FileActionsContext for handlers.
+ */
 export const FolderRow = memo(function FolderRow({
   row,
   folderData,
   isTrashView,
-  openRenameModal,
-  openDeleteModal,
   onDrop,
-  restoreDeletedFile,
 }: FolderRowProps) {
+  const { openRenameModal, openDeleteModal, restoreDeletedFile } =
+    useFileActions();
+
   return (
     <Folder
-      id={row.getValue("id")}
+      id={folderData.docId}
       key={"folder" + row.id}
       data-state={row.getIsSelected() && "selected"}
       onDrop={onDrop}

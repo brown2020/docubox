@@ -10,6 +10,8 @@ export { useFirebaseAuthSync } from "./useFirebaseAuthSync";
 export { useFileModals } from "./useFileModals";
 export { useDocument } from "./useDocument";
 export { useDraggableItem } from "./useDraggableItem";
+export { useFilesList } from "./useFilesList";
+export { useFolderNavigation } from "./useFolderNavigation";
 
 // Profile & API
 export { useApiProfileData } from "./useApiProfileData";

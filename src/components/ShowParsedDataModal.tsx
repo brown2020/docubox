@@ -13,7 +13,7 @@ import {
 import { WideModalContent } from "@/components/ui/modal-content";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { useModalStore } from "@/zustand/useModalStore";
+import { useModalStore, useIsModalOpen } from "@/zustand/useModalStore";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { Chunk, Element } from "@/types/types";
 import { generateSummary } from "@/actions/generateSummary";
@@ -28,9 +28,10 @@ import { LoadingState } from "./common/LoadingState";
 export function ShowParsedDataModal() {
   const { user } = useUser();
 
-  // Use focused stores
-  const { isShowParseDataModelOpen, setIsShowParseDataModelOpen } =
-    useModalStore();
+  // Use new modal pattern
+  const isOpen = useIsModalOpen("parseData");
+  const close = useModalStore((s) => s.close);
+
   const {
     unstructuredFileData,
     setUnstructuredFileData,
@@ -225,7 +226,7 @@ export function ShowParsedDataModal() {
   }, [unstructuredFileData]);
 
   const handleClose = () => {
-    setIsShowParseDataModelOpen(false);
+    close();
     setFileId(null);
     setUnstructuredFileData("");
     setFileSummary(undefined);
@@ -234,10 +235,7 @@ export function ShowParsedDataModal() {
   const isDataLoading = isDocLoading || isUnstructuredLoading;
 
   return (
-    <Dialog
-      open={isShowParseDataModelOpen}
-      onOpenChange={(isOpen) => !isOpen && handleClose()}
-    >
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <WideModalContent>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">

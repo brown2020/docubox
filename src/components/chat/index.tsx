@@ -13,8 +13,7 @@ import { QARecord } from "./QARecord";
 import toast from "react-hot-toast";
 import { handleAPIAndCredits } from "@/utils/useApiAndCreditKeys";
 import { useModalStore } from "@/zustand/useModalStore";
-import { useDocument } from "@/hooks/useDocument";
-import { useApiProfileData } from "@/hooks/useApiProfileData";
+import { useDocument, useApiProfileData } from "@/hooks";
 import { DEFAULT_MODEL } from "@/lib/ai";
 import { logger } from "@/lib/logger";
 import { fileService } from "@/services/fileService";
@@ -69,9 +68,7 @@ export const Chat = ({ fileId }: IChatProps) => {
     refetch: refetchDocument,
   } = useDocument(user?.id, fileId);
   const apiProfileData = useApiProfileData();
-  const setQuestionAnswerModalOpen = useModalStore(
-    (state) => state.setQuestionAnswerModalOpen
-  );
+  const closeModal = useModalStore((state) => state.close);
 
   // Load QA records when document is fetched
   useEffect(() => {
@@ -108,7 +105,7 @@ export const Chat = ({ fileId }: IChatProps) => {
       } catch (error) {
         if (error instanceof Error) {
           toast.error(error.message);
-          setQuestionAnswerModalOpen(false);
+          closeModal();
         } else {
           logger.error("Chat", "Error uploading to Ragie", error);
           throw Error("Error uploading to Ragie");
@@ -117,7 +114,7 @@ export const Chat = ({ fileId }: IChatProps) => {
         setUploadingToRagie(false);
       }
     },
-    [apiProfileData, setQuestionAnswerModalOpen]
+    [apiProfileData, closeModal]
   );
 
   const onDocumentLoad = useCallback(async () => {

@@ -17,12 +17,15 @@ import { logger } from "@/lib/logger";
  * Signs in/out of Firebase when Clerk auth state changes.
  */
 export function useFirebaseAuthSync() {
-  const { getToken, isSignedIn } = useAuth();
+  const { getToken, isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
   const setAuthDetails = useAuthStore((state) => state.setAuthDetails);
   const clearAuthDetails = useAuthStore((state) => state.clearAuthDetails);
 
   useEffect(() => {
+    // Wait for Clerk to load before attempting any auth operations
+    if (!isLoaded) return;
+
     const syncAuthState = async () => {
       if (isSignedIn && user) {
         try {
@@ -52,12 +55,20 @@ export function useFirebaseAuthSync() {
           clearAuthDetails();
         }
       } else {
-        // User is not signed in with Clerk
-        await firebaseSignOut(auth);
+        // User is not signed in with Clerk - safely sign out of Firebase
+        try {
+          // Only sign out if there's a current Firebase user
+          if (auth.currentUser) {
+            await firebaseSignOut(auth);
+          }
+        } catch (error) {
+          // Silently handle sign out errors (e.g., no user to sign out)
+          logger.debug("useFirebaseAuthSync", "Sign out skipped", error);
+        }
         clearAuthDetails();
       }
     };
 
     syncAuthState();
-  }, [clearAuthDetails, getToken, isSignedIn, setAuthDetails, user]);
+  }, [clearAuthDetails, getToken, isSignedIn, isLoaded, setAuthDetails, user]);
 }

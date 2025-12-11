@@ -26,91 +26,36 @@ export interface ModalData {
 }
 
 /**
- * Store for managing modal visibility states.
- * Uses a generic pattern to reduce boilerplate.
+ * Lean modal store - single source of truth for modal state.
  */
 interface ModalStore {
-  // Current open modal (null if none)
   openModal: ModalType;
-  // Data associated with the current modal
   modalData: ModalData;
-
-  // Generic modal actions
   open: (modal: ModalType, data?: ModalData) => void;
   close: () => void;
   updateData: (data: Partial<ModalData>) => void;
-
-  // Legacy compatibility getters (computed from openModal)
-  isDeleteModalOpen: boolean;
-  isRenameModalOpen: boolean;
-  isShowParseDataModelOpen: boolean;
-  isCreateFolderModalOpen: boolean;
-  isQuestionAnswerModalOpen: boolean;
-
-  // Legacy compatibility setters
-  setIsDeleteModalOpen: (isOpen: boolean) => void;
-  setIsRenameModalOpen: (isOpen: boolean) => void;
-  setIsShowParseDataModelOpen: (isOpen: boolean) => void;
-  setIsCreateFolderModalOpen: (isOpen: boolean) => void;
-  setQuestionAnswerModalOpen: (isOpen: boolean) => void;
-
-  // Close all modals
-  closeAllModals: () => void;
 }
 
-export const useModalStore = create<ModalStore>((set, get) => ({
+export const useModalStore = create<ModalStore>((set) => ({
   openModal: null,
   modalData: {},
-
-  // Generic modal actions
   open: (modal, data = {}) => set({ openModal: modal, modalData: data }),
   close: () => set({ openModal: null, modalData: {} }),
   updateData: (data) =>
     set((state) => ({ modalData: { ...state.modalData, ...data } })),
-
-  // Legacy compatibility - computed getters
-  get isDeleteModalOpen() {
-    return get().openModal === "delete";
-  },
-  get isRenameModalOpen() {
-    return get().openModal === "rename";
-  },
-  get isShowParseDataModelOpen() {
-    return get().openModal === "parseData";
-  },
-  get isCreateFolderModalOpen() {
-    return get().openModal === "createFolder";
-  },
-  get isQuestionAnswerModalOpen() {
-    return get().openModal === "questionAnswer";
-  },
-
-  // Legacy compatibility setters
-  setIsDeleteModalOpen: (isOpen) =>
-    set({
-      openModal: isOpen ? "delete" : null,
-      modalData: isOpen ? get().modalData : {},
-    }),
-  setIsRenameModalOpen: (isOpen) =>
-    set({
-      openModal: isOpen ? "rename" : null,
-      modalData: isOpen ? get().modalData : {},
-    }),
-  setIsShowParseDataModelOpen: (isOpen) =>
-    set({
-      openModal: isOpen ? "parseData" : null,
-      modalData: isOpen ? get().modalData : {},
-    }),
-  setIsCreateFolderModalOpen: (isOpen) =>
-    set({
-      openModal: isOpen ? "createFolder" : null,
-      modalData: isOpen ? get().modalData : {},
-    }),
-  setQuestionAnswerModalOpen: (isOpen) =>
-    set({
-      openModal: isOpen ? "questionAnswer" : null,
-      modalData: isOpen ? get().modalData : {},
-    }),
-
-  closeAllModals: () => set({ openModal: null, modalData: {} }),
 }));
+
+/**
+ * Selector hook for checking if a specific modal is open.
+ * Use this instead of accessing openModal directly.
+ */
+export function useIsModalOpen(modalType: ModalType) {
+  return useModalStore((state) => state.openModal === modalType);
+}
+
+/**
+ * Selector hook for getting modal data with type safety.
+ */
+export function useModalData<T extends ModalData>() {
+  return useModalStore((state) => state.modalData as T);
+}

@@ -1,132 +1,55 @@
 "use client";
 
-import { FileType, isFolder } from "@/types/filetype";
-import { mapDocsToFileTypes } from "@/utils/mapFirestoreDoc";
-import { Button } from "../ui/button";
-import { DataTable } from "./DataTable";
-import { columns } from "./columns";
+import { useCallback, useDeferredValue, useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import {
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import {
-  collection,
-  doc,
-  orderBy,
-  query,
-  updateDoc,
-  where,
-} from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase";
-import { useCollection } from "react-firebase-hooks/firestore";
-import { Skeleton } from "../ui/skeleton";
-import { Input } from "../ui/input";
-import { ChevronLeft, Grid, List } from "lucide-react";
-import { GridView } from "../grid/GridView";
-import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
-import { useModalStore } from "@/zustand/useModalStore";
+import { usePathname } from "next/navigation";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { usePathname, useSearchParams, useRouter } from "next/navigation";
+import { ChevronLeft, Grid, List } from "lucide-react";
 
+import { Button } from "../ui/button";
+import { Skeleton } from "../ui/skeleton";
+import { Input } from "../ui/input";
+import { DataTable } from "./DataTable";
+import { columns } from "./columns";
+import { GridView } from "../grid/GridView";
+import { FileActionsProvider } from "./FileActionsContext";
+import { useFilesList, useFolderNavigation } from "@/hooks";
+import { useModalStore } from "@/zustand/useModalStore";
+
+/**
+ * Table wrapper component with file list and controls.
+ * Uses extracted hooks for cleaner separation of concerns.
+ */
 export default function TableWrapper() {
   const { user } = useUser();
-  const [initialFiles, setInitialFiles] = useState<FileType[]>([]);
+  const pathname = usePathname();
   const [sort, setSort] = useState<"asc" | "desc">("desc");
-  const [searchInput, setSearchInput] = useState<string>("");
+  const [searchInput, setSearchInput] = useState("");
   const deferredSearchInput = useDeferredValue(searchInput);
   const [view, setView] = useState<"grid" | "list">("list");
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const { replace } = useRouter();
 
   const isTrashPageActive = pathname.includes("trash");
 
-  // Use new focused stores
-  const { folderId, setFolderId } = useFileSelectionStore();
-  const { open } = useModalStore();
+  // Use extracted hooks
+  const { folderId, canGoBack, goBack } = useFolderNavigation([]);
+  const { files, allFiles, isLoading } = useFilesList({
+    isTrashView: isTrashPageActive,
+    sort,
+    searchInput: deferredSearchInput,
+    folderId,
+  });
+
+  // Update navigation with allFiles for goBack
+  const { goBack: goBackWithFiles } = useFolderNavigation(allFiles);
+
+  const open = useModalStore((s) => s.open);
 
   const openCreateFolderModal = () => {
     open("createFolder");
   };
-
-  // Use the 'useCollection' hook to fetch Firestore documents
-  const _where = isTrashPageActive
-    ? where("deletedAt", "!=", null)
-    : where("deletedAt", "==", null);
-
-  const _orderBy = isTrashPageActive
-    ? orderBy("deletedAt", sort)
-    : orderBy("timestamp", sort);
-
-  const [docs] = useCollection(
-    user && query(collection(db, "users", user.id, "files"), _where, _orderBy)
-  );
-
-  // Memoized folder sizes calculation - only recalculate when initialFiles changes
-  const folderSizes = useMemo(() => {
-    const sizes = new Map<string, number>();
-
-    const calculateSize = (targetFolderId: string): number => {
-      if (sizes.has(targetFolderId)) return sizes.get(targetFolderId)!;
-
-      const children = initialFiles.filter(
-        (file) => file.folderId === targetFolderId
-      );
-      let totalSize = 0;
-
-      for (const child of children) {
-        if (isFolder(child)) {
-          totalSize += calculateSize(child.docId);
-        } else {
-          totalSize += child.size || 0;
-        }
-      }
-
-      sizes.set(targetFolderId, totalSize);
-      return totalSize;
-    };
-
-    // Pre-calculate all folder sizes
-    initialFiles.filter(isFolder).forEach((f) => calculateSize(f.docId));
-
-    return sizes;
-  }, [initialFiles]);
-
-  const filesList: FileType[] = useMemo(() => {
-    let files: FileType[] = [...initialFiles];
-
-    // Filter files by folderId
-    files = files.filter((file) => file.folderId === folderId);
-
-    // If search input exists, filter by tags (using deferred value for performance)
-    if (deferredSearchInput) {
-      const searchLower = deferredSearchInput.toLowerCase();
-      files = files.filter(
-        (file) =>
-          Array.isArray(file.tags) &&
-          file.tags.some((tag) => tag.toLowerCase().includes(searchLower))
-      );
-    }
-
-    // Apply pre-calculated folder sizes
-    return files.map((file) => {
-      if (isFolder(file)) {
-        return { ...file, size: folderSizes.get(file.docId) || 0 };
-      }
-      return file;
-    });
-  }, [deferredSearchInput, initialFiles, folderId, folderSizes]);
-
-  useEffect(() => {
-    if (!docs) return;
-    const files = mapDocsToFileTypes(docs.docs);
-    setInitialFiles(files);
-  }, [docs]);
 
   const viewHandler = useCallback(() => {
     setView((prev) => (prev === "list" ? "grid" : "list"));
@@ -136,39 +59,21 @@ export default function TableWrapper() {
     async (userId: string, docId: string, targetFolderId: string) => {
       if (isTrashPageActive) return;
 
-      const existingDoc = initialFiles.find((file) => file.docId === docId);
+      const existingDoc = allFiles.find((file) => file.docId === docId);
       if (existingDoc) {
         await updateDoc(doc(db, "users", userId, "files", docId), {
           folderId: targetFolderId,
         });
       }
     },
-    [initialFiles, isTrashPageActive]
+    [allFiles, isTrashPageActive]
   );
 
-  const goBack = useCallback(() => {
-    const parentFolderId = initialFiles.find(
-      (i) => i.docId === folderId
-    )?.folderId;
-    const params = new URLSearchParams(searchParams);
-    if (parentFolderId) {
-      params.set("activeFolder", parentFolderId);
-    } else {
-      params.delete("activeFolder");
-    }
-    replace(`${pathname}?${params.toString()}`);
-  }, [initialFiles, folderId, searchParams, pathname, replace]);
-
-  useEffect(() => {
-    const activeFolderId = searchParams.get("activeFolder");
-    setFolderId(activeFolderId ?? null);
-  }, [searchParams, setFolderId]);
-
   // Show loading skeleton while fetching
-  if (docs?.docs.length === undefined) {
+  if (isLoading) {
     return (
       <div className="flex flex-col px-4">
-        <Button variant={"outline"} className="ml-auto w-36 h-10 mb-5">
+        <Button variant="outline" className="ml-auto w-36 h-10 mb-5">
           <Skeleton className="h-5 w-full" />
         </Button>
         <div className="border rounded-lg">
@@ -189,8 +94,11 @@ export default function TableWrapper() {
       <div className="flex border-b pb-2 items-center gap-2">
         {!isTrashPageActive && (
           <>
-            {searchParams.get("activeFolder") && (
-              <ChevronLeft onClick={goBack} className="cursor-pointer" />
+            {canGoBack && (
+              <ChevronLeft
+                onClick={goBackWithFiles}
+                className="cursor-pointer"
+              />
             )}
             <Button onClick={openCreateFolderModal}>Add New Folder</Button>
           </>
@@ -204,33 +112,35 @@ export default function TableWrapper() {
             onChange={(e) => setSearchInput(e.target.value)}
           />
           <Button
-            variant={"outline"}
+            variant="outline"
             onClick={() => setSort(sort === "desc" ? "asc" : "desc")}
             className="ml-auto w-fit"
           >
             Sort By {sort === "desc" ? "Oldest" : "Newest"}
           </Button>
-          <Button variant={"outline"} className="w-fit" onClick={viewHandler}>
+          <Button variant="outline" className="w-fit" onClick={viewHandler}>
             {view === "list" ? <Grid /> : <List />}
           </Button>
         </div>
       </div>
       <DndProvider backend={HTML5Backend}>
-        {view === "list" && (
-          <DataTable
-            columns={columns}
-            data={filesList}
-            moveFileHandler={moveFileHandler}
-            isTrashView={isTrashPageActive}
-          />
-        )}
-        {view === "grid" && (
-          <GridView
-            moveFileHandler={moveFileHandler}
-            data={filesList}
-            isTrashView={isTrashPageActive}
-          />
-        )}
+        <FileActionsProvider>
+          {view === "list" && (
+            <DataTable
+              columns={columns}
+              data={files}
+              moveFileHandler={moveFileHandler}
+              isTrashView={isTrashPageActive}
+            />
+          )}
+          {view === "grid" && (
+            <GridView
+              moveFileHandler={moveFileHandler}
+              data={files}
+              isTrashView={isTrashPageActive}
+            />
+          )}
+        </FileActionsProvider>
       </DndProvider>
     </div>
   );

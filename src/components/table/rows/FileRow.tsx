@@ -7,44 +7,37 @@ import { Button } from "../../ui/button";
 import { File } from "../File";
 import { renderTableCell } from "../utils/renderCell";
 import { ActionCell } from "../cells/ActionCell";
+import { useFileActions } from "../FileActionsContext";
 import { EyeIcon, FileTerminal, MessageCircleQuestionIcon } from "lucide-react";
 
 interface FileRowProps {
   row: Row<FileType>;
   fileData: FileType;
   isTrashView?: boolean;
-  openRenameModal: (fileId: string, filename: string, tags: string[]) => void;
-  openDeleteModal: (
-    fileId: string,
-    folderId: string | null,
-    isFolder: boolean
-  ) => void;
-  openParseDataViewModal: (
-    docId: string,
-    filedataurl: string,
-    summary: string
-  ) => void;
-  handleOpenQuestionAnswerModal: (fileId: string) => void;
-  handleParsingClick: (file: FileType) => void;
-  restoreDeletedFile: (fileId: string) => Promise<void>;
 }
 
+/**
+ * File row component using FileActionsContext for handlers.
+ */
 export const FileRow = memo(function FileRow({
   row,
   fileData,
   isTrashView,
-  openRenameModal,
-  openDeleteModal,
-  openParseDataViewModal,
-  handleOpenQuestionAnswerModal,
-  handleParsingClick,
-  restoreDeletedFile,
 }: FileRowProps) {
+  const {
+    openRenameModal,
+    openDeleteModal,
+    openParseDataViewModal,
+    openQuestionAnswerModal,
+    handleParsingClick,
+    restoreDeletedFile,
+  } = useFileActions();
+
   const hasParsedData = isParsed(fileData);
 
   return (
     <File
-      id={row.getValue("id")}
+      id={fileData.docId}
       key={"file" + row.id}
       data-state={row.getIsSelected() && "selected"}
       isTrashItem={isTrashView}
@@ -80,7 +73,7 @@ export const FileRow = memo(function FileRow({
               variant="outline"
               size="icon"
               className="text-blue-500 hover:bg-blue-100"
-              onClick={() => handleOpenQuestionAnswerModal(fileData.docId)}
+              onClick={() => openQuestionAnswerModal(fileData.docId)}
               aria-label="Ask questions"
             >
               <MessageCircleQuestionIcon size={20} />

@@ -3,12 +3,12 @@
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalContent } from "@/components/ui/modal-content";
 import { db } from "@/firebase";
 import { useModalStore } from "@/zustand/useModalStore";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
@@ -71,7 +71,7 @@ export function AddNewFolderModal() {
 
   return (
     <Dialog open={isCreateFolderModalOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-slate-200 dark:bg-slate-600">
+      <ModalContent>
         <DialogHeader>
           <DialogTitle className="pb-2">Create Folder</DialogTitle>
           <DialogDescription>Folder Name</DialogDescription>
@@ -109,7 +109,7 @@ export function AddNewFolderModal() {
             <span>Save</span>
           </Button>
         </DialogFooter>
-      </DialogContent>
+      </ModalContent>
     </Dialog>
   );
 }

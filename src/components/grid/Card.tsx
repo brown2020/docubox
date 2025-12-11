@@ -1,9 +1,7 @@
 import { FileType } from "@/types/filetype";
 import { FunctionComponent } from "react";
-import { COLOR_EXTENSION_MAP, UNCOMMON_EXTENSIONS_MAP } from "@/constants";
-import { FileIcon, defaultStyles } from "react-file-icon";
 import prettyBytes from "pretty-bytes";
-import { EllipsisVertical, FolderOpen } from "lucide-react";
+import { EllipsisVertical } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -16,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import { FileTypeIcon } from "@/components/common/FileTypeIcon";
 
 type Props = {
   data: FileType;
@@ -23,17 +22,17 @@ type Props = {
   openViewModal: (docId: string, filedata: string, summary: string) => void;
   openDeleteModal: () => void;
 };
+
 export const Card: FunctionComponent<Props> = ({
   data,
   openRenameModal,
   openViewModal,
   openDeleteModal,
 }) => {
-  const extension: string = data.type.split("/")[1];
   return (
     <TooltipProvider>
       <Tooltip>
-        <div className="w-40 h-56 p-3  flex justify-between flex-col rounded-lg relative border">
+        <div className="w-40 h-56 p-3 flex justify-between flex-col rounded-lg relative border">
           <div className="ml-auto absolute top-1 right-1 z-10">
             <DropdownMenu>
               <DropdownMenuTrigger className="cursor-pointer" asChild>
@@ -68,22 +67,7 @@ export const Card: FunctionComponent<Props> = ({
           </div>
           <TooltipTrigger className="flex flex-col h-full justify-between">
             <div className="w-full p-6">
-              {data.type === "folder" ? (
-                <FolderOpen size={90} />
-              ) : (
-                <FileIcon
-                  extension={UNCOMMON_EXTENSIONS_MAP[extension] || extension}
-                  labelColor={
-                    COLOR_EXTENSION_MAP[
-                      UNCOMMON_EXTENSIONS_MAP[extension] || extension
-                    ]
-                  }
-                  // @ts-expect-error: The 'defaultStyles' may not have a property for every possible extension.
-                  {...defaultStyles[
-                    UNCOMMON_EXTENSIONS_MAP[extension] || extension
-                  ]}
-                />
-              )}
+              <FileTypeIcon type={data.type} size={90} className="w-full" />
             </div>
 
             <div className="w-full">

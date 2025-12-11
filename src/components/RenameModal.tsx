@@ -3,12 +3,12 @@
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ModalContent } from "@/components/ui/modal-content";
 import { db } from "@/firebase";
 import { useModalStore } from "@/zustand/useModalStore";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
@@ -28,47 +28,50 @@ export function RenameModal() {
   const { isRenameModalOpen, setIsRenameModalOpen } = useModalStore();
   const { fileId, filename, tags: tagsList } = useFileSelectionStore();
 
+  // Sync input with filename when modal opens or file changes
   useEffect(() => {
-    if (fileId) {
+    if (isRenameModalOpen && fileId) {
+      setInput(filename);
       setTags(tagsList);
     }
-  }, [fileId, setTags, tagsList]);
+  }, [isRenameModalOpen, fileId, filename, tagsList]);
 
   async function renameFile() {
-    // Require at least a filename or tags to update
-    if (!user || !fileId || (!input.trim() && tags.length === 0)) return;
+    // Require at least a filename to update
+    if (!user || !fileId || !input.trim()) return;
 
-    const toastId = toast.loading("updating file...");
+    const toastId = toast.loading("Updating file...");
     try {
       await updateDoc(doc(db, "users", user.id, "files", fileId), {
-        filename: input,
+        filename: input.trim(),
         tags,
       });
       toast.success("File updated successfully!", { id: toastId });
+      setIsRenameModalOpen(false);
     } catch (error) {
       console.error("[RenameModal] Error updating file:", error);
       toast.error("Error updating file!", { id: toastId });
-    } finally {
-      setInput("");
-      setIsRenameModalOpen(false);
     }
   }
 
+  const handleClose = () => {
+    setInput("");
+    setTags([]);
+    setIsRenameModalOpen(false);
+  };
+
   return (
-    <Dialog
-      open={isRenameModalOpen}
-      onOpenChange={(isOpen) => setIsRenameModalOpen(isOpen)}
-    >
-      <DialogContent className="sm:max-w-md bg-slate-200 dark:bg-slate-600">
+    <Dialog open={isRenameModalOpen} onOpenChange={handleClose}>
+      <ModalContent>
         <DialogHeader>
           <DialogTitle className="pb-2">File Update</DialogTitle>
 
           <DialogDescription>Filename</DialogDescription>
           <Input
-            id="link"
-            defaultValue={filename}
+            id="filename"
+            value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDownCapture={(e) => {
+            onKeyDown={(e) => {
               if (e.key === "Enter") renameFile();
             }}
           />
@@ -81,23 +84,24 @@ export function RenameModal() {
           <Button
             size="sm"
             className="px-3 flex-1"
-            variant={"ghost"}
-            onClick={() => setIsRenameModalOpen(false)}
+            variant="ghost"
+            onClick={handleClose}
           >
             <span className="sr-only">Cancel</span>
             <span>Cancel</span>
           </Button>
           <Button
             type="submit"
-            size={"sm"}
+            size="sm"
             className="px-3 flex-1"
-            onClick={() => renameFile()}
+            onClick={renameFile}
+            disabled={!input.trim()}
           >
             <span className="sr-only">Update</span>
             <span>Update</span>
           </Button>
         </DialogFooter>
-      </DialogContent>
+      </ModalContent>
     </Dialog>
   );
 }

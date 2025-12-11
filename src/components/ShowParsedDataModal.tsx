@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/firebase";
 import { useUser } from "@clerk/nextjs";
 
 import { Button } from "@/components/ui/button";
@@ -17,15 +15,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { useModalStore } from "@/zustand/useModalStore";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
-import Spinner from "./common/spinner";
 import { Chunk, Element } from "@/types/types";
 import { generateSummary } from "@/actions/generateSummary";
 import useProfileStore from "@/zustand/useProfileStore";
 import { getCreditCost } from "@/constants/credits";
-import { LoaderCircleIcon } from "lucide-react";
 import { downloadUnstructuredFile } from "@/actions/unstructuredActions";
 import { useDocument } from "@/hooks/useDocument";
 import { logger } from "@/lib/logger";
+import { fileService } from "@/services/fileService";
+import { LoadingState } from "./common/LoadingState";
 
 export function ShowParsedDataModal() {
   const { user } = useUser();
@@ -89,9 +87,7 @@ export function ShowParsedDataModal() {
   const updateRecord = useCallback(
     async (docId: string, summaryText: string | undefined) => {
       if (!user) return;
-      await updateDoc(doc(db, "users", user.id, "files", docId), {
-        summary: summaryText ?? null,
-      });
+      await fileService.updateSummary(user.id, docId, summaryText ?? null);
     },
     [user]
   );
@@ -266,10 +262,7 @@ export function ShowParsedDataModal() {
           <div className="overflow-auto h-[70vh] p-4 bg-gray-50 rounded-lg w-full">
             <TabsContent value="raw" className="w-full h-[98%]">
               {isDataLoading ? (
-                <div className="flex flex-col justify-center items-center h-full">
-                  <LoaderCircleIcon size={48} className="animate-spin" />
-                  <small>Loading Raw Data...</small>
-                </div>
+                <LoadingState message="Loading Raw Data..." />
               ) : (
                 <pre className="whitespace-pre-wrap text-sm text-gray-800 w-full">
                   {unstructuredFileData}
@@ -278,9 +271,7 @@ export function ShowParsedDataModal() {
             </TabsContent>
             <TabsContent value="readable" className="text-gray-800">
               {loading ? (
-                <div className="flex justify-center">
-                  <Spinner size="50" />
-                </div>
+                <LoadingState message="Processing..." size={40} />
               ) : (
                 <div className="bg-gray-100 p-4 rounded-lg">
                   {extractReadableText(
@@ -291,7 +282,7 @@ export function ShowParsedDataModal() {
             </TabsContent>
             <TabsContent value="summary" className="text-gray-800">
               {loading ? (
-                <Spinner size="50" />
+                <LoadingState message="Generating summary..." size={40} />
               ) : (
                 summary || fileSummary?.summary || "Can't display anything yet."
               )}

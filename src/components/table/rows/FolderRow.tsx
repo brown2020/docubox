@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { FileType } from "@/types/filetype";
 import { Row } from "@tanstack/react-table";
 import { Button } from "../../ui/button";
@@ -22,7 +23,7 @@ interface FolderRowProps {
   restoreDeletedFile: (fileId: string) => Promise<void>;
 }
 
-export function FolderRow({
+export const FolderRow = memo(function FolderRow({
   row,
   folderData,
   isTrashView,
@@ -74,4 +75,4 @@ export function FolderRow({
       </TableCell>
     </Folder>
   );
-}
+});

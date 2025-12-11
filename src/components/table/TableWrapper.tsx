@@ -6,7 +6,13 @@ import { Button } from "../ui/button";
 import { DataTable } from "./DataTable";
 import { columns } from "./columns";
 import { useUser } from "@clerk/nextjs";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   collection,
   doc,
@@ -31,7 +37,8 @@ export default function TableWrapper() {
   const { user } = useUser();
   const [initialFiles, setInitialFiles] = useState<FileType[]>([]);
   const [sort, setSort] = useState<"asc" | "desc">("desc");
-  const [input, setInput] = useState<string>("");
+  const [searchInput, setSearchInput] = useState<string>("");
+  const deferredSearchInput = useDeferredValue(searchInput);
   const [view, setView] = useState<"grid" | "list">("list");
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -98,14 +105,13 @@ export default function TableWrapper() {
     // Filter files by folderId
     files = files.filter((file) => file.folderId === folderId);
 
-    // If input exists, filter by tags
-    if (input) {
+    // If search input exists, filter by tags (using deferred value for performance)
+    if (deferredSearchInput) {
+      const searchLower = deferredSearchInput.toLowerCase();
       files = files.filter(
         (file) =>
           Array.isArray(file.tags) &&
-          file.tags.some((tag) =>
-            tag.toLowerCase().includes(input.toLowerCase())
-          )
+          file.tags.some((tag) => tag.toLowerCase().includes(searchLower))
       );
     }
 
@@ -116,7 +122,7 @@ export default function TableWrapper() {
       }
       return file;
     });
-  }, [input, initialFiles, folderId, folderSizes]);
+  }, [deferredSearchInput, initialFiles, folderId, folderSizes]);
 
   useEffect(() => {
     if (!docs) return;
@@ -196,7 +202,8 @@ export default function TableWrapper() {
           <Input
             className="w-64"
             placeholder="Search tags"
-            onChange={(e) => setInput(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
           <Button
             variant={"outline"}

@@ -17,13 +17,13 @@ export type FileType = {
   /** File size in bytes (calculated for folders) */
   size: number;
   /** Parsed content from Unstructured API */
-  unstructuredFile: string;
+  unstructuredFile: string | string[] | null;
   /** AI-generated summary */
   summary: string;
   /** User-defined tags for filtering */
   tags: string[];
   /** Parent folder ID (null for root level) */
-  folderId?: string;
+  folderId: string | null;
   /** Soft delete timestamp (null if not deleted) */
   deletedAt: Date | null;
   /** Whether file has been uploaded to Ragie for RAG */
@@ -52,7 +52,10 @@ export function isFolder(file: FileType): boolean {
  * Type guard to check if a FileType has been parsed.
  */
 export function isParsed(file: FileType): boolean {
-  return !!file.unstructuredFile;
+  const value = file.unstructuredFile;
+  if (!value) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  return value.trim().length > 0;
 }
 
 /**

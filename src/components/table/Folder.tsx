@@ -6,7 +6,6 @@ import {
   Suspense,
   useCallback,
   useEffect,
-  useRef,
 } from "react";
 import { useDrop } from "react-dnd";
 import { TableRow } from "../ui/table";
@@ -31,7 +30,6 @@ export const Folder: FunctionComponent<PropsWithChildren<DustbinProps>> = ({
   hasTableRow = true,
   isTrashItem = false,
 }) => {
-  const dropRef = useRef<HTMLElement>(null);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();

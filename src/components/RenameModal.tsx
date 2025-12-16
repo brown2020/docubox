@@ -22,8 +22,11 @@ export function RenameModal() {
 
   useEffect(() => {
     if (isOpen && fileId) {
-      setInput(filename);
-      setTags(tagsList);
+      // Defer updates to avoid synchronous setState inside effects (React Compiler rule).
+      queueMicrotask(() => {
+        setInput(filename);
+        setTags(tagsList);
+      });
     }
   }, [isOpen, fileId, filename, tagsList]);
 

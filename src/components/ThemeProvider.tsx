@@ -8,7 +8,8 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    setIsHydrated(true);
+    // Defer to avoid synchronous setState inside effects (React Compiler rule).
+    queueMicrotask(() => setIsHydrated(true));
   }, []);
 
   // Prevent rendering until hydration to avoid mismatches

@@ -46,12 +46,17 @@ export function useFileModals() {
   );
 
   const openParseDataViewModal = useCallback(
-    async (docId: string, filedataUrl: string, summary: string) => {
+    async (
+      docId: string,
+      filedataUrl: string | string[] | null,
+      summary: string
+    ) => {
       // Update file selection store for backwards compatibility
       setFileId(docId);
       // Open modal immediately
       open("parseData", { fileId: docId, summary });
       // Fetch data async and update
+      if (!filedataUrl) return;
       const data = await downloadUnstructuredFile(filedataUrl);
       setUnstructuredFileData(data);
       setFileSummary({ docId, summary });

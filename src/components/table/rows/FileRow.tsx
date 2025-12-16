@@ -85,7 +85,7 @@ export const FileRow = memo(function FileRow({
                 openParseDataViewModal(
                   fileData.docId,
                   fileData.unstructuredFile,
-                  fileData.summary
+                  fileData.summary ?? ""
                 )
               }
               disabled={!hasParsedData}

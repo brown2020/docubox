@@ -4,7 +4,6 @@ import { deleteFileFromRagie } from "@/actions/ragieActions";
 import {
   useModalStore,
   useIsModalOpen,
-  useModalData,
 } from "@/zustand/useModalStore";
 import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { useUser } from "@clerk/nextjs";
@@ -22,7 +21,6 @@ export function DeleteModal() {
 
   const isOpen = useIsModalOpen("delete");
   const close = useModalStore((s) => s.close);
-  const modalData = useModalData();
 
   const {
     fileId,
@@ -30,7 +28,6 @@ export function DeleteModal() {
     folderId: parentFolderId,
     setFolderId,
     isFolder,
-    filename,
   } = useFileSelectionStore();
 
   const itemType = isFolder ? "Folder" : "File";
@@ -43,25 +40,20 @@ export function DeleteModal() {
     try {
       if (isFolder) {
         await fileService.deleteFolderRecursive(user.id, fileId);
+        await fileService.deleteFileDocument(user.id, fileId);
       } else {
         const fileData = await fileService.getFile(user.id, fileId);
         if (fileData) {
           if (fileData.ragieFileId) {
             await deleteFileFromRagie(fileData.ragieFileId);
           }
-          await fileService.deleteFromStorage(
-            user.id,
-            fileId,
-            fileData.filename
-          );
+          await fileService.permanentDelete(user.id, fileId, fileData.filename);
         }
       }
 
       if (parentFolderId) {
         setFolderId(null);
       }
-
-      await fileService.permanentDelete(user.id, fileId, filename);
 
       toast.success(`${itemType} deleted successfully!`, { id: toastId });
       close();

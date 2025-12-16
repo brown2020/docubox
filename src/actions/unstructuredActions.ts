@@ -39,14 +39,25 @@ const uploadUnstructuredFile = async (
 };
 
 // Function to download a file
-const downloadUnstructuredFile = async (fileUrl: string) => {
+const downloadUnstructuredFile = async (fileUrl: string | string[]) => {
   try {
-    const response = await fetch(fileUrl);
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-    const data = await response.json();
-    return JSON.stringify(data, null, 2);
+    const urls = Array.isArray(fileUrl) ? fileUrl : [fileUrl];
+    if (urls.length === 0) throw new Error("No unstructured file URL(s)");
+
+    const responses = await Promise.all(
+      urls.map(async (url) => {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Network response was not ok (${response.status})`);
+        }
+        return response.json();
+      })
+    );
+
+    // If we have multiple chunk files, return a JSON array of chunks.
+    // If we have a single file, keep the legacy shape (stringified object).
+    const payload = responses.length === 1 ? responses[0] : responses;
+    return JSON.stringify(payload, null, 2);
   } catch (error) {
     logger.error("unstructuredActions", "Error downloading file", error);
     throw new Error("File download failed");

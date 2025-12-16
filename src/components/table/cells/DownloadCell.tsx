@@ -25,3 +25,4 @@ export const DownloadCell = memo(function DownloadCell({
     </TableCell>
   );
 });
+

@@ -32,3 +32,4 @@ export function getCreditCost(apiType: APIType): number {
 
   return CREDIT_COSTS[apiType];
 }
+

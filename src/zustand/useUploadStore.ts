@@ -64,3 +64,4 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
   setOnFileAddedCallback: (callback) => set({ onFileAddedCallback: callback }),
 }));
 
+

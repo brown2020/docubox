@@ -10,7 +10,8 @@ export function useIsMounted(): boolean {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    // Defer to avoid synchronous setState inside effects (React Compiler rule).
+    queueMicrotask(() => setIsMounted(true));
   }, []);
 
   return isMounted;

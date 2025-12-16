@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useDeferredValue, useState } from "react";
-import { useUser, useAuth } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { usePathname } from "next/navigation";
@@ -24,7 +24,6 @@ import { useModalStore } from "@/zustand/useModalStore";
  * Uses extracted hooks for cleaner separation of concerns.
  */
 export default function TableWrapper() {
-  const { user } = useUser();
   const { isLoaded, isSignedIn } = useAuth();
   const pathname = usePathname();
   const [sort, setSort] = useState<"asc" | "desc">("desc");
@@ -35,7 +34,7 @@ export default function TableWrapper() {
   const isTrashPageActive = pathname.includes("trash");
 
   // Use extracted hooks
-  const { folderId, canGoBack, goBack } = useFolderNavigation([]);
+  const { folderId, canGoBack } = useFolderNavigation([]);
   const { files, allFiles, isLoading } = useFilesList({
     isTrashView: isTrashPageActive,
     sort,
@@ -44,7 +43,7 @@ export default function TableWrapper() {
   });
 
   // Update navigation with allFiles for goBack
-  const { goBack: goBackWithFiles } = useFolderNavigation(allFiles);
+  const { goBack } = useFolderNavigation(allFiles);
 
   const open = useModalStore((s) => s.open);
 
@@ -98,7 +97,7 @@ export default function TableWrapper() {
           <>
             {canGoBack && (
               <ChevronLeft
-                onClick={goBackWithFiles}
+                onClick={goBack}
                 className="cursor-pointer"
               />
             )}

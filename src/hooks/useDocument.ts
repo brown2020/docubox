@@ -5,6 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { FileType } from "@/types/filetype";
 import { logger } from "@/lib/logger";
+import { mapFirestoreFileDataToFileType } from "@/utils/mapFirestoreDoc";
 
 interface UseDocumentOptions {
   /** Whether to fetch immediately on mount. Defaults to true. */
@@ -56,8 +57,8 @@ export function useDocument(
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
-        const data = docSnap.data() as FileType;
-        setDocument(data);
+        const mapped = mapFirestoreFileDataToFileType(docSnap.id, docSnap.data());
+        setDocument(mapped);
         logger.debug("useDocument", { fileId, success: true });
       } else {
         setDocument(null);

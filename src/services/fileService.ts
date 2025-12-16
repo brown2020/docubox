@@ -284,9 +284,18 @@ export const fileService = {
     fileId: string,
     filename: string
   ): Promise<void> {
-    await this.deleteFromStorage(userId, fileId, filename);
+    await fileService.deleteFromStorage(userId, fileId, filename);
     await deleteDoc(doc(db, "users", userId, "files", fileId));
     logger.debug("fileService", { action: "permanentDelete", fileId });
+  },
+
+  /**
+   * Permanently delete only the Firestore document (no storage operations).
+   * Useful for folder documents which don't have a backing storage object.
+   */
+  async deleteFileDocument(userId: string, fileId: string): Promise<void> {
+    await deleteDoc(doc(db, "users", userId, "files", fileId));
+    logger.debug("fileService", { action: "deleteFileDocument", fileId });
   },
 
   /**
@@ -300,10 +309,10 @@ export const fileService = {
     const deletePromises = querySnapshot.docs.map(async (document) => {
       const data = document.data();
       if (data.type === "folder") {
-        await this.deleteFolderRecursive(userId, document.id);
+        await fileService.deleteFolderRecursive(userId, document.id);
         await deleteDoc(doc(db, "users", userId, "files", document.id));
       } else {
-        await this.deleteFromStorage(userId, data.docId, data.filename);
+        await fileService.deleteFromStorage(userId, data.docId, data.filename);
         await deleteDoc(doc(db, "users", userId, "files", data.docId));
       }
     });

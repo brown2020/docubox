@@ -57,7 +57,8 @@ export function useFilesList({
   useEffect(() => {
     if (!docs) return;
     const files = mapDocsToFileTypes(docs.docs);
-    setAllFiles(files);
+    // Defer updates to avoid synchronous setState inside effects (React Compiler rule).
+    queueMicrotask(() => setAllFiles(files));
   }, [docs]);
 
   // Calculate folder sizes

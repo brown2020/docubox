@@ -18,7 +18,11 @@ import { FileTypeIcon } from "@/components/common/FileTypeIcon";
 type Props = {
   data: FileType;
   openRenameModal: (fileId: string, filename: string, tags: string[]) => void;
-  openViewModal: (docId: string, filedata: string, summary: string) => void;
+  openViewModal: (
+    docId: string,
+    filedata: string | string[] | null,
+    summary: string
+  ) => void;
   openDeleteModal: () => void;
 };
 
@@ -45,7 +49,7 @@ export const Card = memo(function Card({
                     openViewModal(
                       data.docId,
                       data.unstructuredFile,
-                      data.summary
+                      data.summary ?? ""
                     )
                   }
                 >

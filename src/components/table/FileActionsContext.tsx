@@ -16,7 +16,7 @@ interface FileActionsContextValue {
   ) => void;
   openParseDataViewModal: (
     docId: string,
-    filedataUrl: string,
+    filedataUrl: string | string[] | null,
     summary: string
   ) => Promise<void>;
   openQuestionAnswerModal: (fileId: string) => void;

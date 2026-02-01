@@ -57,11 +57,9 @@ export function LoginForm() {
       : null;
     if (redirectPath) {
       sessionStorage.removeItem("redirectAfterSignIn");
-      // Use replace to avoid back-button issues
       router.replace(redirectPath);
     } else {
-      // Use window.location for a full page navigation to ensure cookies are sent
-      window.location.href = "/dashboard";
+      router.replace("/dashboard");
     }
   }, [router]);
 
@@ -84,16 +82,25 @@ export function LoginForm() {
     }
   }, [completeMagicLinkSignIn, redirectAfterSignIn]);
 
-  // Redirect if already signed in (using useEffect to avoid setState during render)
-  useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      redirectAfterSignIn();
-    }
-  }, [isLoaded, isSignedIn, redirectAfterSignIn]);
-
-  // Show loading while checking auth or if already signed in (will redirect)
-  if (!isLoaded || isSignedIn) {
+  // Show loading while auth is initializing
+  if (!isLoaded) {
     return <LoadingState message="Loading..." />;
+  }
+
+  // If already signed in, show a button to go to dashboard
+  // Note: The proxy middleware should redirect authenticated users from /login,
+  // but if that doesn't happen, we show this fallback UI
+  if (isSignedIn) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardContent className="pt-6 text-center">
+          <p className="mb-4">You are already signed in.</p>
+          <Button onClick={() => router.replace("/dashboard")}>
+            Go to Dashboard
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   async function handleGoogleSignIn() {

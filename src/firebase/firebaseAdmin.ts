@@ -4,33 +4,34 @@ import { getApps } from "firebase-admin/app";
 /**
  * Initialize Firebase Admin lazily to avoid build-time errors
  * when environment variables are not available.
+ *
+ * Only 3 credentials are required:
+ * - FIREBASE_PROJECT_ID
+ * - FIREBASE_PRIVATE_KEY
+ * - FIREBASE_CLIENT_EMAIL
  */
 function initializeAdmin() {
   if (getApps().length > 0) {
     return;
   }
 
+  const projectId = process.env.FIREBASE_PROJECT_ID;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-  if (!privateKey) {
-    console.warn("Firebase Admin: FIREBASE_PRIVATE_KEY not set, skipping initialization");
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+
+  if (!projectId || !privateKey || !clientEmail) {
+    console.warn(
+      "Firebase Admin: Missing required credentials. Need FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL"
+    );
     return;
   }
 
-  const adminCredentials = {
-    type: process.env.FIREBASE_TYPE,
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    privateKeyId: process.env.FIREBASE_PRIVATE_KEY_ID,
-    privateKey: privateKey.replace(/\\n/g, "\n"),
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    clientId: process.env.FIREBASE_CLIENT_ID,
-    authUri: process.env.FIREBASE_AUTH_URI,
-    tokenUri: process.env.FIREBASE_TOKEN_URI,
-    authProviderX509CertUrl: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
-    clientCertsUrl: process.env.FIREBASE_CLIENT_CERTS_URL,
-  };
-
   admin.initializeApp({
-    credential: admin.credential.cert(adminCredentials),
+    credential: admin.credential.cert({
+      projectId,
+      privateKey: privateKey.replace(/\\n/g, "\n"),
+      clientEmail,
+    }),
     storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGEBUCKET,
   });
 }

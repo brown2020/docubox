@@ -24,6 +24,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if Firebase Admin is initialized
+    if (!process.env.FIREBASE_PRIVATE_KEY) {
+      logger.error("SessionAPI", "Firebase Admin not configured - FIREBASE_PRIVATE_KEY missing");
+      return NextResponse.json(
+        { error: "Server configuration error", details: "Firebase Admin not configured" },
+        { status: 500 }
+      );
+    }
+
     // Verify the ID token
     const decodedToken = await adminAuth.verifyIdToken(idToken);
 
@@ -47,9 +56,11 @@ export async function POST(request: NextRequest) {
       userId: decodedToken.uid,
     });
   } catch (error) {
-    logger.error("SessionAPI", "Failed to create session", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorCode = (error as { code?: string })?.code;
+    logger.error("SessionAPI", "Failed to create session", { message: errorMessage, code: errorCode });
     return NextResponse.json(
-      { error: "Failed to create session" },
+      { error: "Failed to create session", details: errorMessage, code: errorCode },
       { status: 401 }
     );
   }

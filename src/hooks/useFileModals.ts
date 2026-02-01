@@ -2,77 +2,67 @@
 
 import { useCallback } from "react";
 import { useModalStore } from "@/zustand/useModalStore";
-import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { downloadUnstructuredFile } from "@/actions/unstructuredActions";
 
 /**
  * Custom hook that provides modal handler functions for file operations.
- * Uses the new generic modal pattern with modalData.
+ * Uses the modal store as the single source of truth for all modal data.
+ * All data is passed atomically via modalData to prevent race conditions.
  */
 export function useFileModals() {
   const { open, updateData } = useModalStore();
-  const {
-    setFileId,
-    setFilename,
-    setTags,
-    setUnstructuredFileData,
-    setFileSummary,
-    setFolderId,
-    setIsFolder,
-  } = useFileSelectionStore();
 
+  /**
+   * Opens the delete modal with file/folder information.
+   * All data is passed atomically in a single store update.
+   */
   const openDeleteModal = useCallback(
     (fileId: string, folderId: string | null = null, isFolder = false) => {
-      // Update file selection store for backwards compatibility
-      setFileId(fileId);
-      setFolderId(folderId);
-      setIsFolder(isFolder);
-      // Open modal with data
       open("delete", { fileId, folderId, isFolder });
     },
-    [setFileId, setFolderId, setIsFolder, open]
+    [open]
   );
 
+  /**
+   * Opens the rename modal with file information.
+   * All data is passed atomically in a single store update.
+   */
   const openRenameModal = useCallback(
     (fileId: string, filename: string, tags: string[] = []) => {
-      // Update file selection store for backwards compatibility
-      setFileId(fileId);
-      setFilename(filename);
-      setTags(tags);
-      // Open modal with data
       open("rename", { fileId, filename, tags });
     },
-    [setFileId, setFilename, setTags, open]
+    [open]
   );
 
+  /**
+   * Opens the parse data view modal.
+   * Opens immediately with summary, then fetches unstructured data async.
+   */
   const openParseDataViewModal = useCallback(
     async (
       docId: string,
       filedataUrl: string | string[] | null,
       summary: string
     ) => {
-      // Update file selection store for backwards compatibility
-      setFileId(docId);
-      // Open modal immediately
+      // Open modal immediately with available data
       open("parseData", { fileId: docId, summary });
-      // Fetch data async and update
+
+      // Fetch unstructured data async and update modal data
       if (!filedataUrl) return;
       const data = await downloadUnstructuredFile(filedataUrl);
-      setUnstructuredFileData(data);
-      setFileSummary({ docId, summary });
       updateData({ unstructuredFileData: data });
     },
-    [setFileId, setUnstructuredFileData, setFileSummary, open, updateData]
+    [open, updateData]
   );
 
+  /**
+   * Opens the question/answer modal for a file.
+   */
   const openQuestionAnswerModal = useCallback(
     (fileId: string) => {
-      // Update file selection store for backwards compatibility
-      setFileId(fileId);
-      // Open modal with data
       open("questionAnswer", { fileId });
     },
-    [setFileId, open]
+    [open]
   );
 
   return {

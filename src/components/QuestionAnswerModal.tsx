@@ -9,8 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useModalStore, useIsModalOpen } from "@/zustand/useModalStore";
-import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
+import {
+  useModalStore,
+  useIsModalOpen,
+  useQuestionAnswerModalData,
+} from "@/zustand/useModalStore";
 import { LoadingState } from "./common/LoadingState";
 
 // Dynamic import for heavy Chat component with markdown rendering
@@ -25,7 +28,9 @@ const Chat = dynamic(
 export const QuestionAnswerModal = () => {
   const isOpen = useIsModalOpen("questionAnswer");
   const close = useModalStore((s) => s.close);
-  const { fileId } = useFileSelectionStore();
+
+  // Read data from modal store (single source of truth)
+  const { fileId } = useQuestionAnswerModalData();
 
   if (!fileId) return null;
 

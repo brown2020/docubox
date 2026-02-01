@@ -44,10 +44,15 @@ interface AuthState {
 
 export interface ProfileState {
   profile: ProfileType;
+  isLoading: boolean;
+  error: string | null;
   fetchProfile: () => Promise<void>;
-  updateProfile: (newProfile: Partial<ProfileType>) => Promise<void>;
-  addCredits: (amount: number) => Promise<void>;
-  minusCredits: (amount: number) => Promise<boolean>;
+  updateProfile: (
+    newProfile: Partial<ProfileType>,
+    onError?: (error: Error) => void
+  ) => Promise<void>;
+  addCredits: (amount: number, onError?: (error: Error) => void) => Promise<void>;
+  minusCredits: (amount: number, onError?: (error: Error) => void) => Promise<boolean>;
 }
 
 /**
@@ -80,12 +85,16 @@ function getProfileRef(uid: string) {
 
 const useProfileStore = create<ProfileState>((set, get) => ({
   profile: defaultProfile,
+  isLoading: false,
+  error: null,
 
   fetchProfile: async () => {
     const { uid, authEmail, authDisplayName, authPhotoUrl, authEmailVerified } =
       useAuthStore.getState();
 
     if (!uid) return;
+
+    set({ isLoading: true, error: null });
 
     try {
       const userRef = getProfileRef(uid);
@@ -117,71 +126,102 @@ const useProfileStore = create<ProfileState>((set, get) => ({
       }
 
       await setDoc(userRef, newProfile);
-      set({ profile: newProfile });
+      set({ profile: newProfile, isLoading: false });
     } catch (error) {
       logger.error("useProfileStore", "Error fetching profile", error);
+      set({
+        isLoading: false,
+        error: error instanceof Error ? error.message : "Failed to fetch profile",
+      });
     }
   },
 
-  updateProfile: async (newProfile: Partial<ProfileType>) => {
+  updateProfile: async (newProfile: Partial<ProfileType>, onError?: (error: Error) => void) => {
     const uid = useAuthStore.getState().uid;
     if (!uid) return;
 
+    const previousProfile = get().profile;
+
     try {
       const userRef = getProfileRef(uid);
-      const updatedProfile = { ...get().profile, ...newProfile };
+      const updatedProfile = { ...previousProfile, ...newProfile };
 
       // Optimistic update
-      set({ profile: updatedProfile });
+      set({ profile: updatedProfile, error: null });
       await updateDoc(userRef, updatedProfile);
     } catch (error) {
       logger.error("useProfileStore", "Error updating profile", error);
-      // Revert on error - could refetch profile here
+
+      // Revert to previous state
+      set({ profile: previousProfile });
+
+      // Refetch to ensure consistency with server
+      await get().fetchProfile();
+
+      // Notify caller of error
+      const err = error instanceof Error ? error : new Error("Failed to update profile");
+      onError?.(err);
     }
   },
 
-  addCredits: async (amount: number) => {
+  addCredits: async (amount: number, onError?: (error: Error) => void) => {
     const uid = useAuthStore.getState().uid;
     if (!uid || amount <= 0) return;
 
-    const profile = get().profile;
-    const newCredits = profile.credits + amount;
+    const previousProfile = get().profile;
+    const newCredits = previousProfile.credits + amount;
 
     try {
       const userRef = getProfileRef(uid);
 
       // Optimistic update
-      set({ profile: { ...profile, credits: newCredits } });
+      set({ profile: { ...previousProfile, credits: newCredits }, error: null });
       await updateDoc(userRef, { credits: newCredits });
     } catch (error) {
       logger.error("useProfileStore", "Error adding credits", error);
-      // Revert on error
-      set({ profile });
+
+      // Revert to previous state
+      set({ profile: previousProfile });
+
+      // Refetch to ensure consistency
+      await get().fetchProfile();
+
+      // Notify caller of error
+      const err = error instanceof Error ? error : new Error("Failed to add credits");
+      onError?.(err);
     }
   },
 
-  minusCredits: async (amount: number) => {
+  minusCredits: async (amount: number, onError?: (error: Error) => void) => {
     const uid = useAuthStore.getState().uid;
     if (!uid || amount <= 0) return false;
 
-    const profile = get().profile;
-    if (profile.credits < amount) {
+    const previousProfile = get().profile;
+    if (previousProfile.credits < amount) {
       return false;
     }
 
-    const newCredits = profile.credits - amount;
+    const newCredits = previousProfile.credits - amount;
 
     try {
       const userRef = getProfileRef(uid);
 
       // Optimistic update
-      set({ profile: { ...profile, credits: newCredits } });
+      set({ profile: { ...previousProfile, credits: newCredits }, error: null });
       await updateDoc(userRef, { credits: newCredits });
       return true;
     } catch (error) {
       logger.error("useProfileStore", "Error deducting credits", error);
-      // Revert on error
-      set({ profile });
+
+      // Revert to previous state
+      set({ profile: previousProfile });
+
+      // Refetch to ensure consistency
+      await get().fetchProfile();
+
+      // Notify caller of error
+      const err = error instanceof Error ? error : new Error("Failed to deduct credits");
+      onError?.(err);
       return false;
     }
   },

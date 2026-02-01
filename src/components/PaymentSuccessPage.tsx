@@ -4,7 +4,7 @@ import { useAuthStore } from "@/zustand/useAuthStore";
 import { usePaymentsStore } from "@/zustand/usePaymentsStore";
 import useProfileStore from "@/zustand/useProfileStore";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { validatePaymentIntent } from "@/actions/paymentActions";
 import { logger } from "@/lib/logger";
 import { LoadingState } from "./common/LoadingState";
@@ -33,6 +33,16 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
   const addCredits = useProfileStore((state) => state.addCredits);
   const uid = useAuthStore((state) => state.uid);
 
+  // Track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     if (!payment_intent) {
       setMessage("No payment intent found");
@@ -44,8 +54,14 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
       try {
         const data = await validatePaymentIntent(payment_intent);
 
+        // Check if component is still mounted before updating state
+        if (!isMountedRef.current) return;
+
         if (data.status === "succeeded") {
           const existingPayment = await checkIfPaymentProcessed(data.id);
+
+          if (!isMountedRef.current) return;
+
           if (existingPayment) {
             setMessage("Payment has already been processed.");
             setPaymentData({
@@ -72,16 +88,21 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
             status: data.status,
           });
 
+          if (!isMountedRef.current) return;
+
           const creditsToAdd = data.amount + 1;
           await addCredits(creditsToAdd);
         } else {
           setMessage("Payment validation failed");
         }
       } catch (error) {
+        if (!isMountedRef.current) return;
         logger.error("PaymentSuccessPage", "Error handling payment", error);
         setMessage("Error handling payment success");
       } finally {
-        setLoading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       }
     };
 

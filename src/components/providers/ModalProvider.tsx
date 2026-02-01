@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useModalStore } from "@/zustand/useModalStore";
 import { LoadingState } from "@/components/common/LoadingState";
@@ -48,9 +50,21 @@ const AddNewFolderModal = dynamic(
 /**
  * Centralized modal provider with lazy loading.
  * Modals only render when their type is active.
+ * Automatically closes modals on route changes to prevent stale state.
  */
 export function ModalProvider() {
   const openModal = useModalStore((state) => state.openModal);
+  const close = useModalStore((state) => state.close);
+  const pathname = usePathname();
+
+  // Close any open modal when route changes to prevent stale modal state
+  useEffect(() => {
+    if (openModal) {
+      close();
+    }
+    // Only run when pathname changes, not when openModal changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return (
     <>

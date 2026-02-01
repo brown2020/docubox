@@ -12,18 +12,56 @@ export type ModalType =
   | null;
 
 /**
- * Modal data that can be passed when opening a modal.
+ * Type-safe modal data for delete modal.
  */
-export interface ModalData {
-  fileId?: string;
-  filename?: string;
+export interface DeleteModalData {
+  fileId: string;
   folderId?: string | null;
   isFolder?: boolean;
-  tags?: string[];
-  unstructuredFileData?: string;
-  summary?: string;
-  [key: string]: unknown;
 }
+
+/**
+ * Type-safe modal data for rename modal.
+ */
+export interface RenameModalData {
+  fileId: string;
+  filename: string;
+  tags?: string[];
+}
+
+/**
+ * Type-safe modal data for parse data modal.
+ */
+export interface ParseDataModalData {
+  fileId: string;
+  summary?: string;
+  unstructuredFileData?: string;
+}
+
+/**
+ * Type-safe modal data for question answer modal.
+ */
+export interface QuestionAnswerModalData {
+  fileId: string;
+}
+
+/**
+ * Type-safe modal data for create folder modal.
+ */
+export interface CreateFolderModalData {
+  parentFolderId?: string | null;
+}
+
+/**
+ * Union of all modal data types for type safety.
+ */
+export type ModalData =
+  | DeleteModalData
+  | RenameModalData
+  | ParseDataModalData
+  | QuestionAnswerModalData
+  | CreateFolderModalData
+  | Record<string, unknown>;
 
 /**
  * Lean modal store - single source of truth for modal state.
@@ -58,4 +96,32 @@ export function useIsModalOpen(modalType: ModalType) {
  */
 export function useModalData<T extends ModalData>() {
   return useModalStore((state) => state.modalData as T);
+}
+
+/**
+ * Type-safe selector for delete modal data.
+ */
+export function useDeleteModalData() {
+  return useModalStore((state) => state.modalData as DeleteModalData);
+}
+
+/**
+ * Type-safe selector for rename modal data.
+ */
+export function useRenameModalData() {
+  return useModalStore((state) => state.modalData as RenameModalData);
+}
+
+/**
+ * Type-safe selector for parse data modal data.
+ */
+export function useParseDataModalData() {
+  return useModalStore((state) => state.modalData as ParseDataModalData);
+}
+
+/**
+ * Type-safe selector for question answer modal data.
+ */
+export function useQuestionAnswerModalData() {
+  return useModalStore((state) => state.modalData as QuestionAnswerModalData);
 }

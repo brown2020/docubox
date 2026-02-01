@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -32,6 +32,16 @@ export default function FileUploadModal() {
 
   const { user } = useUser();
 
+  // Track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     if (!user?.id) return;
 
@@ -41,12 +51,19 @@ export default function FileUploadModal() {
 
         const handleParseFile = async (apiKey: string) => {
           data = await parseFile(newFile.downloadUrl, newFile.fileName, apiKey);
+
+          // Check if still mounted before continuing
+          if (!isMountedRef.current) return;
+
           await uploadUnstructuredFile(
             data,
             user.id,
             newFile.fileName,
             newFile.fileId
           );
+
+          if (!isMountedRef.current) return;
+
           setUnstructuredFileData(JSON.stringify(data, null, 2));
           removeUploadingFile(newFile.fileId);
         };
@@ -57,6 +74,8 @@ export default function FileUploadModal() {
           handleParseFile
         );
       } catch (error) {
+        if (!isMountedRef.current) return;
+
         removeUploadingFile(newFile.fileId);
         if (error instanceof Error) {
           toast.error(error.message);

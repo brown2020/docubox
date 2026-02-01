@@ -9,7 +9,7 @@ import {
 } from "firebase/auth";
 import { serverTimestamp, Timestamp } from "firebase/firestore";
 import { auth } from "@/firebase";
-import { useAuthStore } from "@/zustand/useAuthStore";
+import { useAuthStore, syncAuthToFirestore } from "@/zustand/useAuthStore";
 import { logger } from "@/lib/logger";
 
 /**
@@ -41,7 +41,7 @@ export function useFirebaseAuthSync() {
             photoURL: user.imageUrl,
           });
 
-          setAuthDetails({
+          const authDetails = {
             uid: user.id,
             firebaseUid: userCredentials.user.uid,
             authEmail: user.emailAddresses[0]?.emailAddress || "",
@@ -49,6 +49,14 @@ export function useFirebaseAuthSync() {
             authPhotoUrl: user.imageUrl,
             authReady: true,
             lastSignIn: serverTimestamp() as Timestamp,
+          };
+
+          // Update local Zustand state
+          setAuthDetails(authDetails);
+
+          // Persist auth state to Firestore (non-blocking)
+          syncAuthToFirestore(authDetails, user.id).catch((error) => {
+            logger.error("useFirebaseAuthSync", "Failed to sync to Firestore", error);
           });
         } catch (error) {
           logger.error("useFirebaseAuthSync", "Error signing in", error);

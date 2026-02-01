@@ -1,7 +1,10 @@
 "use client";
 
-import { useModalStore, useIsModalOpen } from "@/zustand/useModalStore";
-import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
+import {
+  useModalStore,
+  useIsModalOpen,
+  useRenameModalData,
+} from "@/zustand/useModalStore";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { Input } from "./ui/input";
@@ -14,28 +17,30 @@ import { BaseModal, ModalFooterButtons } from "./ui/base-modal";
 export function RenameModal() {
   const { user } = useUser();
   const [input, setInput] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
+  const [localTags, setLocalTags] = useState<string[]>([]);
 
   const isOpen = useIsModalOpen("rename");
   const close = useModalStore((s) => s.close);
-  const { fileId, filename, tags: tagsList } = useFileSelectionStore();
+
+  // Read data from modal store (single source of truth)
+  const { fileId, filename, tags } = useRenameModalData();
 
   useEffect(() => {
     if (isOpen && fileId) {
       // Defer updates to avoid synchronous setState inside effects (React Compiler rule).
       queueMicrotask(() => {
-        setInput(filename);
-        setTags(tagsList);
+        setInput(filename || "");
+        setLocalTags(tags || []);
       });
     }
-  }, [isOpen, fileId, filename, tagsList]);
+  }, [isOpen, fileId, filename, tags]);
 
   async function renameFile() {
     if (!user || !fileId || !input.trim()) return;
 
     const toastId = toast.loading("Updating file...");
     try {
-      await fileService.rename(user.id, fileId, input.trim(), tags);
+      await fileService.rename(user.id, fileId, input.trim(), localTags);
       toast.success("File updated successfully!", { id: toastId });
       close();
     } catch (error) {
@@ -46,7 +51,7 @@ export function RenameModal() {
 
   const handleClose = () => {
     setInput("");
-    setTags([]);
+    setLocalTags([]);
     close();
   };
 
@@ -80,7 +85,7 @@ export function RenameModal() {
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium">Tags</label>
-          <TagInput tags={tags} setTags={setTags} />
+          <TagInput tags={localTags} setTags={setLocalTags} />
         </div>
       </div>
     </BaseModal>

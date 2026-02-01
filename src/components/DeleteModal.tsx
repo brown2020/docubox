@@ -4,8 +4,8 @@ import { deleteFileFromRagie } from "@/actions/ragieActions";
 import {
   useModalStore,
   useIsModalOpen,
+  useDeleteModalData,
 } from "@/zustand/useModalStore";
-import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 import toast from "react-hot-toast";
@@ -22,13 +22,8 @@ export function DeleteModal() {
   const isOpen = useIsModalOpen("delete");
   const close = useModalStore((s) => s.close);
 
-  const {
-    fileId,
-    setFileId,
-    folderId: parentFolderId,
-    setFolderId,
-    isFolder,
-  } = useFileSelectionStore();
+  // Read data from modal store (single source of truth)
+  const { fileId, isFolder } = useDeleteModalData();
 
   const itemType = isFolder ? "Folder" : "File";
 
@@ -51,13 +46,8 @@ export function DeleteModal() {
         }
       }
 
-      if (parentFolderId) {
-        setFolderId(null);
-      }
-
       toast.success(`${itemType} deleted successfully!`, { id: toastId });
       close();
-      setFileId("");
     } catch (error) {
       logger.error("DeleteModal", "Error deleting file", error);
       toast.error(`Error deleting ${itemType.toLowerCase()}!`, { id: toastId });

@@ -2,10 +2,19 @@
 
 import Stripe from "stripe";
 import { logger } from "@/lib/logger";
+import { requireAuth } from "@/lib/server-auth";
+
+// Validate Stripe key at startup
+if (!process.env.STRIPE_SECRET_KEY) {
+  logger.error("paymentActions", "STRIPE_SECRET_KEY is not configured");
+}
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
 export async function createPaymentIntent(amount: number) {
+  // Verify authentication before processing payment
+  await requireAuth();
+
   const product = process.env.NEXT_PUBLIC_STRIPE_PRODUCT_NAME;
 
   try {
@@ -26,6 +35,9 @@ export async function createPaymentIntent(amount: number) {
 }
 
 export async function validatePaymentIntent(paymentIntentId: string) {
+  // Verify authentication before validating payment
+  await requireAuth();
+
   try {
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 

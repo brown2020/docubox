@@ -13,8 +13,11 @@ import {
 import { WideModalContent } from "@/components/ui/modal-content";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { useModalStore, useIsModalOpen } from "@/zustand/useModalStore";
-import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
+import {
+  useModalStore,
+  useIsModalOpen,
+  useParseDataModalData,
+} from "@/zustand/useModalStore";
 import { Chunk, Element } from "@/types/types";
 import { generateSummary } from "@/actions/generateSummary";
 import useProfileStore from "@/zustand/useProfileStore";
@@ -28,18 +31,32 @@ import { LoadingState } from "./common/LoadingState";
 export function ShowParsedDataModal() {
   const { user } = useUser();
 
-  // Use new modal pattern
+  // Use new modal pattern - modal store is single source of truth
   const isOpen = useIsModalOpen("parseData");
   const close = useModalStore((s) => s.close);
 
+  // Read data from modal store
   const {
-    unstructuredFileData,
-    setUnstructuredFileData,
-    fileSummary,
     fileId,
-    setFileId,
-    setFileSummary,
-  } = useFileSelectionStore();
+    summary: modalSummary,
+    unstructuredFileData: modalUnstructuredData,
+  } = useParseDataModalData();
+
+  // Local state for unstructured data (can come from modal or fetched)
+  const [unstructuredFileData, setUnstructuredFileData] = useState<string>("");
+  const [fileSummary, setFileSummary] = useState<{ docId: string; summary: string } | undefined>(
+    fileId && modalSummary ? { docId: fileId, summary: modalSummary } : undefined
+  );
+
+  // Sync modal data to local state
+  useEffect(() => {
+    if (modalUnstructuredData) {
+      setUnstructuredFileData(modalUnstructuredData);
+    }
+    if (fileId && modalSummary) {
+      setFileSummary({ docId: fileId, summary: modalSummary });
+    }
+  }, [modalUnstructuredData, fileId, modalSummary]);
 
   // Use custom hook for document fetching
   const { document, isLoading: isDocLoading } = useDocument(user?.id, fileId, {
@@ -226,10 +243,14 @@ export function ShowParsedDataModal() {
   }, [unstructuredFileData]);
 
   const handleClose = () => {
-    close();
-    setFileId(null);
+    // Reset local state
     setUnstructuredFileData("");
     setFileSummary(undefined);
+    setParsedData([]);
+    setSummary("");
+    isAIAlreadyCalled.current = false;
+    // Close modal (which clears modalData)
+    close();
   };
 
   const isDataLoading = isDocLoading || isUnstructuredLoading;

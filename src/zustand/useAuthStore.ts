@@ -61,6 +61,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 /**
  * Syncs auth state to Firestore.
  * Call this externally after auth state changes if you need persistence.
+ * Only syncs fields that are explicitly provided (not undefined).
  */
 export async function syncAuthToFirestore(
   details: Partial<AuthState>,
@@ -70,22 +71,25 @@ export async function syncAuthToFirestore(
 
   const userRef = doc(db, `users/${uid}`);
 
-  // Create a sanitized object for Firestore
-  const sanitizedDetails = {
-    firebaseUid: details.firebaseUid,
-    authEmail: details.authEmail,
-    authDisplayName: details.authDisplayName,
-    authPhotoUrl: details.authPhotoUrl,
-    authEmailVerified: details.authEmailVerified,
-    authReady: details.authReady,
-    authPending: details.authPending,
-    isAdmin: details.isAdmin,
-    isAllowed: details.isAllowed,
-    isInvited: details.isInvited,
-    premium: details.premium,
-    credits: details.credits,
+  // Create a sanitized object for Firestore - only include defined values
+  // Firebase doesn't accept undefined values, so we filter them out
+  const sanitizedDetails: Record<string, unknown> = {
     lastSignIn: serverTimestamp(),
   };
+
+  // Only add fields that are explicitly defined (not undefined)
+  if (details.firebaseUid !== undefined) sanitizedDetails.firebaseUid = details.firebaseUid;
+  if (details.authEmail !== undefined) sanitizedDetails.authEmail = details.authEmail;
+  if (details.authDisplayName !== undefined) sanitizedDetails.authDisplayName = details.authDisplayName;
+  if (details.authPhotoUrl !== undefined) sanitizedDetails.authPhotoUrl = details.authPhotoUrl;
+  if (details.authEmailVerified !== undefined) sanitizedDetails.authEmailVerified = details.authEmailVerified;
+  if (details.authReady !== undefined) sanitizedDetails.authReady = details.authReady;
+  if (details.authPending !== undefined) sanitizedDetails.authPending = details.authPending;
+  if (details.isAdmin !== undefined) sanitizedDetails.isAdmin = details.isAdmin;
+  if (details.isAllowed !== undefined) sanitizedDetails.isAllowed = details.isAllowed;
+  if (details.isInvited !== undefined) sanitizedDetails.isInvited = details.isInvited;
+  if (details.premium !== undefined) sanitizedDetails.premium = details.premium;
+  if (details.credits !== undefined) sanitizedDetails.credits = details.credits;
 
   try {
     await setDoc(userRef, sanitizedDetails, { merge: true });

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useUser, useAuth } from "@clerk/nextjs";
+import { useUser, useAuth } from "@/components/auth";
 import { useCallback, useRef, useState } from "react";
 import DropzoneComponent from "react-dropzone";
 import toast from "react-hot-toast";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useDeferredValue, useState } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from "@/components/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { usePathname } from "next/navigation";

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useMemo, ReactNode } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@/components/auth";
 import { FileType } from "@/types/filetype";
 import { useFileModals } from "@/hooks";
 import { useUploadStore } from "@/zustand/useUploadStore";

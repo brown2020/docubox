@@ -1,10 +1,9 @@
 "use client";
 
-import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { SignedIn, SignedOut, UserMenu, SignInButton } from "@/components/auth";
 import Link from "next/link";
 import { ThemeToggler } from "./ThemeToggler";
 import { Button } from "./ui/button";
-import { SafeSignInButton, SafeUserButton } from "./ClerkClientComponents";
 
 /**
  * Application header component.
@@ -26,10 +25,10 @@ export default function Header() {
         <SignedIn>
           <Link href="/dashboard">Dashboard</Link>
           <Link href="/profile">Profile</Link>
-          <SafeUserButton />
+          <UserMenu />
         </SignedIn>
         <SignedOut>
-          <SafeSignInButton mode="modal" />
+          <SignInButton />
         </SignedOut>
       </div>
     </header>

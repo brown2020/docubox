@@ -5,7 +5,7 @@ import {
   useIsModalOpen,
   useRenameModalData,
 } from "@/zustand/useModalStore";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@/components/auth";
 import { useEffect, useState } from "react";
 import { Input } from "./ui/input";
 import toast from "react-hot-toast";

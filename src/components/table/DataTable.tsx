@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "../ui/table";
 import { FileType, isFolder } from "@/types/filetype";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@/components/auth";
 import { FileRow, FolderRow } from "./rows";
 
 interface DataTableProps<TData, TValue> {

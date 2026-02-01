@@ -3,7 +3,7 @@ import { Card } from "./Card";
 import { FileType, isFolder } from "@/types/filetype";
 import { File } from "../table/File";
 import { Folder } from "../table/Folder";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@/components/auth";
 import { useFileModals } from "@/hooks";
 
 type Props = {

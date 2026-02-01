@@ -1,39 +1,72 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Protected routes configuration for Next.js 16 proxy.
- * These routes require authentication.
+ * Protected routes configuration.
+ * These routes require authentication via session cookie.
  */
 const PROTECTED_ROUTES = [
-  "/dashboard(.*)",
-  "/trash(.*)",
-  "/profile(.*)",
-  "/payment-attempt(.*)",
-  "/payment-success(.*)",
+  "/dashboard",
+  "/trash",
+  "/profile",
+  "/payment-attempt",
+  "/payment-success",
 ] as const;
 
 /**
  * Public-only routes - redirect authenticated users away.
  */
-const PUBLIC_ONLY_ROUTES = ["/loginfinish(.*)"] as const;
+const PUBLIC_ONLY_ROUTES = ["/login", "/loginfinish"] as const;
 
-const isProtectedRoute = createRouteMatcher([...PROTECTED_ROUTES]);
-const isPublicOnlyRoute = createRouteMatcher([...PUBLIC_ONLY_ROUTES]);
+/**
+ * Session cookie name (must match the API route).
+ */
+const SESSION_COOKIE_NAME = "__session";
 
-export default clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth();
+/**
+ * Check if a path matches any of the protected routes.
+ */
+function isProtectedRoute(pathname: string): boolean {
+  return PROTECTED_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+}
 
-  // Redirect signed-in users away from public-only routes
-  if (isPublicOnlyRoute(req) && userId) {
-    const url = new URL("/dashboard", req.url);
-    return Response.redirect(url);
+/**
+ * Check if a path matches any of the public-only routes.
+ */
+function isPublicOnlyRoute(pathname: string): boolean {
+  return PUBLIC_ONLY_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+}
+
+/**
+ * Middleware for Firebase session-based authentication.
+ * Replaces Clerk middleware with cookie-based auth check.
+ */
+export default async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Get the session cookie
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME);
+  const isAuthenticated = !!sessionCookie?.value;
+
+  // Redirect authenticated users away from public-only routes (like login)
+  if (isPublicOnlyRoute(pathname) && isAuthenticated) {
+    const url = new URL("/dashboard", request.url);
+    return NextResponse.redirect(url);
   }
 
-  // Protect authenticated routes
-  if (isProtectedRoute(req)) {
-    await auth.protect();
+  // Redirect unauthenticated users from protected routes to login
+  if (isProtectedRoute(pathname) && !isAuthenticated) {
+    const url = new URL("/login", request.url);
+    // Store the attempted URL for redirect after login
+    url.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(url);
   }
-});
+
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [

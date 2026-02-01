@@ -1,8 +1,15 @@
-import { auth } from "@clerk/nextjs/server";
+import { cookies, headers } from "next/headers";
+import { adminAuth } from "@/firebase/firebaseAdmin";
+import { logger } from "@/lib/logger";
 
 /**
- * Server-side authentication utilities for server actions.
- * Use these to verify authentication before performing sensitive operations.
+ * Session cookie name (must match the API route and middleware).
+ */
+const SESSION_COOKIE_NAME = "__session";
+
+/**
+ * Server-side authentication utilities for server actions and API routes.
+ * Uses Firebase Admin SDK to verify session cookies or ID tokens.
  */
 
 export class UnauthorizedError extends Error {
@@ -10,6 +17,40 @@ export class UnauthorizedError extends Error {
     super(message);
     this.name = "UnauthorizedError";
   }
+}
+
+/**
+ * Gets the Firebase decoded token from session cookie or Authorization header.
+ * Returns null if no valid auth is found.
+ */
+async function getDecodedToken() {
+  // First, try session cookie (for server actions and page requests)
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME);
+
+  if (sessionCookie?.value) {
+    try {
+      return await adminAuth.verifySessionCookie(sessionCookie.value, true);
+    } catch (error) {
+      logger.error("server-auth", "Session cookie verification failed", error);
+      // Cookie might be expired or invalid, continue to check header
+    }
+  }
+
+  // Second, try Authorization header (for API calls with ID token)
+  const headerStore = await headers();
+  const authHeader = headerStore.get("Authorization");
+
+  if (authHeader?.startsWith("Bearer ")) {
+    const idToken = authHeader.substring(7);
+    try {
+      return await adminAuth.verifyIdToken(idToken);
+    } catch (error) {
+      logger.error("server-auth", "ID token verification failed", error);
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -23,17 +64,17 @@ export class UnauthorizedError extends Error {
  * }
  */
 export async function requireAuth(): Promise<{ userId: string }> {
-  const { userId } = await auth();
+  const decodedToken = await getDecodedToken();
 
-  if (!userId) {
+  if (!decodedToken) {
     throw new UnauthorizedError();
   }
 
-  return { userId };
+  return { userId: decodedToken.uid };
 }
 
 /**
- * Requires authentication and returns user ID along with session claims.
+ * Requires authentication and returns user ID along with email.
  * Throws UnauthorizedError if not authenticated.
  *
  * @example
@@ -46,15 +87,15 @@ export async function requireAuthWithClaims(): Promise<{
   userId: string;
   email: string | undefined;
 }> {
-  const { userId, sessionClaims } = await auth();
+  const decodedToken = await getDecodedToken();
 
-  if (!userId) {
+  if (!decodedToken) {
     throw new UnauthorizedError();
   }
 
   return {
-    userId,
-    email: sessionClaims?.email as string | undefined,
+    userId: decodedToken.uid,
+    email: decodedToken.email,
   };
 }
 
@@ -71,6 +112,6 @@ export async function requireAuthWithClaims(): Promise<{
  * }
  */
 export async function getOptionalAuth(): Promise<string | null> {
-  const { userId } = await auth();
-  return userId;
+  const decodedToken = await getDecodedToken();
+  return decodedToken?.uid ?? null;
 }

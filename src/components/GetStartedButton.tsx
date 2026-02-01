@@ -2,13 +2,13 @@
 
 import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
-import { SignInButton, useAuth } from "@clerk/nextjs";
+import { useAuth, SignInButton } from "@/components/auth";
 import { useIsMounted } from "@/hooks/useIsMounted";
 
 /**
  * Smart "Get Started" button that handles auth-aware navigation.
  * - Signed in: Links directly to dashboard
- * - Signed out: Opens Clerk sign-in (avoids CORS issues with RSC redirects)
+ * - Signed out: Redirects to login page
  */
 export function GetStartedButton() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -37,14 +37,11 @@ export function GetStartedButton() {
     );
   }
 
-  // Signed out users get Clerk's sign-in flow
-  // This avoids CORS issues with RSC redirects
+  // Signed out users get redirected to login
   return (
-    <SignInButton mode="redirect" forceRedirectUrl="/dashboard">
-      <button className={buttonClasses}>
-        <div>Get Started</div>
-        <ArrowRightIcon className="ml-2" />
-      </button>
+    <SignInButton className={buttonClasses}>
+      <div>Get Started</div>
+      <ArrowRightIcon className="ml-2" />
     </SignInButton>
   );
 }

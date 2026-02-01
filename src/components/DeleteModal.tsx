@@ -6,7 +6,7 @@ import {
   useIsModalOpen,
   useDeleteModalData,
 } from "@/zustand/useModalStore";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@/components/auth";
 import { usePathname } from "next/navigation";
 import toast from "react-hot-toast";
 import { fileService } from "@/services/fileService";

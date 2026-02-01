@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs";
+import { FirebaseAuthProvider } from "@/components/auth";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -33,15 +33,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider dynamic>
-      <html lang="en" suppressHydrationWarning>
-        <body className="w-screen h-screen">
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
+    <html lang="en" suppressHydrationWarning>
+      <body className="w-screen h-screen">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <FirebaseAuthProvider>
             <ErrorBoundary name="AuthProvider">
               <AuthProvider>
                 <TooltipProvider delayDuration={300}>
@@ -69,9 +69,9 @@ export default function RootLayout({
                 </TooltipProvider>
               </AuthProvider>
             </ErrorBoundary>
-          </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+          </FirebaseAuthProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }

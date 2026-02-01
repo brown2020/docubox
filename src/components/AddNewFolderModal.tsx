@@ -2,7 +2,7 @@
 
 import { useModalStore, useIsModalOpen } from "@/zustand/useModalStore";
 import { useNavigationStore } from "@/zustand/useNavigationStore";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@/components/auth";
 import { useState } from "react";
 import { Input } from "./ui/input";
 import toast from "react-hot-toast";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useEffect, useState } from "react";
-import { useUser, useAuth } from "@clerk/nextjs";
+import { useUser, useAuth } from "@/components/auth";
 import { collection, orderBy, query, where } from "firebase/firestore";
 import { useCollection } from "react-firebase-hooks/firestore";
 import { db } from "@/firebase";

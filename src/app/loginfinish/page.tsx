@@ -4,7 +4,7 @@ import { useAuthStore } from "@/zustand/useAuthStore";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import useProfileStore from "@/zustand/useProfileStore";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@/components/auth";
 import { LoadingState } from "@/components/common/LoadingState";
 
 export default function LoginFinishPage() {

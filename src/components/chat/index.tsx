@@ -8,7 +8,7 @@ import {
   uploadToRagie,
 } from "@/actions/ragieActions";
 import { generateWithChunks } from "@/actions/generateActions";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@/components/auth";
 import { QARecord } from "./QARecord";
 import toast from "react-hot-toast";
 import { handleAPIAndCredits } from "@/utils/useApiAndCreditKeys";

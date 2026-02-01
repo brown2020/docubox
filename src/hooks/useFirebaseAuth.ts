@@ -75,17 +75,33 @@ function adaptFirebaseUser(user: User | null): FirebaseUser | null {
 
 /**
  * Creates a session cookie by calling the session API.
+ * Returns true if successful, false otherwise.
  */
-async function createSessionCookie(user: User): Promise<void> {
+async function createSessionCookie(user: User): Promise<boolean> {
   try {
     const idToken = await user.getIdToken();
-    await fetch("/api/auth/session", {
+    const response = await fetch("/api/auth/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ idToken }),
     });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ parseError: true }));
+      logger.error("useFirebaseAuth", "Session API returned error", errorData);
+      // Log more details for debugging
+      console.error("[Session Cookie Error]", {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+      });
+      return false;
+    }
+
+    return true;
   } catch (error) {
     logger.error("useFirebaseAuth", "Failed to create session cookie", error);
+    return false;
   }
 }
 

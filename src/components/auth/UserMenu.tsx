@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, User, Settings } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { logger } from "@/lib/logger";
 
 /**
@@ -50,7 +50,10 @@ export function UserMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger className="cursor-pointer focus:outline-none">
         <Avatar className="w-8 h-8">
-          <AvatarImage src={user.imageUrl ?? undefined} alt={user.fullName ?? "User"} />
+          <AvatarImage
+            src={user.imageUrl ?? undefined}
+            alt={user.fullName ?? "User"}
+          />
           <AvatarFallback className="bg-green-500 text-white text-sm">
             {initials}
           </AvatarFallback>
@@ -67,10 +70,6 @@ export function UserMenu() {
         <DropdownMenuItem onClick={() => router.push("/profile")}>
           <User className="mr-2 h-4 w-4" />
           Profile
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push("/settings")}>
-          <Settings className="mr-2 h-4 w-4" />
-          Settings
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-red-600">

@@ -22,22 +22,20 @@ const tiers = [
     featured: false,
   },
   {
-    name: "Pro",
-    price: "$19",
-    period: "/month",
-    description: "For power users and teams",
+    name: "Pay As You Go",
+    price: "Flexible",
+    description: "Buy credits when you need them",
     features: [
-      "10,000 credits/month",
-      "Everything in Free",
-      "Priority processing",
+      "Purchase credit packages",
+      "No monthly commitment",
+      "Credits never expire",
       "Bring your own API keys",
-      "Advanced export options",
-      "Email support",
+      "Use AI features for free with your keys",
+      "Same great features",
     ],
-    cta: "Coming soon",
-    href: "#",
+    cta: "Get started",
+    href: "/login",
     featured: true,
-    comingSoon: true,
   },
 ];
 
@@ -51,7 +49,8 @@ export function Pricing() {
             Simple, transparent pricing
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Start free with generous credits. Upgrade when you need more.
+            Start free with generous credits. Buy more when you need them, or
+            use your own API keys.
           </p>
         </div>
 
@@ -66,9 +65,9 @@ export function Pricing() {
         <div className="mx-auto mt-16 max-w-2xl rounded-xl border border-border/50 bg-muted/30 p-6 text-center">
           <h3 className="font-medium text-foreground">How credits work</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Credits are used for AI operations: parsing (4 credits), summaries (4
-            credits), and Q&A (8 credits). You can also bring your own API keys to
-            use unlimited features without spending credits.
+            Credits are used for AI operations: parsing (4 credits), summaries
+            (4 credits), and Q&A (8 credits). You can also bring your own API
+            keys to use unlimited features without spending credits.
           </p>
         </div>
       </div>
@@ -100,9 +99,7 @@ function PricingCard({
   return (
     <div
       className={`relative rounded-2xl border p-8 ${
-        featured
-          ? "border-primary bg-primary/5"
-          : "border-border bg-background"
+        featured ? "border-primary bg-primary/5" : "border-border bg-background"
       }`}
     >
       {featured && (

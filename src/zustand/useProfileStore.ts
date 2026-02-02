@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
 import { useAuthStore } from "./useAuthStore";
 import { db } from "@/firebase";
 import { logger } from "@/lib/logger";
@@ -168,22 +168,18 @@ const useProfileStore = create<ProfileState>((set, get) => ({
     const uid = useAuthStore.getState().uid;
     if (!uid || amount <= 0) return;
 
-    const previousProfile = get().profile;
-    const newCredits = previousProfile.credits + amount;
-
     try {
       const userRef = getProfileRef(uid);
 
-      // Optimistic update
-      set({ profile: { ...previousProfile, credits: newCredits }, error: null });
-      await updateDoc(userRef, { credits: newCredits });
+      // Use Firestore increment() for atomic operation
+      await updateDoc(userRef, { credits: increment(amount) });
+
+      // Refetch to sync local state with server truth
+      await get().fetchProfile();
     } catch (error) {
       logger.error("useProfileStore", "Error adding credits", error);
 
-      // Revert to previous state
-      set({ profile: previousProfile });
-
-      // Refetch to ensure consistency
+      // Refetch to ensure consistency with server
       await get().fetchProfile();
 
       // Notify caller of error
@@ -196,27 +192,27 @@ const useProfileStore = create<ProfileState>((set, get) => ({
     const uid = useAuthStore.getState().uid;
     if (!uid || amount <= 0) return false;
 
-    const previousProfile = get().profile;
-    if (previousProfile.credits < amount) {
+    const currentCredits = get().profile.credits;
+
+    // Fast-fail check (prevents unnecessary server calls)
+    if (currentCredits < amount) {
       return false;
     }
-
-    const newCredits = previousProfile.credits - amount;
 
     try {
       const userRef = getProfileRef(uid);
 
-      // Optimistic update
-      set({ profile: { ...previousProfile, credits: newCredits }, error: null });
-      await updateDoc(userRef, { credits: newCredits });
+      // Use Firestore increment() for atomic operation
+      // This prevents race conditions when multiple operations run concurrently
+      await updateDoc(userRef, { credits: increment(-amount) });
+
+      // Refetch to sync local state with server truth
+      await get().fetchProfile();
       return true;
     } catch (error) {
       logger.error("useProfileStore", "Error deducting credits", error);
 
-      // Revert to previous state
-      set({ profile: previousProfile });
-
-      // Refetch to ensure consistency
+      // Refetch to ensure consistency with server
       await get().fetchProfile();
 
       // Notify caller of error

@@ -23,7 +23,7 @@ import { generateSummary } from "@/actions/generateSummary";
 import useProfileStore from "@/zustand/useProfileStore";
 import { getCreditCost } from "@/constants/credits";
 import { downloadUnstructuredFile } from "@/actions/unstructuredActions";
-import { useDocument } from "@/hooks/useDocument";
+import { useDocument, useMountedRef } from "@/hooks";
 import { logger } from "@/lib/logger";
 import { fileService } from "@/services/fileService";
 import { LoadingState } from "./common/LoadingState";
@@ -64,6 +64,7 @@ export function ShowParsedDataModal() {
   });
 
   const isAIAlreadyCalled = useRef(false);
+  const isMountedRef = useMountedRef();
   const [loading, setLoading] = useState(false);
   const [isUnstructuredLoading, setUnstructuredLoading] = useState(false);
 
@@ -85,7 +86,9 @@ export function ShowParsedDataModal() {
       try {
         setUnstructuredLoading(true);
         const data = await downloadUnstructuredFile(document.unstructuredFile);
-        setUnstructuredFileData(data);
+        if (isMountedRef.current) {
+          setUnstructuredFileData(data);
+        }
       } catch (error) {
         logger.error(
           "ShowParsedDataModal",
@@ -93,10 +96,12 @@ export function ShowParsedDataModal() {
           error
         );
       } finally {
-        setUnstructuredLoading(false);
+        if (isMountedRef.current) {
+          setUnstructuredLoading(false);
+        }
       }
     }
-  }, [document, user, unstructuredFileData, setUnstructuredFileData]);
+  }, [document, user, unstructuredFileData, setUnstructuredFileData, isMountedRef]);
 
   useEffect(() => {
     fetchUnstructuredData();
@@ -132,6 +137,9 @@ export function ShowParsedDataModal() {
         JSON.stringify(parsedData)
       );
 
+      // Guard state updates after async operation
+      if (!isMountedRef.current) return;
+
       if (generatedSummary) {
         setSummary(generatedSummary);
       }
@@ -147,7 +155,9 @@ export function ShowParsedDataModal() {
       isAIAlreadyCalled.current = false;
       logger.error("ShowParsedDataModal", "Error generating summary", error);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [
     fileSummary,
@@ -158,6 +168,7 @@ export function ShowParsedDataModal() {
     parsedData,
     updateRecord,
     minusCredits,
+    isMountedRef,
   ]);
 
   const extractReadableText = (data: Chunk[] = []) => {

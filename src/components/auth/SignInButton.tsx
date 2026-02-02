@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 
 interface SignInButtonProps {
   children?: ReactNode;
-  mode?: "redirect" | "modal"; // modal mode will just redirect for now
+  /** Currently only "redirect" is supported (modal just redirects too) */
+  mode?: "redirect" | "modal";
   className?: string;
 }
 
@@ -16,9 +17,12 @@ interface SignInButtonProps {
  */
 export function SignInButton({
   children,
-  mode: _mode,
+  // mode is kept for API compatibility but currently unused
+  mode: _mode = "redirect",
   className,
 }: SignInButtonProps) {
+  // Suppress unused variable warning - mode kept for future modal support
+  void _mode;
   const router = useRouter();
 
   function handleClick() {

@@ -52,6 +52,20 @@ function generateRecordId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
+/**
+ * Type guard for documents with QA records.
+ */
+function hasQARecords(
+  doc: unknown
+): doc is { qaRecords: Array<Omit<IQARecord, "id"> & { id?: string }> } {
+  return (
+    doc !== null &&
+    typeof doc === "object" &&
+    "qaRecords" in doc &&
+    Array.isArray((doc as Record<string, unknown>).qaRecords)
+  );
+}
+
 export const Chat = ({ fileId }: IChatProps) => {
   const { user } = useUser();
   const [newQuestion, setNewQuestion] = useState("");
@@ -60,6 +74,9 @@ export const Chat = ({ fileId }: IChatProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState<IQARecord[]>([]);
   const [isUploadingToRagie, setUploadingToRagie] = useState(false);
+
+  // Guard to prevent duplicate Ragie uploads
+  const isUploadingToRagieRef = useRef(false);
 
   // Use custom hooks for cleaner code
   const {
@@ -72,14 +89,14 @@ export const Chat = ({ fileId }: IChatProps) => {
 
   // Load QA records when document is fetched
   useEffect(() => {
-    if (document) {
-      const qaRecords = (
-        ((document as Record<string, unknown>).qaRecords as IQARecord[]) || []
-      ).map((record: Omit<IQARecord, "id"> & { id?: string }) => ({
+    if (document && hasQARecords(document)) {
+      const records = document.qaRecords.map((record) => ({
         ...record,
         id: record.id || generateRecordId(),
       }));
-      setHistory(qaRecords);
+      setHistory(records);
+    } else if (document) {
+      setHistory([]);
     }
   }, [document]);
 
@@ -130,13 +147,20 @@ export const Chat = ({ fileId }: IChatProps) => {
     }
   }, [document, user, _uploadToRagie]);
 
+  // Upload document to Ragie when loaded (with race condition guard)
+  // We track isUploadedToRagie separately to avoid re-running when other document fields change
+  const isUploadedToRagie = document?.isUploadedToRagie;
   useEffect(() => {
-    if (document && !document.isUploadedToRagie) {
-      onDocumentLoad().then(() => {
-        refetchDocument();
-      });
+    if (document && !isUploadedToRagie && !isUploadingToRagieRef.current) {
+      isUploadingToRagieRef.current = true;
+      onDocumentLoad()
+        .then(() => refetchDocument())
+        .catch((error) => logger.error("Chat", "Failed to upload to Ragie", error))
+        .finally(() => {
+          isUploadingToRagieRef.current = false;
+        });
     }
-  }, [document, onDocumentLoad, refetchDocument]);
+  }, [document, isUploadedToRagie, onDocumentLoad, refetchDocument]);
 
   const updateQARecords = useCallback(
     async (_records: IQARecord[]) => {
@@ -208,16 +232,19 @@ export const Chat = ({ fileId }: IChatProps) => {
 
       // Step 2: Generate content using the retrieved chunks
       const handleContent = async () => {
+        // Capture question before clearing (use ref to avoid stale closure)
+        const questionToAsk = newQuestionRef.current;
         setNewQuestion("");
+
         const answer = await generateWithChunks(
           (data as RetrievalResponse).scored_chunks.map((chunk) => chunk.text),
-          newQuestion,
+          questionToAsk,
           DEFAULT_MODEL
         );
         setGeneratedContent(answer.trim());
         await updateDocument({
           id: generateRecordId(),
-          question: newQuestion,
+          question: questionToAsk,
           answer,
         });
       };

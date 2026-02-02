@@ -111,11 +111,13 @@ export default function FileUploadModal() {
             size="icon"
             className="h-5 w-5"
             onClick={() => setIsExpanded(!isExpanded)}
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? "Collapse file list" : "Expand file list"}
           >
             {isExpanded ? (
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-4 w-4" aria-hidden="true" />
             ) : (
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-4 w-4" aria-hidden="true" />
             )}
           </Button>
         </div>

@@ -8,6 +8,8 @@ import { FileType } from "@/types/filetype";
 interface RenderCellOptions {
   /** Callback when filename edit is triggered */
   onEditFilename?: () => void;
+  /** Callback when filename is clicked for preview */
+  onPreview?: () => void;
   /** Whether to show download cell (files only, not folders) */
   showDownload?: boolean;
 }
@@ -24,7 +26,7 @@ export function renderTableCell(
   cell: Cell<FileType, unknown>,
   options: RenderCellOptions = {}
 ): React.ReactNode {
-  const { onEditFilename, showDownload = true } = options;
+  const { onEditFilename, onPreview, showDownload = true } = options;
   const columnId = cell.column.id;
 
   switch (columnId) {
@@ -39,6 +41,7 @@ export function renderTableCell(
           key={cell.id}
           filename={cell.getValue() as string}
           onEdit={onEditFilename}
+          onPreview={onPreview}
         />
       );
 

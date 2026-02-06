@@ -24,6 +24,7 @@ type Props = {
     summary: string
   ) => void;
   openDeleteModal: () => void;
+  onPreview?: () => void;
 };
 
 export const Card = memo(function Card({
@@ -31,6 +32,7 @@ export const Card = memo(function Card({
   openRenameModal,
   openViewModal,
   openDeleteModal,
+  onPreview,
 }: Props) {
   const isFolderItem = isFolder(data);
 
@@ -43,6 +45,11 @@ export const Card = memo(function Card({
               <EllipsisVertical />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
+              {!isFolderItem && onPreview && (
+                <DropdownMenuItem onClick={onPreview}>
+                  Preview
+                </DropdownMenuItem>
+              )}
               {!isFolderItem && (
                 <DropdownMenuItem
                   onClick={() =>
@@ -53,7 +60,7 @@ export const Card = memo(function Card({
                     )
                   }
                 >
-                  View
+                  Parsed Data
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem
@@ -61,7 +68,7 @@ export const Card = memo(function Card({
                   openRenameModal(data.docId, data.filename, data.tags)
                 }
               >
-                Edit
+                Rename
               </DropdownMenuItem>
               <DropdownMenuItem onClick={openDeleteModal}>
                 Delete
@@ -69,7 +76,15 @@ export const Card = memo(function Card({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <TooltipTrigger className="flex flex-col h-full justify-between">
+        <TooltipTrigger
+          className="flex flex-col h-full justify-between cursor-pointer"
+          onClick={() => {
+            // Files open preview; folders navigate (handled by parent Folder component)
+            if (!isFolderItem && onPreview) {
+              onPreview();
+            }
+          }}
+        >
           <div className="w-full p-6">
             <FileTypeIcon type={data.type} size={90} className="w-full" />
           </div>

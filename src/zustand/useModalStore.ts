@@ -9,6 +9,7 @@ export type ModalType =
   | "parseData"
   | "createFolder"
   | "questionAnswer"
+  | "preview"
   | null;
 
 /**
@@ -53,6 +54,18 @@ export interface CreateFolderModalData {
 }
 
 /**
+ * Type-safe modal data for file preview modal.
+ */
+export interface PreviewModalData {
+  fileId: string;
+  filename: string;
+  downloadUrl: string;
+  type: string;
+  size: number;
+  summary?: string;
+}
+
+/**
  * Union of all modal data types for type safety.
  */
 export type ModalData =
@@ -61,6 +74,7 @@ export type ModalData =
   | ParseDataModalData
   | QuestionAnswerModalData
   | CreateFolderModalData
+  | PreviewModalData
   | Record<string, unknown>;
 
 /**
@@ -124,4 +138,11 @@ export function useParseDataModalData() {
  */
 export function useQuestionAnswerModalData() {
   return useModalStore((state) => state.modalData as QuestionAnswerModalData);
+}
+
+/**
+ * Type-safe selector for preview modal data.
+ */
+export function usePreviewModalData() {
+  return useModalStore((state) => state.modalData as PreviewModalData);
 }

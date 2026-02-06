@@ -8,6 +8,7 @@ import { File } from "../File";
 import { renderTableCell } from "../utils/renderCell";
 import { ActionCell } from "../cells/ActionCell";
 import { useFileActions } from "../FileActionsContext";
+import { useModalStore } from "@/zustand/useModalStore";
 import { EyeIcon, FileTerminal, MessageCircleQuestionIcon } from "lucide-react";
 
 interface FileRowProps {
@@ -33,7 +34,19 @@ export const FileRow = memo(function FileRow({
     restoreDeletedFile,
   } = useFileActions();
 
+  const openModal = useModalStore((s) => s.open);
   const hasParsedData = isParsed(fileData);
+
+  const openPreview = () => {
+    openModal("preview", {
+      fileId: fileData.docId,
+      filename: fileData.filename,
+      downloadUrl: fileData.downloadUrl,
+      type: fileData.type,
+      size: fileData.size,
+      summary: fileData.summary || undefined,
+    });
+  };
 
   return (
     <File
@@ -46,6 +59,7 @@ export const FileRow = memo(function FileRow({
         renderTableCell(cell, {
           onEditFilename: () =>
             openRenameModal(fileData.docId, fileData.filename, fileData.tags),
+          onPreview: openPreview,
           showDownload: true,
         })
       )}

@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUploadStore } from "@/zustand/useUploadStore";
-import { useFileSelectionStore } from "@/zustand/useFileSelectionStore";
 import { useUser } from "@/components/auth";
 import { Chunk } from "@/types/types";
 import { parseFile } from "@/actions/parse";
@@ -22,10 +21,8 @@ import { logger } from "@/lib/logger";
 export default function FileUploadModal() {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Use focused stores
   const { uploadingFiles, setOnFileAddedCallback, removeUploadingFile } =
     useUploadStore();
-  const { setUnstructuredFileData } = useFileSelectionStore();
 
   // Use custom hook for profile data
   const apiProfileData = useApiProfileData();
@@ -64,7 +61,6 @@ export default function FileUploadModal() {
 
           if (!isMountedRef.current) return;
 
-          setUnstructuredFileData(JSON.stringify(data, null, 2));
           removeUploadingFile(newFile.fileId);
         };
 
@@ -89,7 +85,6 @@ export default function FileUploadModal() {
     return () => setOnFileAddedCallback(null);
   }, [
     setOnFileAddedCallback,
-    setUnstructuredFileData,
     removeUploadingFile,
     user,
     apiProfileData,

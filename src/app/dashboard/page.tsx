@@ -6,8 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col px-4">
-      <Skeleton className="w-full h-52 my-4 rounded-lg" />
+    <div className="flex flex-col px-4 gap-3">
+      <Skeleton className="h-10 w-full rounded-lg" />
       <div className="border rounded-lg">
         <div className="border-b h-12" />
         {[1, 2, 3].map((i) => (
@@ -23,16 +23,14 @@ function DashboardSkeleton() {
 
 /**
  * Dashboard page component (Server Component).
- * File data is fetched via real-time subscription in TableWrapper.
- * Wrapped in Suspense for useSearchParams in TableWrapper.
+ * Dropzone provides drag-overlay + upload button (no permanent drop area).
+ * TableWrapper handles the toolbar, file list, and all controls.
  */
 export default function Dashboard() {
   return (
-    <div>
+    <div className="pt-2">
       <Suspense fallback={<DashboardSkeleton />}>
-        <div className="container mx-auto">
-          <Dropzone />
-        </div>
+        <Dropzone />
         <TableWrapper />
       </Suspense>
       <TrashLink />

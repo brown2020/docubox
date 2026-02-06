@@ -9,6 +9,7 @@ interface UseFolderNavigationReturn {
   folderId: string | null;
   canGoBack: boolean;
   goBack: () => void;
+  navigateTo: (targetFolderId: string | null) => void;
   setFolderId: (folderId: string | null) => void;
 }
 
@@ -34,18 +35,23 @@ export function useFolderNavigation(
 
   const canGoBack = !!searchParams.get("activeFolder");
 
+  const navigateTo = useCallback(
+    (targetFolderId: string | null) => {
+      const params = new URLSearchParams(searchParams);
+      if (targetFolderId) {
+        params.set("activeFolder", targetFolderId);
+      } else {
+        params.delete("activeFolder");
+      }
+      replace(`${pathname}?${params.toString()}`);
+    },
+    [searchParams, pathname, replace]
+  );
+
   const goBack = useCallback(() => {
     const parentFolderId = allFiles.find((i) => i.docId === folderId)?.folderId;
-    const params = new URLSearchParams(searchParams);
+    navigateTo(parentFolderId ?? null);
+  }, [allFiles, folderId, navigateTo]);
 
-    if (parentFolderId) {
-      params.set("activeFolder", parentFolderId);
-    } else {
-      params.delete("activeFolder");
-    }
-
-    replace(`${pathname}?${params.toString()}`);
-  }, [allFiles, folderId, searchParams, pathname, replace]);
-
-  return { folderId, canGoBack, goBack, setFolderId };
+  return { folderId, canGoBack, goBack, navigateTo, setFolderId };
 }

@@ -8,9 +8,13 @@ import { db } from "@/firebase";
 import { FileType, isFolder } from "@/types/filetype";
 import { mapDocsToFileTypes } from "@/utils/mapFirestoreDoc";
 
+/** Available sort fields */
+export type SortField = "timestamp" | "name" | "size" | "type";
+
 interface UseFilesListOptions {
   isTrashView?: boolean;
-  sort?: "asc" | "desc";
+  sortField?: SortField;
+  sortDir?: "asc" | "desc";
   searchInput?: string;
   folderId: string | null;
 }
@@ -20,15 +24,20 @@ interface UseFilesListReturn {
   allFiles: FileType[];
   isLoading: boolean;
   folderSizes: Map<string, number>;
+  /** Total storage used in bytes (non-deleted files only) */
+  totalStorageBytes: number;
+  /** Total non-deleted file count (excludes folders) */
+  totalFileCount: number;
 }
 
 /**
- * Hook for fetching and filtering file list from Firestore.
- * Extracts file management logic from TableWrapper.
+ * Hook for fetching, filtering, sorting, and searching the file list.
+ * Supports full-text search (filename + summary + tags) and multi-field sort.
  */
 export function useFilesList({
   isTrashView = false,
-  sort = "desc",
+  sortField = "timestamp",
+  sortDir = "desc",
   searchInput = "",
   folderId,
 }: UseFilesListOptions): UseFilesListReturn {
@@ -36,16 +45,16 @@ export function useFilesList({
   const { isLoaded, isSignedIn } = useAuth();
   const [allFiles, setAllFiles] = useState<FileType[]>([]);
 
-  // Build Firestore query - only create if user is authenticated
+  // Build Firestore query — always order by timestamp for the initial fetch.
+  // Client-side sort handles the other fields.
   const _where = isTrashView
     ? where("deletedAt", "!=", null)
     : where("deletedAt", "==", null);
 
   const _orderBy = isTrashView
-    ? orderBy("deletedAt", sort)
-    : orderBy("timestamp", sort);
+    ? orderBy("deletedAt", "desc")
+    : orderBy("timestamp", "desc");
 
-  // Only query Firestore when user is authenticated
   const firestoreQuery =
     isLoaded && isSignedIn && user
       ? query(collection(db, "users", user.id, "files"), _where, _orderBy)
@@ -53,11 +62,9 @@ export function useFilesList({
 
   const [docs] = useCollection(firestoreQuery);
 
-  // Update files when docs change
   useEffect(() => {
     if (!docs) return;
     const files = mapDocsToFileTypes(docs.docs);
-    // Defer updates to avoid synchronous setState inside effects (React Compiler rule).
     queueMicrotask(() => setAllFiles(files));
   }, [docs]);
 
@@ -85,40 +92,78 @@ export function useFilesList({
       return totalSize;
     };
 
-    // Pre-calculate all folder sizes
     allFiles.filter(isFolder).forEach((f) => calculateSize(f.docId));
-
     return sizes;
   }, [allFiles]);
 
-  // Filter and process files
+  // Storage stats (non-deleted files only, computed from allFiles)
+  const { totalStorageBytes, totalFileCount } = useMemo(() => {
+    let bytes = 0;
+    let count = 0;
+    for (const file of allFiles) {
+      if (!isFolder(file)) {
+        bytes += file.size || 0;
+        count++;
+      }
+    }
+    return { totalStorageBytes: bytes, totalFileCount: count };
+  }, [allFiles]);
+
+  // Filter, search, and sort
   const files = useMemo(() => {
     let filtered = [...allFiles];
 
-    // Filter by folderId
+    // 1. Filter by folder
     filtered = filtered.filter((file) => file.folderId === folderId);
 
-    // Filter by search input (tags)
+    // 2. Full-text search (filename + summary + tags)
     if (searchInput) {
-      const searchLower = searchInput.toLowerCase();
-      filtered = filtered.filter(
-        (file) =>
-          Array.isArray(file.tags) &&
-          file.tags.some((tag) => tag.toLowerCase().includes(searchLower))
-      );
+      const q = searchInput.toLowerCase();
+      filtered = filtered.filter((file) => {
+        if (file.filename.toLowerCase().includes(q)) return true;
+        if (file.summary && file.summary.toLowerCase().includes(q)) return true;
+        if (file.tags?.some((tag) => tag.toLowerCase().includes(q))) return true;
+        return false;
+      });
     }
 
-    // Apply folder sizes
-    return filtered.map((file) => {
+    // 3. Apply folder sizes before sorting
+    filtered = filtered.map((file) => {
       if (isFolder(file)) {
         return { ...file, size: folderSizes.get(file.docId) || 0 };
       }
       return file;
     });
-  }, [allFiles, folderId, searchInput, folderSizes]);
 
-  // Loading if Clerk hasn't loaded yet OR if we're signed in and docs haven't loaded
+    // 4. Sort — folders first, then by selected field
+    filtered.sort((a, b) => {
+      // Folders always come first
+      const aFolder = isFolder(a) ? 0 : 1;
+      const bFolder = isFolder(b) ? 0 : 1;
+      if (aFolder !== bFolder) return aFolder - bFolder;
+
+      const dir = sortDir === "asc" ? 1 : -1;
+
+      switch (sortField) {
+        case "name":
+          return dir * a.filename.localeCompare(b.filename, undefined, { sensitivity: "base" });
+        case "size":
+          return dir * ((a.size || 0) - (b.size || 0));
+        case "type": {
+          const aExt = a.filename.split(".").pop()?.toLowerCase() || "";
+          const bExt = b.filename.split(".").pop()?.toLowerCase() || "";
+          return dir * aExt.localeCompare(bExt);
+        }
+        case "timestamp":
+        default:
+          return dir * (a.timestamp.getTime() - b.timestamp.getTime());
+      }
+    });
+
+    return filtered;
+  }, [allFiles, folderId, searchInput, folderSizes, sortField, sortDir]);
+
   const isLoading = !isLoaded || (isSignedIn && docs?.docs === undefined);
 
-  return { files, allFiles, isLoading, folderSizes };
+  return { files, allFiles, isLoading, folderSizes, totalStorageBytes, totalFileCount };
 }

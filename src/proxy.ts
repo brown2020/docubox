@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { adminAuth } from "@/firebase/firebaseAdmin";
 
 /**
  * Protected routes configuration.
@@ -41,15 +42,70 @@ function isPublicOnlyRoute(pathname: string): boolean {
 }
 
 /**
- * Middleware for Firebase session-based authentication.
- * Replaces Clerk middleware with cookie-based auth check.
+ * Verifies a session cookie with Firebase Admin.
+ * Returns true only if the cookie is valid and not expired/revoked.
  */
-export default async function middleware(request: NextRequest) {
+async function verifySessionCookie(cookieValue: string): Promise<boolean> {
+  try {
+    await adminAuth.verifySessionCookie(cookieValue, true);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Clears an invalid session cookie by setting it to empty with maxAge 0.
+ */
+function clearSessionCookie(response: NextResponse): NextResponse {
+  response.cookies.set(SESSION_COOKIE_NAME, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
+  return response;
+}
+
+/**
+ * Proxy for Firebase session-based authentication (Next.js 16).
+ * Validates session cookies server-side and redirects accordingly.
+ * Stale or expired cookies are cleared automatically.
+ */
+export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Get the session cookie
+  // Get the session cookie and verify it
   const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME);
-  const isAuthenticated = !!sessionCookie?.value;
+  let isAuthenticated = false;
+
+  if (sessionCookie?.value) {
+    isAuthenticated = await verifySessionCookie(sessionCookie.value);
+
+    // If the cookie exists but is invalid/expired, clear it so the user
+    // isn't stuck in a redirect loop between /login and /dashboard
+    if (!isAuthenticated) {
+      // For public-only routes (like /login), clear the stale cookie and let
+      // the user through so they can re-authenticate
+      if (isPublicOnlyRoute(pathname)) {
+        const response = NextResponse.next();
+        return clearSessionCookie(response);
+      }
+
+      // For protected routes, redirect to login AND clear the stale cookie
+      if (isProtectedRoute(pathname)) {
+        const url = new URL("/login", request.url);
+        url.searchParams.set("redirect", pathname);
+        const response = NextResponse.redirect(url);
+        return clearSessionCookie(response);
+      }
+
+      // For other routes, just clear the cookie and pass through
+      const response = NextResponse.next();
+      return clearSessionCookie(response);
+    }
+  }
 
   // Redirect authenticated users away from public-only routes (like login)
   if (isPublicOnlyRoute(pathname) && isAuthenticated) {

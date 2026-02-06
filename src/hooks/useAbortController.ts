@@ -3,35 +3,6 @@
 import { useEffect, useRef, useCallback } from "react";
 
 /**
- * Hook that provides a ref to track if the component is mounted.
- * Use this for async operations that should not update state after unmount.
- *
- * @example
- * const isMountedRef = useIsMountedRef();
- *
- * useEffect(() => {
- *   const fetchData = async () => {
- *     const result = await fetchSomething();
- *     if (!isMountedRef.current) return; // Don't update if unmounted
- *     setData(result);
- *   };
- *   fetchData();
- * }, []);
- */
-export function useIsMountedRef() {
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  return isMountedRef;
-}
-
-/**
  * Hook that returns a callback to get an AbortController.
  * Creates a new controller on each call to the getter.
  * Use this when you need to abort fetch requests on unmount.

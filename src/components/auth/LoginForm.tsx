@@ -132,7 +132,7 @@ export function LoginForm() {
     } catch (err: unknown) {
       logger.error("LoginForm", "Email auth failed", err);
       const errorMessage = err instanceof Error ? err.message : "Authentication failed";
-      if (errorMessage.includes("user-not-found") || errorMessage.includes("wrong-password")) {
+      if (errorMessage.includes("user-not-found") || errorMessage.includes("wrong-password") || errorMessage.includes("invalid-credential")) {
         setError("Invalid email or password.");
       } else if (errorMessage.includes("email-already-in-use")) {
         setError("An account with this email already exists.");

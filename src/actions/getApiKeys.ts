@@ -5,12 +5,15 @@ import {
   getEnvVarName,
   getAPIDisplayName,
 } from "@/constants/apiConfig";
+import { requireAuth } from "@/lib/server-auth";
 
 /**
  * Gets the server-side API key for a given service type.
  * This is used when the user opts to use platform credits instead of their own keys.
  */
 export async function getApiKey(type: APIType): Promise<string> {
+  await requireAuth();
+
   const envVar = getEnvVarName(type);
   const apiKey = process.env[envVar];
 

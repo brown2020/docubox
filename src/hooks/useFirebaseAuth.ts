@@ -52,11 +52,6 @@ googleProvider.setCustomParameters({
   prompt: "select_account",
 });
 
-// Email link settings
-const actionCodeSettings = {
-  url: typeof window !== "undefined" ? `${window.location.origin}/login` : "",
-  handleCodeInApp: true,
-};
 
 /**
  * Adapts Firebase User to Clerk-compatible FirebaseUser interface.
@@ -89,12 +84,6 @@ async function createSessionCookie(user: User): Promise<boolean> {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ parseError: true }));
       logger.error("useFirebaseAuth", "Session API returned error", errorData);
-      // Log more details for debugging
-      console.error("[Session Cookie Error]", {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData,
-      });
       return false;
     }
 
@@ -124,15 +113,16 @@ export function useFirebaseAuth(): FirebaseAuthState {
   const [isLoaded, setIsLoaded] = useState(false);
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
 
-  // Listen to Firebase auth state changes
+  // Listen to Firebase auth state changes.
+  // Await session cookie before setting signed-in state so middleware sees the cookie
+  // and we don't show "already signed in" / redirect to dashboard before the cookie exists.
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      // Create session cookie for middleware auth BEFORE setting loaded state
-      // This ensures the cookie exists before any redirects happen
       if (user) {
-        await createSessionCookie(user);
+        await createSessionCookie(user).catch((error) => {
+          logger.error("useFirebaseAuth", "Failed to create session cookie in auth listener", error);
+        });
       }
-
       setFirebaseUser(user);
       setIsLoaded(true);
     });
@@ -200,7 +190,6 @@ export function useFirebaseAuth(): FirebaseAuthState {
         if (displayName) {
           await updateProfile(result.user, { displayName });
         }
-
         await createSessionCookie(result.user);
       } catch (error) {
         logger.error("useFirebaseAuth", "Account creation failed", error);
@@ -219,8 +208,8 @@ export function useFirebaseAuth(): FirebaseAuthState {
       }
 
       await sendSignInLinkToEmail(auth, email, {
-        ...actionCodeSettings,
         url: `${window.location.origin}/login`,
+        handleCodeInApp: true,
       });
     } catch (error) {
       logger.error("useFirebaseAuth", "Failed to send magic link", error);

@@ -107,30 +107,9 @@ export async function fetchFileAsBlob(
     );
   }
 
-  const fileStream = response.body;
-  if (!fileStream) {
-    throw new Error(
-      "File stream is not available. The file may be empty or corrupted."
-    );
-  }
+  const blob = await response.blob();
 
-  // Read file into blob
-  const reader = fileStream.getReader();
-  const chunks: BlobPart[] = [];
-  let totalBytes = 0;
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      totalBytes += value.byteLength;
-    }
-  } catch (error) {
-    throw new Error(`Error reading file: ${extractErrorMessage(error)}`);
-  }
-
-  if (totalBytes === 0) {
+  if (blob.size === 0) {
     throw new Error("Cannot process an empty file.");
   }
 
@@ -138,11 +117,9 @@ export async function fetchFileAsBlob(
     response.headers.get("content-type") || "application/octet-stream";
 
   logger.debug(context, {
-    totalBytes,
+    totalBytes: blob.size,
     contentType,
   });
-
-  const blob = new Blob(chunks, { type: contentType });
 
   return { blob, contentType };
 }

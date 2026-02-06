@@ -7,6 +7,7 @@ import {
 } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { fetchFileAsBlob } from "@/lib/storage";
+import { requireAuth } from "@/lib/server-auth";
 
 const BASE_URL = "https://api.ragie.ai";
 const SERVICE_NAME = "Ragie API";
@@ -69,63 +70,40 @@ async function ragieRequest(
 }
 
 /**
- * Polls the Ragie API until a document is ready for querying.
+ * Checks the readiness status of a document in Ragie.
+ * Returns the current status. Polling should be done client-side.
  */
 export async function checkDocumentReadiness(
   ragieFileId: string,
-  ragieApiKey: string,
-  interval = 3000,
-  maxAttempts = 60
-): Promise<boolean> {
+  ragieApiKey: string
+): Promise<{ ready: boolean; status: string }> {
+  await requireAuth();
   const apiKey = validateApiKey(ragieApiKey, "checkDocumentReadiness");
 
-  logger.debug("checkDocumentReadiness", {
-    ragieFileId,
-    interval,
-    maxAttempts,
-  });
+  logger.debug("checkDocumentReadiness", { ragieFileId });
 
-  let attempts = 0;
+  const response = await ragieRequest(`/documents/${ragieFileId}`, apiKey);
 
-  while (attempts < maxAttempts) {
-    attempts++;
-
-    const response = await ragieRequest(`/documents/${ragieFileId}`, apiKey);
-
-    if (!response.ok) {
-      const errorMessage = await parseAPIErrorResponse(response, SERVICE_NAME);
-      logger.error("checkDocumentReadiness", "API error", {
-        status: response.status,
-        attempt: attempts,
-      });
-      throw new APIError(SERVICE_NAME, response.status, errorMessage);
-    }
-
-    const data = await response.json();
-    logger.debug("checkDocumentReadiness", {
-      status: data.status,
-      attempt: attempts,
+  if (!response.ok) {
+    const errorMessage = await parseAPIErrorResponse(response, SERVICE_NAME);
+    logger.error("checkDocumentReadiness", "API error", {
+      status: response.status,
     });
-
-    if (data.status === "ready") {
-      logger.debug("checkDocumentReadiness", { action: "documentReady" });
-      return true;
-    }
-
-    if (data.status === "failed" || data.status === "error") {
-      throw new Error(
-        `Document processing failed in Ragie: ${
-          data.error || data.message || "Unknown error"
-        }`
-      );
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, interval));
+    throw new APIError(SERVICE_NAME, response.status, errorMessage);
   }
 
-  throw new Error(
-    "Timeout waiting for document to be processed by Ragie. Please try again or check your Ragie dashboard."
-  );
+  const data = await response.json();
+  logger.debug("checkDocumentReadiness", { status: data.status });
+
+  if (data.status === "failed" || data.status === "error") {
+    throw new Error(
+      `Document processing failed in Ragie: ${
+        data.error || data.message || "Unknown error"
+      }`
+    );
+  }
+
+  return { ready: data.status === "ready", status: data.status };
 }
 
 /**
@@ -137,6 +115,7 @@ export async function uploadToRagie(
   fileName: string,
   ragieApiKey: string
 ): Promise<RagieFileUploadResponse> {
+  await requireAuth();
   const apiKey = validateApiKey(ragieApiKey, "uploadToRagie");
 
   if (!fileUrl) {
@@ -176,15 +155,26 @@ export async function uploadToRagie(
   return result;
 }
 
+interface ScoredChunk {
+  text: string;
+  score: number;
+}
+
+interface RetrievalResponse {
+  scored_chunks: ScoredChunk[];
+}
+
 /**
  * Retrieves relevant chunks from Ragie for a query.
+ * Throws on error for consistent error handling.
  */
 export async function retrieveChunks(
   query: string,
   fileId: string,
   ragieApiKey?: string
-) {
-  const apiKey = ragieApiKey || process.env.RAGIE_API_KEY || "";
+): Promise<RetrievalResponse> {
+  await requireAuth();
+  const apiKey = ragieApiKey || process.env.RAGIE_API_KEY;
 
   logger.debug("retrieveChunks", {
     query: query.substring(0, 100) + (query.length > 100 ? "..." : ""),
@@ -193,11 +183,9 @@ export async function retrieveChunks(
   });
 
   if (!apiKey) {
-    return {
-      error: true,
-      status: 0,
-      message: `${SERVICE_NAME} key is required. Please add your API key in profile settings or set RAGIE_API_KEY in your environment.`,
-    } as const;
+    throw new Error(
+      `${SERVICE_NAME} key is required. Please add your API key in profile settings or set RAGIE_API_KEY in your environment.`
+    );
   }
 
   const response = await ragieRequest("/retrievals", apiKey, {
@@ -213,25 +201,17 @@ export async function retrieveChunks(
 
   if (!response.ok) {
     const errorMessage = await parseAPIErrorResponse(response, SERVICE_NAME);
-    return {
-      error: true,
-      status: response.status,
-      message: errorMessage,
-    } as const;
+    throw new APIError(SERVICE_NAME, response.status, errorMessage);
   }
 
   try {
     const data = await response.json();
     logger.debug("retrieveChunks", {
-      chunkCount: data?.scored_chunks?.length || data?.chunks?.length || 0,
+      chunkCount: data?.scored_chunks?.length || 0,
     });
-    return data;
+    return data as RetrievalResponse;
   } catch {
-    return {
-      error: true,
-      status: response.status,
-      message: "Failed to parse response from Ragie API.",
-    } as const;
+    throw new Error("Failed to parse response from Ragie API.");
   }
 }
 
@@ -242,6 +222,7 @@ export async function deleteFileFromRagie(
   fileId: string,
   ragieApiKey?: string
 ) {
+  await requireAuth();
   const apiKey = ragieApiKey || process.env.RAGIE_API_KEY;
 
   logger.debug("deleteFileFromRagie", { fileId, hasApiKey: !!apiKey });

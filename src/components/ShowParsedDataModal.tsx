@@ -68,7 +68,7 @@ export function ShowParsedDataModal() {
   const [loading, setLoading] = useState(false);
   const [isUnstructuredLoading, setUnstructuredLoading] = useState(false);
 
-  const [parsedData, setParsedData] = useState<Chunk[] | []>([]);
+  const [parsedData, setParsedData] = useState<Chunk[]>([]);
   const [summary, setSummary] = useState("");
 
   const useCredits = useProfileStore((state) => state.profile.useCredits);
@@ -134,7 +134,7 @@ export function ShowParsedDataModal() {
       setLoading(true);
       const generatedSummary = await generateSummary(
         useCredits ? null : apiKey,
-        JSON.stringify(parsedData)
+        unstructuredFileData
       );
 
       // Guard state updates after async operation
@@ -165,7 +165,6 @@ export function ShowParsedDataModal() {
     useCredits,
     currentCredits,
     apiKey,
-    parsedData,
     updateRecord,
     minusCredits,
     isMountedRef,
@@ -174,7 +173,7 @@ export function ShowParsedDataModal() {
   const extractReadableText = (data: Chunk[] = []) => {
     if (!data) return <p>No content to display.</p>;
 
-    const contentArray = data[0]?.content || [];
+    const contentArray = data.flatMap(chunk => chunk.content || []);
     if (contentArray.length === 0)
       return <p>No readable content found in the file.</p>;
 
@@ -250,7 +249,12 @@ export function ShowParsedDataModal() {
 
   const fetchReadableFormat = useCallback(() => {
     if (!unstructuredFileData) return;
-    setParsedData(JSON.parse(unstructuredFileData));
+    try {
+      setParsedData(JSON.parse(unstructuredFileData));
+    } catch {
+      logger.error("ShowParsedDataModal", "Failed to parse unstructured data as JSON");
+      setParsedData([]);
+    }
   }, [unstructuredFileData]);
 
   const handleClose = () => {
@@ -289,28 +293,28 @@ export function ShowParsedDataModal() {
               </TabsTrigger>
             </TabsList>
           </div>
-          <div className="overflow-auto h-[70vh] p-4 bg-gray-50 rounded-lg w-full">
+          <div className="overflow-auto h-[70vh] p-4 bg-muted rounded-lg w-full">
             <TabsContent value="raw" className="w-full h-[98%]">
               {isDataLoading ? (
                 <LoadingState message="Loading Raw Data..." />
               ) : (
-                <pre className="whitespace-pre-wrap text-sm text-gray-800 w-full">
+                <pre className="whitespace-pre-wrap text-sm text-foreground w-full">
                   {unstructuredFileData}
                 </pre>
               )}
             </TabsContent>
-            <TabsContent value="readable" className="text-gray-800">
+            <TabsContent value="readable" className="text-foreground">
               {loading ? (
                 <LoadingState message="Processing..." size={40} />
               ) : (
-                <div className="bg-gray-100 p-4 rounded-lg">
+                <div className="bg-muted/50 p-4 rounded-lg">
                   {extractReadableText(
                     Array.isArray(parsedData) ? parsedData : [parsedData]
                   )}
                 </div>
               )}
             </TabsContent>
-            <TabsContent value="summary" className="text-gray-800">
+            <TabsContent value="summary" className="text-foreground">
               {loading ? (
                 <LoadingState message="Generating summary..." size={40} />
               ) : (

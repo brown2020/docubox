@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { serverTimestamp, Timestamp } from "firebase/firestore";
+import { Timestamp } from "firebase/firestore";
 import { useAuthStore, syncAuthToFirestore } from "@/zustand/useAuthStore";
 import { useUser } from "@/components/auth";
 import { logger } from "@/lib/logger";
@@ -31,7 +31,7 @@ export function useFirebaseAuthSync() {
         authDisplayName: user.fullName || "",
         authPhotoUrl: user.imageUrl || "",
         authReady: true,
-        lastSignIn: serverTimestamp() as Timestamp,
+        lastSignIn: Timestamp.now(),
       };
 
       // Update local Zustand state

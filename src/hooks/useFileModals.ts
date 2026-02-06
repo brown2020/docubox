@@ -49,8 +49,12 @@ export function useFileModals() {
 
       // Fetch unstructured data async and update modal data
       if (!filedataUrl) return;
-      const data = await downloadUnstructuredFile(filedataUrl);
-      updateData({ unstructuredFileData: data });
+      try {
+        const data = await downloadUnstructuredFile(filedataUrl);
+        updateData({ unstructuredFileData: data });
+      } catch {
+        // Download failed — modal will fall back to fetching via useDocument
+      }
     },
     [open, updateData]
   );

@@ -4,23 +4,33 @@ import Stripe from "stripe";
 import { logger } from "@/lib/logger";
 import { requireAuth } from "@/lib/server-auth";
 
-// Validate Stripe key at startup
-if (!process.env.STRIPE_SECRET_KEY) {
-  logger.error("paymentActions", "STRIPE_SECRET_KEY is not configured");
-}
+let _stripe: Stripe | null = null;
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+function getStripe(): Stripe {
+  if (!_stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error("STRIPE_SECRET_KEY is not configured");
+    }
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return _stripe;
+}
 
 export async function createPaymentIntent(amount: number) {
   // Verify authentication before processing payment
   await requireAuth();
+
+  // Validate amount (must be positive integer in cents, max $9,999.99)
+  if (!Number.isInteger(amount) || amount <= 0 || amount > 999999) {
+    throw new Error("Invalid payment amount.");
+  }
 
   const product = process.env.NEXT_PUBLIC_STRIPE_PRODUCT_NAME;
 
   try {
     if (!product) throw new Error("Stripe product name is not defined");
 
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntent = await getStripe().paymentIntents.create({
       amount,
       currency: "usd",
       metadata: { product },
@@ -39,7 +49,7 @@ export async function validatePaymentIntent(paymentIntentId: string) {
   await requireAuth();
 
   try {
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const paymentIntent = await getStripe().paymentIntents.retrieve(paymentIntentId);
 
     if (paymentIntent.status === "succeeded") {
       // Convert the Stripe object to a plain object
@@ -48,7 +58,6 @@ export async function validatePaymentIntent(paymentIntentId: string) {
         amount: paymentIntent.amount,
         created: paymentIntent.created,
         status: paymentIntent.status,
-        client_secret: paymentIntent.client_secret,
         currency: paymentIntent.currency,
         description: paymentIntent.description,
       };

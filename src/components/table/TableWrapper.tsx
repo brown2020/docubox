@@ -2,8 +2,6 @@
 
 import { useCallback, useDeferredValue, useState } from "react";
 import { useAuth } from "@/components/auth";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/firebase";
 import { usePathname } from "next/navigation";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -18,6 +16,8 @@ import { GridView } from "../grid/GridView";
 import { FileActionsProvider } from "./FileActionsContext";
 import { useFilesList, useFolderNavigation } from "@/hooks";
 import { useModalStore } from "@/zustand/useModalStore";
+import { useNavigationStore } from "@/zustand/useNavigationStore";
+import { fileService } from "@/services/fileService";
 
 /**
  * Table wrapper component with file list and controls.
@@ -33,8 +33,8 @@ export default function TableWrapper() {
 
   const isTrashPageActive = pathname.includes("trash");
 
-  // Use extracted hooks
-  const { folderId, canGoBack } = useFolderNavigation([]);
+  // Get folderId from URL for the file query
+  const { folderId } = useNavigationStore();
   const { files, allFiles, isLoading } = useFilesList({
     isTrashView: isTrashPageActive,
     sort,
@@ -42,8 +42,8 @@ export default function TableWrapper() {
     folderId,
   });
 
-  // Update navigation with allFiles for goBack
-  const { goBack } = useFolderNavigation(allFiles);
+  // Single hook call with allFiles for goBack resolution
+  const { canGoBack, goBack } = useFolderNavigation(allFiles);
 
   const open = useModalStore((s) => s.open);
 
@@ -61,9 +61,7 @@ export default function TableWrapper() {
 
       const existingDoc = allFiles.find((file) => file.docId === docId);
       if (existingDoc) {
-        await updateDoc(doc(db, "users", userId, "files", docId), {
-          folderId: targetFolderId,
-        });
+        await fileService.moveToFolder(userId, docId, targetFolderId);
       }
     },
     [allFiles, isTrashPageActive]

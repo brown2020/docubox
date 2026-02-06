@@ -66,9 +66,7 @@ function mergeProfileWithDefaults(
     ...defaultProfile,
     ...profile,
     credits:
-      profile.credits && profile.credits >= 100
-        ? profile.credits
-        : DEFAULT_INITIAL_CREDITS,
+      typeof profile.credits === "number" ? profile.credits : DEFAULT_INITIAL_CREDITS,
     email: authState.authEmail || profile.email || "",
     contactEmail: profile.contactEmail || authState.authEmail || "",
     displayName: profile.displayName || authState.authDisplayName || "",
@@ -103,12 +101,14 @@ const useProfileStore = create<ProfileState>((set, get) => ({
       let newProfile: ProfileType;
 
       if (docSnap.exists()) {
-        newProfile = mergeProfileWithDefaults(docSnap.data() as ProfileType, {
+        newProfile = mergeProfileWithDefaults(docSnap.data() as Partial<ProfileType>, {
           authEmail,
           authDisplayName,
           authPhotoUrl,
           authEmailVerified,
         });
+        // Only update local state — don't overwrite Firestore on reads
+        set({ profile: newProfile, isLoading: false });
       } else {
         // Create new profile for first-time users
         newProfile = {
@@ -123,10 +123,9 @@ const useProfileStore = create<ProfileState>((set, get) => ({
           unstructured_api_key: "",
           useCredits: true,
         };
+        await setDoc(userRef, newProfile);
+        set({ profile: newProfile, isLoading: false });
       }
-
-      await setDoc(userRef, newProfile);
-      set({ profile: newProfile, isLoading: false });
     } catch (error) {
       logger.error("useProfileStore", "Error fetching profile", error);
       set({
@@ -148,7 +147,8 @@ const useProfileStore = create<ProfileState>((set, get) => ({
 
       // Optimistic update
       set({ profile: updatedProfile, error: null });
-      await updateDoc(userRef, updatedProfile);
+      // Only send changed fields to Firestore
+      await updateDoc(userRef, newProfile);
     } catch (error) {
       logger.error("useProfileStore", "Error updating profile", error);
 

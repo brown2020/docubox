@@ -15,9 +15,10 @@ interface UseFolderNavigationReturn {
 /**
  * Hook for managing folder navigation state.
  * Syncs with URL search params.
+ * Accepts allFiles to resolve parent folders for back navigation.
  */
 export function useFolderNavigation(
-  allFiles: FileType[]
+  allFiles: FileType[] = []
 ): UseFolderNavigationReturn {
   const searchParams = useSearchParams();
   const pathname = usePathname();

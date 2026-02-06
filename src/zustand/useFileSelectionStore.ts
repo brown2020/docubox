@@ -1,81 +1,45 @@
 import { create } from "zustand";
 
 /**
- * Store for managing currently selected file state.
- * Used by modals and other components that need to know what's selected.
- * Note: Folder navigation is handled by useNavigationStore.
+ * Store for managing bulk file selection state.
+ * Used by the file table/grid for multi-select operations (delete, move, download).
  */
 interface FileSelectionStore {
-  // Selected file info
-  fileId: string | null;
-  setFileId: (fileId: string | null) => void;
+  /** Set of currently selected file IDs */
+  selectedFileIds: Set<string>;
 
-  filename: string;
-  setFilename: (filename: string) => void;
+  /** Toggle a single file's selection state */
+  toggleFile: (fileId: string) => void;
 
-  tags: string[];
-  setTags: (tags: string[]) => void;
+  /** Select all files by their IDs */
+  selectAll: (fileIds: string[]) => void;
 
-  // For delete modal - parent folder and type info
-  folderId: string | null;
-  setFolderId: (folderId: string | null) => void;
-
-  isFolder: boolean;
-  setIsFolder: (isFolder: boolean) => void;
-
-  // Parsed file data
-  unstructuredFileData: string;
-  setUnstructuredFileData: (data: string) => void;
-
-  fileSummary:
-    | {
-        docId: string;
-        summary: string;
-      }
-    | undefined;
-  setFileSummary: (
-    data:
-      | {
-          docId: string;
-          summary: string;
-        }
-      | undefined
-  ) => void;
-
-  // Clear selection
+  /** Clear all selections */
   clearSelection: () => void;
+
+  /** Check if a specific file is selected */
+  isSelected: (fileId: string) => boolean;
 }
 
-export const useFileSelectionStore = create<FileSelectionStore>((set) => ({
-  fileId: null,
-  setFileId: (fileId) => set({ fileId }),
+export const useFileSelectionStore = create<FileSelectionStore>((set, get) => ({
+  selectedFileIds: new Set<string>(),
 
-  filename: "",
-  setFilename: (filename) => set({ filename }),
+  toggleFile: (fileId) =>
+    set((state) => {
+      const next = new Set(state.selectedFileIds);
+      if (next.has(fileId)) {
+        next.delete(fileId);
+      } else {
+        next.add(fileId);
+      }
+      return { selectedFileIds: next };
+    }),
 
-  tags: [],
-  setTags: (tags) => set({ tags }),
-
-  folderId: null,
-  setFolderId: (folderId) => set({ folderId }),
-
-  isFolder: false,
-  setIsFolder: (isFolder) => set({ isFolder }),
-
-  unstructuredFileData: "",
-  setUnstructuredFileData: (data) => set({ unstructuredFileData: data }),
-
-  fileSummary: undefined,
-  setFileSummary: (data) => set({ fileSummary: data }),
+  selectAll: (fileIds) =>
+    set({ selectedFileIds: new Set(fileIds) }),
 
   clearSelection: () =>
-    set({
-      fileId: null,
-      filename: "",
-      tags: [],
-      folderId: null,
-      isFolder: false,
-      unstructuredFileData: "",
-      fileSummary: undefined,
-    }),
+    set({ selectedFileIds: new Set<string>() }),
+
+  isSelected: (fileId) => get().selectedFileIds.has(fileId),
 }));

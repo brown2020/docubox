@@ -123,7 +123,7 @@ export const fileService = {
    */
   async softDelete(userId: string, fileId: string): Promise<void> {
     await updateDoc(doc(db, "users", userId, "files", fileId), {
-      deletedAt: new Date(),
+      deletedAt: serverTimestamp(),
     });
     logger.debug("fileService", { action: "softDelete", fileId });
   },
@@ -312,8 +312,8 @@ export const fileService = {
         await fileService.deleteFolderRecursive(userId, document.id);
         await deleteDoc(doc(db, "users", userId, "files", document.id));
       } else {
-        await fileService.deleteFromStorage(userId, data.docId, data.filename);
-        await deleteDoc(doc(db, "users", userId, "files", data.docId));
+        await fileService.deleteFromStorage(userId, document.id, data.filename);
+        await deleteDoc(doc(db, "users", userId, "files", document.id));
       }
     });
 
@@ -324,10 +324,10 @@ export const fileService = {
   /**
    * Get a single file document
    */
-  async getFile(userId: string, fileId: string) {
+  async getFile(userId: string, fileId: string): Promise<Record<string, unknown> | null> {
     const docRef = doc(db, "users", userId, "files", fileId);
     const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? docSnap.data() : null;
+    return docSnap.exists() ? (docSnap.data() as Record<string, unknown>) : null;
   },
 
   /**

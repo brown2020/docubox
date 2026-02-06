@@ -39,15 +39,16 @@ export function DeleteModal() {
       } else {
         const fileData = await fileService.getFile(user.id, fileId);
         if (fileData) {
-          if (fileData.ragieFileId) {
-            await deleteFileFromRagie(fileData.ragieFileId);
+          const ragieFileId = fileData.ragieFileId as string | undefined;
+          const filename = fileData.filename as string;
+          if (ragieFileId) {
+            await deleteFileFromRagie(ragieFileId);
           }
-          await fileService.permanentDelete(user.id, fileId, fileData.filename);
+          await fileService.permanentDelete(user.id, fileId, filename);
         }
       }
 
       toast.success(`${itemType} deleted successfully!`, { id: toastId });
-      close();
     } catch (error) {
       logger.error("DeleteModal", "Error deleting file", error);
       toast.error(`Error deleting ${itemType.toLowerCase()}!`, { id: toastId });

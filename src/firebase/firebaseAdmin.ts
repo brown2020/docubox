@@ -1,5 +1,6 @@
 import admin from "firebase-admin";
 import { getApps } from "firebase-admin/app";
+import { logger } from "@/lib/logger";
 
 /**
  * Initialize Firebase Admin lazily to avoid build-time errors
@@ -20,8 +21,9 @@ function initializeAdmin() {
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 
   if (!projectId || !privateKey || !clientEmail) {
-    console.warn(
-      "Firebase Admin: Missing required credentials. Need FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL"
+    logger.warn(
+      "firebaseAdmin",
+      "Missing required credentials. Need FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL"
     );
     return;
   }
@@ -55,13 +57,16 @@ function getAdminAuth() {
 // Export lazy getters
 const adminBucket = {
   get file() {
-    return getAdminBucket().file.bind(getAdminBucket());
+    const bucket = getAdminBucket();
+    return bucket.file.bind(bucket);
   },
   get upload() {
-    return getAdminBucket().upload.bind(getAdminBucket());
+    const bucket = getAdminBucket();
+    return bucket.upload.bind(bucket);
   },
   get delete() {
-    return getAdminBucket().delete.bind(getAdminBucket());
+    const bucket = getAdminBucket();
+    return bucket.delete.bind(bucket);
   },
 };
 

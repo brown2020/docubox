@@ -10,6 +10,7 @@ import {
 } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { fetchFileFromStorage } from "@/lib/storage";
+import { requireAuth } from "@/lib/server-auth";
 
 const SERVICE_NAME = "Unstructured API";
 
@@ -105,6 +106,8 @@ export async function parseFile(
   apiKey: string,
   isHighRes = false
 ): Promise<Chunk[]> {
+  await requireAuth();
+
   // Validate inputs
   if (!apiKey) {
     throw new Error(
@@ -161,19 +164,19 @@ export async function parseFile(
 
     return chunks;
   } catch (error) {
-    // Re-throw APIError and known errors as-is
+    // Re-throw APIError as-is (already user-friendly)
     if (error instanceof APIError) {
       throw error;
     }
 
+    // Re-throw errors that are already user-facing
     if (error instanceof Error) {
-      if (
-        error.message.startsWith(SERVICE_NAME) ||
-        error.message.startsWith("No content") ||
-        error.message.startsWith("Failed to") ||
-        error.message.startsWith("Network error") ||
-        error.message.startsWith("The file appears")
-      ) {
+      const msg = error.message;
+      // These are errors we or our dependencies throw with user-friendly messages
+      if (msg.includes(SERVICE_NAME) ||
+          msg.includes("No content") ||
+          msg.includes("empty") ||
+          msg.includes("Network error")) {
         throw error;
       }
     }
@@ -184,7 +187,6 @@ export async function parseFile(
       stack: error instanceof Error ? error.stack : undefined,
     });
 
-    // Use getHttpErrorMessage for better error messages
     throw new Error(
       `Error processing file: ${getHttpErrorMessage(
         500,

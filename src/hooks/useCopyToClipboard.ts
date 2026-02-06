@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface UseCopyToClipboardProps {
   timeout?: number;
@@ -13,24 +13,46 @@ export function useCopyToClipboard({
   timeout = 2000,
 }: UseCopyToClipboardProps = {}) {
   const [isCopied, setIsCopied] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const copyToClipboard = (value: string) => {
-    if (typeof window === "undefined" || !navigator.clipboard?.writeText) {
-      return;
-    }
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
-    if (!value) {
-      return;
-    }
+  const copyToClipboard = useCallback(
+    (value: string) => {
+      if (typeof window === "undefined" || !navigator.clipboard?.writeText) {
+        return;
+      }
 
-    navigator.clipboard.writeText(value).then(() => {
-      setIsCopied(true);
+      if (!value) {
+        return;
+      }
 
-      setTimeout(() => {
-        setIsCopied(false);
-      }, timeout);
-    });
-  };
+      navigator.clipboard.writeText(value).then(
+        () => {
+          setIsCopied(true);
+
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+
+          timeoutRef.current = setTimeout(() => {
+            setIsCopied(false);
+          }, timeout);
+        },
+        () => {
+          // Clipboard write failed (e.g. permissions denied)
+          setIsCopied(false);
+        }
+      );
+    },
+    [timeout]
+  );
 
   return { isCopied, copyToClipboard };
 }

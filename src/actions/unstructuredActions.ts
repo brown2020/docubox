@@ -1,32 +1,36 @@
 "use server";
 
-import { db, storage } from "@/firebase";
+import { adminDb, adminBucket } from "@/firebase/firebaseAdmin";
 import { Chunk } from "@/types/types";
-import { doc, updateDoc } from "firebase/firestore";
-import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { logger } from "@/lib/logger";
+import { requireAuth } from "@/lib/server-auth";
 
 const uploadUnstructuredFile = async (
   chunks: Chunk[],
-  userId: string,
+  _userId: string,
   fileName: string,
   fileId: string
 ) => {
+  const { userId } = await requireAuth();
+
   try {
-    const baseRef = ref(
-      storage,
-      `users/${userId}/unstructured/${fileId}_${fileName}`
-    );
-    const uploadPromises = chunks.map((chunk, index) => {
-      const chunkRef = ref(baseRef, `chunk_${index}`);
-      return uploadString(chunkRef, JSON.stringify(chunk), "raw", {
+    const basePath = `users/${userId}/unstructured/${fileId}_${fileName}`;
+    const uploadPromises = chunks.map(async (chunk, index) => {
+      const filePath = `${basePath}/chunk_${index}`;
+      const file = adminBucket.file(filePath);
+      await file.save(JSON.stringify(chunk), {
         contentType: "application/json",
-      }).then(() => getDownloadURL(chunkRef));
+      });
+      const [url] = await file.getSignedUrl({
+        action: "read" as const,
+        expires: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+      });
+      return url;
     });
 
     const chunkUrls = await Promise.all(uploadPromises);
 
-    await updateDoc(doc(db, "users", userId, "files", fileId), {
+    await adminDb.doc(`users/${userId}/files/${fileId}`).update({
       unstructuredFile: chunkUrls,
       chunkCount: chunks.length,
     });
@@ -38,11 +42,32 @@ const uploadUnstructuredFile = async (
   }
 };
 
-// Function to download a file
+/**
+ * Validates that a URL is a legitimate Google Cloud Storage signed URL.
+ */
+function isValidStorageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname === "storage.googleapis.com" ||
+      parsed.hostname.endsWith(".storage.googleapis.com");
+  } catch {
+    return false;
+  }
+}
+
 const downloadUnstructuredFile = async (fileUrl: string | string[]) => {
+  await requireAuth();
+
   try {
     const urls = Array.isArray(fileUrl) ? fileUrl : [fileUrl];
     if (urls.length === 0) throw new Error("No unstructured file URL(s)");
+
+    // Validate all URLs are legitimate storage URLs
+    for (const url of urls) {
+      if (!isValidStorageUrl(url)) {
+        throw new Error("Invalid storage URL");
+      }
+    }
 
     const responses = await Promise.all(
       urls.map(async (url) => {
@@ -50,7 +75,7 @@ const downloadUnstructuredFile = async (fileUrl: string | string[]) => {
         if (!response.ok) {
           throw new Error(`Network response was not ok (${response.status})`);
         }
-        return response.json();
+        return response.json() as Promise<Chunk>;
       })
     );
 

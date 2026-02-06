@@ -38,6 +38,3 @@ export function getModel(
   return client(modelName);
 }
 
-
-
-

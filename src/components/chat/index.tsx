@@ -29,12 +29,6 @@ interface RetrievalResponse {
   scored_chunks: ScoredChunk[];
 }
 
-interface RetrievalError {
-  error: true;
-  status: number;
-  message: string;
-}
-
 interface IChatProps {
   fileId: string;
 }
@@ -116,7 +110,16 @@ export const Chat = ({ fileId }: IChatProps) => {
             apiKey
           );
           await fileService.updateRagieStatus(userId, docData.id, response.id);
-          await checkDocumentReadiness(response.id, apiKey);
+
+          // Client-side polling for document readiness
+          const maxAttempts = 60;
+          const interval = 3000;
+          for (let i = 0; i < maxAttempts; i++) {
+            const { ready } = await checkDocumentReadiness(response.id, apiKey);
+            if (ready) return;
+            await new Promise((resolve) => setTimeout(resolve, interval));
+          }
+          throw new Error("Timeout waiting for document to be processed by Ragie.");
         };
         await handleAPIAndCredits("ragie", apiProfileData, handleUploadfile);
       } catch (error) {
@@ -125,7 +128,7 @@ export const Chat = ({ fileId }: IChatProps) => {
           closeModal();
         } else {
           logger.error("Chat", "Error uploading to Ragie", error);
-          throw Error("Error uploading to Ragie");
+          throw new Error("Error uploading to Ragie");
         }
       } finally {
         setUploadingToRagie(false);
@@ -202,7 +205,7 @@ export const Chat = ({ fileId }: IChatProps) => {
       newQuestionRef.current = newQuestion;
 
       // Step 1: Retrieve chunks from Ragie
-      let data: RetrievalResponse | RetrievalError | null = null;
+      let data: RetrievalResponse | null = null;
 
       // Try env key first (server action will also fallback internally)
       try {
@@ -223,23 +226,18 @@ export const Chat = ({ fileId }: IChatProps) => {
         throw new Error("Failed to retrieve chunks from Ragie.");
       }
 
-      // If the server returned a structured error, surface it and stop
-      if ((data as RetrievalError).error) {
-        const err = data as RetrievalError;
-        toast.error(err.message);
-        return;
-      }
-
       // Step 2: Generate content using the retrieved chunks
-      const handleContent = async () => {
+      const retrievedData = data;
+      const handleContent = async (apiKey: string) => {
         // Capture question before clearing (use ref to avoid stale closure)
         const questionToAsk = newQuestionRef.current;
         setNewQuestion("");
 
         const answer = await generateWithChunks(
-          (data as RetrievalResponse).scored_chunks.map((chunk) => chunk.text),
+          retrievedData.scored_chunks.map((chunk) => chunk.text),
           questionToAsk,
-          DEFAULT_MODEL
+          DEFAULT_MODEL,
+          apiKey
         );
         setGeneratedContent(answer.trim());
         await updateDocument({
@@ -314,9 +312,8 @@ export const Chat = ({ fileId }: IChatProps) => {
           disabled={isLoading || isGenerating}
           onChange={(e) => setNewQuestion(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
+            if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              setNewQuestion((e.target as HTMLTextAreaElement).value);
               handleAsk();
             }
           }}

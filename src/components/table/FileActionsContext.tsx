@@ -1,11 +1,12 @@
 "use client";
 
-import { createContext, useContext, useMemo, ReactNode } from "react";
+import { createContext, useContext, useCallback, useMemo, ReactNode } from "react";
 import { useUser } from "@/components/auth";
 import { FileType } from "@/types/filetype";
 import { useFileModals } from "@/hooks";
 import { useUploadStore } from "@/zustand/useUploadStore";
 import { fileService } from "@/services/fileService";
+import { logger } from "@/lib/logger";
 
 interface FileActionsContextValue {
   openRenameModal: (fileId: string, filename: string, tags: string[]) => void;
@@ -58,8 +59,8 @@ export function FileActionsProvider({ children }: FileActionsProviderProps) {
   const { uploadingFiles, addUploadingFile, updateUploadingFile } =
     useUploadStore();
 
-  const handleParsingClick = useMemo(
-    () => (file: FileType) => {
+  const handleParsingClick = useCallback(
+    (file: FileType) => {
       if (uploadingFiles.find((f) => f.fileId === file.docId)) {
         updateUploadingFile(file.docId, { isParsing: true });
         setTimeout(() => {
@@ -78,10 +79,13 @@ export function FileActionsProvider({ children }: FileActionsProviderProps) {
     [uploadingFiles, addUploadingFile, updateUploadingFile]
   );
 
-  const restoreDeletedFile = useMemo(
-    () => async (fileId: string) => {
-      if (user) {
+  const restoreDeletedFile = useCallback(
+    async (fileId: string) => {
+      if (!user) return;
+      try {
         await fileService.restore(user.id, fileId);
+      } catch (error) {
+        logger.error("FileActionsContext", "Failed to restore file", error);
       }
     },
     [user]

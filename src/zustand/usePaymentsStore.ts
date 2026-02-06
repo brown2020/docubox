@@ -95,7 +95,7 @@ export const usePaymentsStore = create<PaymentsStoreState>((set) => ({
         return;
       }
 
-      const newPaymentDoc = await addDoc(
+      await addDoc(
         collection(db, "users", uid, "payments"),
         {
           id: payment.id,
@@ -106,7 +106,7 @@ export const usePaymentsStore = create<PaymentsStoreState>((set) => ({
       );
 
       const newPayment = {
-        id: newPaymentDoc.id,
+        id: payment.id,
         amount: payment.amount,
         createdAt: Timestamp.now(),
         status: payment.status,
@@ -130,18 +130,23 @@ export const usePaymentsStore = create<PaymentsStoreState>((set) => ({
     const uid = useAuthStore.getState().uid;
     if (!uid) return null;
 
-    const paymentsRef = collection(db, "users", uid, "payments");
-    const q = query(
-      paymentsRef,
-      where("id", "==", paymentId),
-      where("status", "==", "succeeded")
-    );
-    const querySnapshot = await getDocs(q);
+    try {
+      const paymentsRef = collection(db, "users", uid, "payments");
+      const q = query(
+        paymentsRef,
+        where("id", "==", paymentId),
+        where("status", "==", "succeeded")
+      );
+      const querySnapshot = await getDocs(q);
 
-    if (!querySnapshot.empty) {
-      return querySnapshot.docs[0].data() as PaymentType;
+      if (!querySnapshot.empty) {
+        return querySnapshot.docs[0].data() as PaymentType;
+      }
+
+      return null;
+    } catch (error) {
+      logger.error("usePaymentsStore", "Error checking payment status", error);
+      return null;
     }
-
-    return null;
   },
 }));

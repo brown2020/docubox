@@ -55,13 +55,13 @@ const handleAPIAndCredits = async (
     const apiKeyField = getProfileFieldName(apiType);
     const apiKey = profile[apiKeyField];
 
-    if (!apiKey) {
+    if (typeof apiKey !== "string" || !apiKey) {
       throw new Error(
         `No ${displayName} API key found. Please add your API key in profile settings or enable credits.`
       );
     }
 
-    await callback(apiKey as string);
+    await callback(apiKey);
   }
 };
 

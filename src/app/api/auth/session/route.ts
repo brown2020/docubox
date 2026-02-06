@@ -9,9 +9,21 @@ const SESSION_COOKIE_NAME = "__session";
 // Session duration: 5 days (in milliseconds)
 const SESSION_DURATION = 60 * 60 * 24 * 5 * 1000;
 
+/** Cookie options shared between set/clear operations */
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/",
+};
+
 /**
  * POST /api/auth/session
  * Creates a session cookie from a Firebase ID token.
+ *
+ * Uses NextResponse.cookies.set() directly on the response object to ensure
+ * the Set-Cookie header is always included in the response (cookies() from
+ * next/headers can silently fail to propagate in Route Handlers).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -41,20 +53,19 @@ export async function POST(request: NextRequest) {
       expiresIn: SESSION_DURATION,
     });
 
-    // Set the cookie
-    const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE_NAME, sessionCookie, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: SESSION_DURATION / 1000, // Convert to seconds
-      path: "/",
-    });
-
-    return NextResponse.json({
+    // Build response and set cookie directly on it so the Set-Cookie header
+    // is guaranteed to be included in the HTTP response
+    const response = NextResponse.json({
       success: true,
       userId: decodedToken.uid,
     });
+
+    response.cookies.set(SESSION_COOKIE_NAME, sessionCookie, {
+      ...COOKIE_OPTIONS,
+      maxAge: SESSION_DURATION / 1000, // Convert to seconds
+    });
+
+    return response;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     const errorCode = (error as { code?: string })?.code;
@@ -74,7 +85,7 @@ export async function DELETE() {
   try {
     const cookieStore = await cookies();
 
-    // Get the session cookie
+    // Get the session cookie for revocation
     const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME);
 
     if (sessionCookie?.value) {
@@ -87,10 +98,14 @@ export async function DELETE() {
       }
     }
 
-    // Clear the cookie
-    cookieStore.delete(SESSION_COOKIE_NAME);
+    // Build response and clear the cookie directly on the response
+    const response = NextResponse.json({ success: true });
+    response.cookies.set(SESSION_COOKIE_NAME, "", {
+      ...COOKIE_OPTIONS,
+      maxAge: 0,
+    });
 
-    return NextResponse.json({ success: true });
+    return response;
   } catch (error) {
     logger.error("SessionAPI", "Failed to clear session", error);
     return NextResponse.json(

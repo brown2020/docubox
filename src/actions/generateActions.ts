@@ -1,7 +1,9 @@
 "use server";
 
-import { ModelMessage, generateText } from "ai";
+import { generateText } from "ai";
 import { getOpenAIClient, getModel, DEFAULT_MODEL } from "@/lib/ai";
+import { requireAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 /**
  * Generates a response using the AI model.
@@ -9,25 +11,16 @@ import { getOpenAIClient, getModel, DEFAULT_MODEL } from "@/lib/ai";
 async function generateResponse(
   systemPrompt: string,
   userPrompt: string,
-  modelName: string = DEFAULT_MODEL
+  modelName: string = DEFAULT_MODEL,
+  apiKey?: string | null
 ): Promise<string> {
-  const client = getOpenAIClient();
+  const client = getOpenAIClient(apiKey);
   const model = getModel(client, modelName);
-
-  const messages: ModelMessage[] = [
-    {
-      role: "system",
-      content: systemPrompt,
-    },
-    {
-      role: "user",
-      content: userPrompt,
-    },
-  ];
 
   const { text } = await generateText({
     model,
-    messages,
+    system: systemPrompt,
+    prompt: userPrompt,
   });
 
   return text;
@@ -40,8 +33,11 @@ async function generateResponse(
 export async function generateWithChunks(
   chunks: string[],
   query: string,
-  modelName: string = DEFAULT_MODEL
+  modelName: string = DEFAULT_MODEL,
+  apiKey?: string | null
 ): Promise<string> {
+  await requireAuth();
+
   // Combine the retrieved chunks into a single text block
   const chunkText = chunks.join("\n");
 
@@ -63,6 +59,10 @@ ${chunkText}
 If the user asked for a search and there are no results, make sure to let the user know that you couldn't find anything,
 and what they might be able to do to find the information they need.`;
 
-  // Generate an answer based on the system prompt and user query
-  return generateResponse(systemPrompt, query, modelName);
+  try {
+    return await generateResponse(systemPrompt, query, modelName, apiKey);
+  } catch (error) {
+    logger.error("generateActions", "Error generating response with chunks", error);
+    throw new Error("Failed to generate response. Please try again.");
+  }
 }

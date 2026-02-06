@@ -31,8 +31,8 @@ async function getDecodedToken() {
   if (sessionCookie?.value) {
     try {
       return await adminAuth.verifySessionCookie(sessionCookie.value, true);
-    } catch (error) {
-      logger.error("server-auth", "Session cookie verification failed", error);
+    } catch {
+      logger.warn("server-auth", "Session cookie verification failed");
       // Cookie might be expired or invalid, continue to check header
     }
   }
@@ -45,8 +45,8 @@ async function getDecodedToken() {
     const idToken = authHeader.substring(7);
     try {
       return await adminAuth.verifyIdToken(idToken);
-    } catch (error) {
-      logger.error("server-auth", "ID token verification failed", error);
+    } catch {
+      logger.warn("server-auth", "ID token verification failed");
     }
   }
 

@@ -331,6 +331,59 @@ export const fileService = {
   },
 
   /**
+   * Create a public share link for a file.
+   * Generates a unique token stored on the file doc and in a top-level `shares` collection.
+   */
+  async createShareLink(userId: string, fileId: string): Promise<string> {
+    const token = crypto.randomUUID();
+    const batch = (await import("firebase/firestore")).writeBatch(db);
+
+    // Update the file document
+    const fileRef = doc(db, "users", userId, "files", fileId);
+    batch.update(fileRef, {
+      shareToken: token,
+      shareEnabled: true,
+      shareCreatedAt: serverTimestamp(),
+    });
+
+    // Create a top-level share lookup document for efficient public access
+    const shareRef = doc(db, "shares", token);
+    batch.set(shareRef, {
+      userId,
+      fileId,
+      createdAt: serverTimestamp(),
+    });
+
+    await batch.commit();
+    logger.debug("fileService", { action: "createShareLink", fileId, token });
+    return token;
+  },
+
+  /**
+   * Disable (revoke) a share link for a file.
+   */
+  async disableShareLink(
+    userId: string,
+    fileId: string,
+    shareToken: string
+  ): Promise<void> {
+    const batch = (await import("firebase/firestore")).writeBatch(db);
+
+    const fileRef = doc(db, "users", userId, "files", fileId);
+    batch.update(fileRef, {
+      shareToken: null,
+      shareEnabled: false,
+      shareCreatedAt: null,
+    });
+
+    const shareRef = doc(db, "shares", shareToken);
+    batch.delete(shareRef);
+
+    await batch.commit();
+    logger.debug("fileService", { action: "disableShareLink", fileId });
+  },
+
+  /**
    * Update file summary
    */
   async updateSummary(

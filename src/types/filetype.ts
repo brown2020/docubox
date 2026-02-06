@@ -30,6 +30,10 @@ export type FileType = {
   isUploadedToRagie: boolean;
   /** Ragie document ID for RAG queries */
   ragieFileId: string | null;
+  /** Unique token for public share link (null if not shared) */
+  shareToken: string | null;
+  /** Whether sharing is currently enabled */
+  shareEnabled: boolean;
 };
 
 /**

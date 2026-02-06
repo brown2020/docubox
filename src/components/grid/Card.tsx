@@ -63,6 +63,25 @@ export const Card = memo(function Card({
                   Parsed Data
                 </DropdownMenuItem>
               )}
+              {!isFolderItem && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    // Share is handled inline via SharePopover in table view;
+                    // in grid view, copy the share link if it exists or create one
+                    if (data.shareToken && data.shareEnabled) {
+                      const url = `${window.location.origin}/share/${data.shareToken}`;
+                      navigator.clipboard.writeText(url).then(
+                        () => { /* toast handled by component using this */ },
+                        () => { /* fallback */ }
+                      );
+                    }
+                  }}
+                  disabled={!data.shareToken || !data.shareEnabled}
+                >
+                  Copy share link
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={() =>
                   openRenameModal(data.docId, data.filename, data.tags)

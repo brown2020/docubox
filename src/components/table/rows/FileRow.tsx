@@ -9,6 +9,7 @@ import { renderTableCell } from "../utils/renderCell";
 import { ActionCell } from "../cells/ActionCell";
 import { useFileActions } from "../FileActionsContext";
 import { useModalStore } from "@/zustand/useModalStore";
+import { SharePopover } from "@/components/SharePopover";
 import { EyeIcon, FileTerminal, MessageCircleQuestionIcon } from "lucide-react";
 
 interface FileRowProps {
@@ -72,6 +73,11 @@ export const FileRow = memo(function FileRow({
         }
         additionalActions={
           <div className="flex space-x-2 items-center">
+            <SharePopover
+              fileId={fileData.docId}
+              shareToken={fileData.shareToken}
+              shareEnabled={fileData.shareEnabled}
+            />
             {!hasParsedData && (
               <Button
                 variant="outline"

@@ -59,6 +59,8 @@ export function mapFirestoreFileDataToFileType(
     deletedAt: data.deletedAt ? toDate(data.deletedAt) : null,
     isUploadedToRagie: Boolean(data.isUploadedToRagie),
     ragieFileId: typeof data.ragieFileId === "string" ? data.ragieFileId : null,
+    shareToken: typeof data.shareToken === "string" ? data.shareToken : null,
+    shareEnabled: Boolean(data.shareEnabled),
   };
 }
 

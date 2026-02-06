@@ -1,10 +1,11 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useCallback } from "react";
 import { Card } from "./Card";
 import { FileType, isFolder } from "@/types/filetype";
 import { File } from "../table/File";
 import { Folder } from "../table/Folder";
 import { useUser } from "@/components/auth";
 import { useFileModals } from "@/hooks";
+import { useModalStore } from "@/zustand/useModalStore";
 
 type Props = {
   data: FileType[];
@@ -18,6 +19,7 @@ export const GridView: FunctionComponent<Props> = ({
   isTrashView,
 }) => {
   const { user } = useUser();
+  const openModal = useModalStore((s) => s.open);
 
   // Use shared modal handlers
   const { openDeleteModal, openRenameModal, openParseDataViewModal } =
@@ -27,8 +29,22 @@ export const GridView: FunctionComponent<Props> = ({
     if (user) moveFileHandler(user?.id, docId, folderId);
   };
 
+  const openPreview = useCallback(
+    (file: FileType) => {
+      openModal("preview", {
+        fileId: file.docId,
+        filename: file.filename,
+        downloadUrl: file.downloadUrl,
+        type: file.type,
+        size: file.size,
+        summary: file.summary || undefined,
+      });
+    },
+    [openModal]
+  );
+
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 flex-wrap">
       {data.map((item) =>
         !isFolder(item) ? (
           <File
@@ -38,13 +54,13 @@ export const GridView: FunctionComponent<Props> = ({
             isTrashItem={isTrashView}
           >
             <Card
-              key={item.docId}
               data={item}
               openRenameModal={openRenameModal}
               openViewModal={openParseDataViewModal}
               openDeleteModal={() =>
                 openDeleteModal(item.docId, item.folderId, false)
               }
+              onPreview={() => openPreview(item)}
             />
           </File>
         ) : (
@@ -56,7 +72,6 @@ export const GridView: FunctionComponent<Props> = ({
             isTrashItem={isTrashView}
           >
             <Card
-              key={item.docId}
               data={item}
               openRenameModal={openRenameModal}
               openViewModal={openParseDataViewModal}

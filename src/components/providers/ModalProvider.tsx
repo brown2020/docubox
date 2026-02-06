@@ -47,6 +47,14 @@ const AddNewFolderModal = dynamic(
   { loading: () => null }
 );
 
+const FilePreviewModal = dynamic(
+  () =>
+    import("@/components/FilePreviewModal").then((m) => ({
+      default: m.FilePreviewModal,
+    })),
+  { loading: () => null }
+);
+
 /**
  * Centralized modal provider with lazy loading.
  * Modals only render when their type is active.
@@ -73,6 +81,7 @@ export function ModalProvider() {
       {openModal === "parseData" && <ShowParsedDataModal />}
       {openModal === "questionAnswer" && <QuestionAnswerModal />}
       {openModal === "createFolder" && <AddNewFolderModal />}
+      {openModal === "preview" && <FilePreviewModal />}
     </>
   );
 }

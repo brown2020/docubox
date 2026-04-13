@@ -68,7 +68,7 @@ export function mapFirestoreFileDataToFileType(
  * Maps a Firestore query snapshot to a FileType object.
  * Prefer this over casting raw Firestore data.
  */
-export function mapDocToFileType(
+function mapDocToFileType(
   doc: QueryDocumentSnapshot<DocumentData>
 ): FileType {
   return mapFirestoreFileDataToFileType(doc.id, doc.data());

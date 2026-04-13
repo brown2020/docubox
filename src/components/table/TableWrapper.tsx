@@ -75,7 +75,7 @@ export default function TableWrapper() {
     });
 
   // Navigation
-  const { canGoBack, goBack, navigateTo } = useFolderNavigation(allFiles);
+  const { navigateTo } = useFolderNavigation(allFiles);
 
   // Modal
   const open = useModalStore((s) => s.open);

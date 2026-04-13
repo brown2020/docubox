@@ -101,7 +101,7 @@ export function ShowParsedDataModal() {
         }
       }
     }
-  }, [document, user, unstructuredFileData, setUnstructuredFileData, isMountedRef]);
+  }, [document, user, unstructuredFileData, isMountedRef]);
 
   useEffect(() => {
     fetchUnstructuredData();
@@ -117,10 +117,10 @@ export function ShowParsedDataModal() {
 
   const fetchSummary = useCallback(async () => {
     if (
-      !fileSummary ||
+      !fileId ||
       !unstructuredFileData ||
       isAIAlreadyCalled.current ||
-      fileSummary.summary
+      fileSummary?.summary
     ) {
       return;
     }
@@ -144,9 +144,7 @@ export function ShowParsedDataModal() {
         setSummary(generatedSummary);
       }
 
-      if (fileSummary) {
-        await updateRecord(fileSummary.docId, generatedSummary || "");
-      }
+      await updateRecord(fileId, generatedSummary || "");
 
       if (generatedSummary && useCredits) {
         await minusCredits(requiredCredits);
@@ -160,7 +158,8 @@ export function ShowParsedDataModal() {
       }
     }
   }, [
-    fileSummary,
+    fileId,
+    fileSummary?.summary,
     unstructuredFileData,
     useCredits,
     currentCredits,

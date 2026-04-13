@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { useUser, useAuth } from "@/components/auth";
 import { useCallback, useRef, useState } from "react";
 import DropzoneComponent from "react-dropzone";

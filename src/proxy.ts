@@ -16,7 +16,7 @@ const PROTECTED_ROUTES = [
 /**
  * Public-only routes - redirect authenticated users away.
  */
-const PUBLIC_ONLY_ROUTES = ["/login", "/loginfinish"] as const;
+const PUBLIC_ONLY_ROUTES = ["/login"] as const;
 
 /**
  * Session cookie name (must match the API route).

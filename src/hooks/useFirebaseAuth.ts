@@ -147,10 +147,22 @@ export function useFirebaseAuth(): FirebaseAuthState {
   // Sign out
   const signOut = useCallback(async (): Promise<void> => {
     try {
+      // 1. Delete server session cookie BEFORE Firebase sign-out.
       await clearSessionCookie();
+
+      // 2. Sign out of Firebase.
       await firebaseSignOut(auth);
+
+      // 3. Clear browser storage to prevent stale data leaking to next user.
+      if (typeof window !== "undefined") {
+        sessionStorage.clear();
+      }
     } catch (error) {
       logger.error("useFirebaseAuth", "Failed to sign out", error);
+      // Best-effort cleanup even on error
+      if (typeof window !== "undefined") {
+        sessionStorage.clear();
+      }
       throw error;
     }
   }, []);

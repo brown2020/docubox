@@ -48,6 +48,7 @@
     "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.7",
     "unstructured-client": "^0.31.0",
+    "zod": "^4.3.6",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
@@ -59,7 +60,6 @@
     "@types/react-file-icon": "^1.0.5",
     "@types/react-syntax-highlighter": "^15.5.13",
     "eslint": "^10.2.0",
-    "eslint-config-next": "^16.2.3",
     "postcss": "^8.5.9",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2"

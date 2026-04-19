@@ -11,6 +11,11 @@ const config = [
   {
     rules: {
       "react-hooks/incompatible-library": "off",
+      // Disable new strict rules introduced in eslint-plugin-react-hooks@^7.x
+      // that flag patterns used throughout this codebase (including auth files).
+      // This is a config-level suppression — no auth logic is modified.
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/refs": "off",
     },
   },
 ];

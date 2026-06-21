@@ -5,6 +5,31 @@
 
 ---
 
+## Codebase Current-State Notes (2026-06-20)
+
+These notes come from the codebase-improvement preflight and describe evidence
+already present in the repository. They do not change the roadmap priority list
+below.
+
+- `src/components/SharePopover.tsx`, `src/app/share/[token]/page.tsx`, and
+  `fileService.createShareLink()`/`disableShareLink()` show that public
+  share-link support is implemented.
+- `src/components/FilePreviewModal.tsx` and `src/utils/filePreview.ts` show
+  in-browser preview support for images, PDFs, text/code, video, and audio,
+  with unsupported-file fallback.
+- `src/components/Breadcrumbs.tsx` and `useFolderNavigation` provide folder
+  breadcrumb navigation.
+- `src/components/StorageUsageBar.tsx` and `useFilesList` compute and display
+  non-deleted file count and total storage bytes.
+- `src/hooks/useFilesList.ts` searches filenames, summaries, and tags, and
+  sorts by timestamp, name, size, or type with folders first.
+- `src/components/Dropzone.tsx` and `TableWrapper.tsx` use a compact upload
+  button plus drag overlay instead of a permanent large dropzone.
+- `DeleteModal` closes in `finally`, `ShowParsedDataModal` includes
+  `unstructuredFileData` in the summary callback dependencies, parsed chunks
+  are stored as Firebase Storage paths in `unstructuredActions.ts`, and the
+  legacy `loginfinish` route redirects to `/login`.
+
 ## 1. Table Stakes Gaps
 
 Things Dropbox has that we're missing and **must** add to be taken seriously.

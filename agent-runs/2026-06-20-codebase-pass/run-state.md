@@ -11,24 +11,25 @@
 
 ## Current State
 
-- Phase: Preflight and Repo Docs
-- Task: T-004
-- Status: F-001 fixed; report pending commit/push
+- Phase: Execute Fixes and Improvements
+- Task: T-009
+- Status: F-003 fixed; report pending commit/push
 - Last command: npm run build
-- Last result: Passed after Dropzone upload-loop fix
-- Last pushed commit: 29c0ff705664f29d36e8b65f6c621c55d10ab4fd
-- Branch sync: local dev tracks origin/dev after findings checkpoint push
-- Working tree: dirty only with owned F-001 source/report files
-- Next action: Commit/push F-001 fix, then assess F-003 Ragie polling lifecycle
+- Last result: Passed after Ragie modal lifecycle guard
+- Last pushed commit: 93f2a0ad41b9265b056003ea07c3abe88f993a7f
+- Branch sync: local dev tracks origin/dev after F-001 checkpoint push
+- Working tree: dirty only with owned F-003 source/report files
+- Next action: Commit/push F-003 fix, then handle package cleanup F-002
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| src/components/Dropzone.tsx | In-scope source | F-001 multi-file upload fix |
-| agent-runs/2026-06-20-codebase-pass/run-state.md | In-scope source of truth | F-001 task state |
-| agent-runs/2026-06-20-codebase-pass/task-queue.md | In-scope source of truth | T-004 status |
-| agent-runs/2026-06-20-codebase-pass/04-execute-fixes-and-improvements.md | In-scope report | F-001 fix report |
+| src/components/chat/index.tsx | In-scope source | F-003 Ragie polling lifecycle fix |
+| agent-runs/2026-06-20-codebase-pass/run-state.md | In-scope source of truth | F-003 task state |
+| agent-runs/2026-06-20-codebase-pass/task-queue.md | In-scope source of truth | T-009 status |
+| agent-runs/2026-06-20-codebase-pass/03-findings-backlog.md | In-scope report | F-003 status update |
+| agent-runs/2026-06-20-codebase-pass/04-execute-fixes-and-improvements.md | In-scope report | F-003 fix report |
 
 ## Blockers
 

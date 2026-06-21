@@ -13,7 +13,7 @@ import { QARecord } from "./QARecord";
 import toast from "react-hot-toast";
 import { handleAPIAndCredits } from "@/utils/useApiAndCreditKeys";
 import { useModalStore } from "@/zustand/useModalStore";
-import { useDocument, useApiProfileData } from "@/hooks";
+import { useDocument, useApiProfileData, useMountedRef } from "@/hooks";
 import { DEFAULT_MODEL } from "@/lib/ai";
 import { logger } from "@/lib/logger";
 import { fileService } from "@/services/fileService";
@@ -80,6 +80,7 @@ export const Chat = ({ fileId }: IChatProps) => {
   } = useDocument(user?.id, fileId);
   const apiProfileData = useApiProfileData();
   const closeModal = useModalStore((state) => state.close);
+  const isMountedRef = useMountedRef();
 
   // Load QA records when document is fetched
   useEffect(() => {
@@ -101,7 +102,9 @@ export const Chat = ({ fileId }: IChatProps) => {
       docData: { id: string; downloadUrl: string; filename: string }
     ) => {
       try {
-        setUploadingToRagie(true);
+        if (isMountedRef.current) {
+          setUploadingToRagie(true);
+        }
         const handleUploadfile = async (apiKey: string) => {
           const response = await uploadToRagie(
             docData.id,
@@ -115,6 +118,7 @@ export const Chat = ({ fileId }: IChatProps) => {
           const maxAttempts = 60;
           const interval = 3000;
           for (let i = 0; i < maxAttempts; i++) {
+            if (!isMountedRef.current) return;
             const { ready } = await checkDocumentReadiness(response.id, apiKey);
             if (ready) return;
             await new Promise((resolve) => setTimeout(resolve, interval));
@@ -123,6 +127,10 @@ export const Chat = ({ fileId }: IChatProps) => {
         };
         await handleAPIAndCredits("ragie", apiProfileData, handleUploadfile);
       } catch (error) {
+        if (!isMountedRef.current) {
+          logger.error("Chat", "Ragie upload failed after modal unmounted", error);
+          return;
+        }
         if (error instanceof Error) {
           toast.error(error.message);
           closeModal();
@@ -131,10 +139,12 @@ export const Chat = ({ fileId }: IChatProps) => {
           throw new Error("Error uploading to Ragie");
         }
       } finally {
-        setUploadingToRagie(false);
+        if (isMountedRef.current) {
+          setUploadingToRagie(false);
+        }
       }
     },
-    [apiProfileData, closeModal]
+    [apiProfileData, closeModal, isMountedRef]
   );
 
   const onDocumentLoad = useCallback(async () => {
@@ -157,13 +167,17 @@ export const Chat = ({ fileId }: IChatProps) => {
     if (document && !isUploadedToRagie && !isUploadingToRagieRef.current) {
       isUploadingToRagieRef.current = true;
       onDocumentLoad()
-        .then(() => refetchDocument())
+        .then(() => {
+          if (isMountedRef.current) {
+            return refetchDocument();
+          }
+        })
         .catch((error) => logger.error("Chat", "Failed to upload to Ragie", error))
         .finally(() => {
           isUploadingToRagieRef.current = false;
         });
     }
-  }, [document, isUploadedToRagie, onDocumentLoad, refetchDocument]);
+  }, [document, isUploadedToRagie, onDocumentLoad, refetchDocument, isMountedRef]);
 
   const updateQARecords = useCallback(
     async (_records: IQARecord[]) => {

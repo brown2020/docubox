@@ -20,8 +20,8 @@ quality gates and dependency diagnostics.
 - Branch: dev
 - Upstream: origin/dev
 - Commit: baseline report pending commit; previous pushed commit `8ec9562c36a6b72c906e22d6f00c13375eff57f0`
-- Pushed to: pending this phase checkpoint
-- Sync status: clean/synced before baseline report edits
+- Pushed to: origin/dev as commit `e1d44f017325e08b6c92c6bc8ac3fd12aa2caee6`
+- Sync status: local `dev` matched `origin/dev` after fetch
 
 ## Loop
 
@@ -88,12 +88,12 @@ npm audit --audit-level=moderate
 
 ## Commit-Push Checkpoint
 
-- Status inspected: pending after report update
-- Diff checked: pending
-- Files staged: pending
-- Dry-run push: pending
-- Push: pending
-- Post-push sync: pending
+- Status inspected: passed before commit
+- Diff checked: `git diff --check` passed
+- Files staged: baseline run-report files only
+- Dry-run push: passed
+- Push: pushed commit `e1d44f017325e08b6c92c6bc8ac3fd12aa2caee6` to `origin/dev`
+- Post-push sync: local `dev` matched `origin/dev` after fetch
 
 ## Stabilization
 

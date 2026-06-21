@@ -2,96 +2,123 @@
 
 ## Agent
 
-Name:
+Name: Codex
 
 ## Scope
 
-What this phase inspected or changed:
+Created an evidence-backed findings backlog across bugs, dependency security,
+async lifecycle risk, architecture/lean-code concerns, and validation gaps.
 
 ## Inputs
 
-Reports, files, or commands used:
+- Preflight and baseline reports.
+- `npm run lint`, `npm run build`, `npm audit --audit-level=moderate`, `npm outdated`.
+- Source inspection for `src/components/Dropzone.tsx`, `src/components/chat/index.tsx`,
+  `src/components/providers/ModalProvider.tsx`, `src/services/fileService.ts`,
+  server actions, auth/session, share pages, file mapping, and dashboard flows.
+- Search evidence for TODO/FIXME/console/debug markers, async flows, package uses,
+  and suspected unused files.
 
 ## Branch and Push
 
-- Branch:
-- Upstream:
-- Commit:
-- Pushed to:
-- Sync status:
+- Branch: dev
+- Upstream: origin/dev
+- Commit: findings report pending commit; previous pushed commit `e1d44f017325e08b6c92c6bc8ac3fd12aa2caee6`
+- Pushed to: pending this phase checkpoint
+- Sync status: clean/synced before findings report edits
 
 ## Loop
 
-- Name:
-- Goal:
-- Verify gate:
-- Stop condition:
-- Attempt:
-- Result:
+- Name: Findings Queue Loop, Architecture Fitness Loop, Lean Code Loop
+- Goal: Convert credible issues into prioritized, locally verifiable tasks.
+- Verify gate: every finding has evidence, risk, owned files, proposed fix, and verification.
+- Stop condition: backlog is prioritized and the first executable task is clear.
+- Attempt: 1/1
+- Result: Backlog created; first executable task is F-001/T-004.
 
 ## Run State
 
-- Current phase:
-- Current task:
-- Last pushed commit:
-- Next action:
-- Blockers:
+- Current phase: Findings Backlog
+- Current task: T-003
+- Last pushed commit: `e1d44f017325e08b6c92c6bc8ac3fd12aa2caee6`
+- Next action: commit/push findings backlog, then fix F-001 multi-file upload.
+- Blockers: None.
 
 ## Commands Run
 
 ```text
-None.
+rg -n "TODO|FIXME|HACK|console\.|debugger|eslint-disable" src package.json README.md CLAUDE.md spec.md
+find src -type f \( -name '*.ts' -o -name '*.tsx' \) -print0 | xargs -0 wc -l | sort -nr | head -25
+rg -n "useEffect|useCallback|setTimeout|setInterval|queueMicrotask|Promise\.all|AbortController|fetch\(" src
+rg -n "requireAuth|adminDb|adminAuth|server action|use server|downloadUrl|shareToken|deleteDoc|updateDoc|addDoc" src/actions src/app src/lib src/services src/firebase
+npm outdated
+sed -n ... selected source files
+nl -ba src/components/Dropzone.tsx
+nl -ba src/components/chat/index.tsx
+nl -ba src/components/providers/ModalProvider.tsx
+rg -n "@next/env|react-file-icon|react-syntax-highlighter|remark-math|tailwindcss-animate" src package.json
 ```
 
 ## Findings
 
-- None.
+| ID | Severity | Type | Status | Area | Summary | Evidence | Risk | Effort | Verification | Next Step |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| F-001 | P2 | Bug | Open | Uploads | Multi-file drops can skip every file after the first. `onDrop` loops over `acceptedFiles` and awaits `uploadPost`, but `uploadPost` returns after registering Firebase upload callbacks while `loadingRef.current` remains true. The next iteration hits the guard and returns. | `src/components/Dropzone.tsx:32-99` | Users dropping multiple files lose uploads silently except for the first started upload. | Small | `npm run lint`, `npm run build`, source inspection that `uploadPost` resolves after upload completion | Fix in T-004 |
+| F-002 | P1 | Package update | Open | Dependencies | Dependency audit reports 22 vulnerabilities, including one critical transitive `protobufjs` issue. | `npm audit --audit-level=moderate`; `package.json:26-50`, `package.json:62-66` | Security exposure in app/framework/transitive packages. | Medium | `npm audit --audit-level=moderate`, `npm run lint`, `npm run build` | Safe update batch in T-005 |
+| F-003 | P2 | Race condition | Open | Ragie Q&A lifecycle | Ragie upload readiness polling can run for up to 60 attempts at 3 seconds and then call `setUploadingToRagie`, `refetchDocument`, or close/toast behavior even if the modal unmounts/closes. | `src/components/chat/index.tsx:114-166` | State updates after unmount, wasted calls, and confusing modal behavior during long external processing. | Medium | Add cancellation/mounted guard; `npm run lint`, `npm run build` | Assess after F-001 |
+| F-004 | P3 | Lean code | Open | Modal lifecycle | `ModalProvider` suppresses `react-hooks/exhaustive-deps` to close modals only on path changes. The behavior is intentional, but the suppression hides future dependency mistakes. | `src/components/providers/ModalProvider.tsx:68-75` | Low maintainability risk around global modal state. | Small | Refactor with previous-path ref and full dependencies; `npm run lint` | Fix if time permits |
+| F-005 | P3 | Test gap | Deferred | Validation | `package.json` has lint/build/start/dev but no automated test script. | `package.json:5-10`; baseline lint/build passed | Behavioral regressions rely on manual or build-only validation. | Medium | Add tests only with approved product/engineering scope | Defer; document gap |
+| F-006 | P3 | Documentation | Open | Environment docs | Payment route requires `NEXT_PUBLIC_STRIPE_KEY`, but README environment docs list `STRIPE_SECRET_KEY` and product name only. | `src/app/payment-attempt/page.tsx:8-11`; README Stripe section | Local setup can fail at payment route with an undocumented public key. | Small | Docs update; `npm run lint` | Update docs if still valid |
 
 ## Changes Made
 
-- None.
+- Updated findings backlog, task queue, run state, and baseline checkpoint notes.
+- No source code changed.
 
 ## Verification
 
-Checks performed and results:
+- Lint/build baseline was clean before findings.
+- Findings are based on source line evidence and local package diagnostics.
+- No dead-code deletion was performed; suspected files without strong proof were not queued for removal.
 
 ## Architecture and Lean Code Scorecard
 
 | Area | Status | Evidence | Action |
 | --- | --- | --- | --- |
-| Dependency direction | Not assessed | N/A | Assess if relevant |
-| Module cohesion | Not assessed | N/A | Assess if relevant |
-| Public surface area | Not assessed | N/A | Assess if relevant |
-| Data and side-effect flow | Not assessed | N/A | Assess if relevant |
-| Async/cache/resource lifecycle | Not assessed | N/A | Assess if relevant |
-| Duplication and dead code | Not assessed | N/A | Assess if relevant |
-| Dependency lean-ness | Not assessed | N/A | Assess if relevant |
-| Testability | Not assessed | N/A | Assess if relevant |
+| Dependency direction | Pass | Server actions import `requireAuth`; Firebase Admin use is concentrated in server actions/API/proxy. | No immediate boundary fix |
+| Module cohesion | Watch | `src/services/fileService.ts` is 397 lines and owns file, folder, storage, share, parsed data, summary, and QA mutations. | Defer broad split; queue only local bugs |
+| Public surface area | Watch | Barrel exports are used for hooks/common modules; no unused export proof from search alone. | Defer API narrowing without stronger proof |
+| Data and side-effect flow | Watch | Client file mutations go through `fileService`; server actions validate auth. Share actions intentionally expose public-safe fields. | Keep inspecting as tasks touch flows |
+| Async/cache/resource lifecycle | Fail | F-001 upload loop and F-003 Ragie polling lifecycle are concrete async risks. | Fix F-001; assess F-003 |
+| Duplication and dead code | Watch | Suspected files such as `Profile.tsx`, `PaymentsPage`, and helper hooks are reachable by search. | No deletion without stronger proof |
+| Dependency lean-ness | Fail | Audit vulnerabilities and `npm outdated` drift across Next/Firebase/React/AI/Radix/Stripe/Tailwind/Zustand packages. | Run package cleanup |
+| Testability | Watch | No test script in `package.json`; lint/build pass. | Document gap; add tests only for clear source changes if structure emerges |
 
 ## Quality Gate
 
-- Command:
-- Result:
-- Notes:
+- Command: pending `npm run lint`
+- Result: pending
+- Notes: Required before findings report push.
 
 ## Commit-Push Checkpoint
 
-- Status inspected:
-- Diff checked:
-- Files staged:
-- Dry-run push:
-- Push:
-- Post-push sync:
+- Status inspected: pending
+- Diff checked: pending
+- Files staged: pending
+- Dry-run push: pending
+- Push: pending
+- Post-push sync: pending
 
 ## Stabilization
 
-- Cycle:
-- Completion criteria status:
-- Remaining blockers:
+- Cycle: Not started
+- Completion criteria status: F-001/F-002/F-003 remain open; F-005 deferred.
+- Remaining blockers: None.
 
 ## Risks
 
-Known risks or uncertainties:
+- Package fixes may include breaking changes; update in small batches.
+- F-003 touches external Ragie behavior and should stay minimal.
 
 ## Open Questions
 
@@ -99,4 +126,4 @@ Known risks or uncertainties:
 
 ## Recommended Next Step
 
-What should happen next:
+Fix F-001 first because it is a local, confirmed user-facing bug with a small verification path.

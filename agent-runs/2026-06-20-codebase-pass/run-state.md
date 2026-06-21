@@ -12,22 +12,23 @@
 ## Current State
 
 - Phase: Preflight and Repo Docs
-- Task: T-003
-- Status: Findings backlog complete; report pending commit/push
-- Last command: npm outdated
-- Last result: Dependency drift found for Next/Firebase/React/AI/Radix/Stripe/Tailwind/Zustand packages; audit still queued for cleanup
-- Last pushed commit: e1d44f017325e08b6c92c6bc8ac3fd12aa2caee6
-- Branch sync: local dev tracks origin/dev after baseline checkpoint push
-- Working tree: dirty only with owned findings run-report files
-- Next action: Commit/push findings backlog, then fix F-001 multi-file upload
+- Task: T-004
+- Status: F-001 fixed; report pending commit/push
+- Last command: npm run build
+- Last result: Passed after Dropzone upload-loop fix
+- Last pushed commit: 29c0ff705664f29d36e8b65f6c621c55d10ab4fd
+- Branch sync: local dev tracks origin/dev after findings checkpoint push
+- Working tree: dirty only with owned F-001 source/report files
+- Next action: Commit/push F-001 fix, then assess F-003 Ragie polling lifecycle
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| agent-runs/2026-06-20-codebase-pass/run-state.md | In-scope source of truth | Findings phase state |
-| agent-runs/2026-06-20-codebase-pass/task-queue.md | In-scope source of truth | Findings converted into executable tasks |
-| agent-runs/2026-06-20-codebase-pass/03-findings-backlog.md | In-scope report | Prioritized findings backlog |
+| src/components/Dropzone.tsx | In-scope source | F-001 multi-file upload fix |
+| agent-runs/2026-06-20-codebase-pass/run-state.md | In-scope source of truth | F-001 task state |
+| agent-runs/2026-06-20-codebase-pass/task-queue.md | In-scope source of truth | T-004 status |
+| agent-runs/2026-06-20-codebase-pass/04-execute-fixes-and-improvements.md | In-scope report | F-001 fix report |
 
 ## Blockers
 

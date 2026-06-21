@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useModalStore } from "@/zustand/useModalStore";
@@ -64,15 +64,15 @@ export function ModalProvider() {
   const openModal = useModalStore((state) => state.openModal);
   const close = useModalStore((state) => state.close);
   const pathname = usePathname();
+  const previousPathname = useRef(pathname);
 
   // Close any open modal when route changes to prevent stale modal state
   useEffect(() => {
-    if (openModal) {
+    if (previousPathname.current !== pathname && openModal) {
       close();
     }
-    // Only run when pathname changes, not when openModal changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+    previousPathname.current = pathname;
+  }, [close, openModal, pathname]);
 
   return (
     <>

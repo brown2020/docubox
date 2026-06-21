@@ -155,6 +155,7 @@ RAGIE_API_KEY=your_ragie_api_key
 
 ```bash
 STRIPE_SECRET_KEY=your_stripe_secret_key
+NEXT_PUBLIC_STRIPE_KEY=your_stripe_publishable_key
 NEXT_PUBLIC_STRIPE_PRODUCT_NAME=your_stripe_product_name
 ```
 

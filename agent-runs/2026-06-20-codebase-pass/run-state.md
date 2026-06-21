@@ -12,25 +12,25 @@
 ## Current State
 
 - Phase: Execute Fixes and Improvements
-- Phase: Package and Dead-Code Cleanup
-- Task: T-005
-- Status: Safe package update complete; report pending commit/push
-- Last command: npm ls next firebase-admin unstructured-client postcss uuid @modelcontextprotocol/sdk --depth=4
-- Last result: Confirmed remaining audit paths: `unstructured-client` -> `@modelcontextprotocol/sdk`, `next` nested `postcss@8.4.31`, and `firebase-admin` transitive `uuid@9.0.1`
-- Last pushed commit: 0b44df03663397756ad9332dd42e9db75283a0ce
-- Branch sync: local dev tracks origin/dev after F-003 checkpoint push
-- Working tree: dirty only with owned package-lock/report files
-- Next action: Commit/push safe package cleanup, then review remaining F-004/F-006/deferred items
+- Task: T-010/T-011
+- Status: Modal cleanup and env docs complete; report pending commit/push
+- Last command: npm run build
+- Last result: Passed after ModalProvider and README updates
+- Last pushed commit: 9311b5087d8250a7f24566407d3850463b41105f
+- Branch sync: local dev tracks origin/dev after package cleanup checkpoint push
+- Working tree: dirty only with owned modal/docs/report files
+- Next action: Commit/push modal/docs cleanup, then start review
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| package-lock.json | In-scope package cleanup | Safe semver-range dependency refresh |
-| agent-runs/2026-06-20-codebase-pass/run-state.md | In-scope source of truth | Package cleanup task state |
-| agent-runs/2026-06-20-codebase-pass/task-queue.md | In-scope source of truth | T-005 status |
+| src/components/providers/ModalProvider.tsx | In-scope lean code | F-004 remove hook dependency suppression |
+| README.md | In-scope documentation | F-006 document required Stripe public key |
+| agent-runs/2026-06-20-codebase-pass/run-state.md | In-scope source of truth | T-010/T-011 task state |
+| agent-runs/2026-06-20-codebase-pass/task-queue.md | In-scope source of truth | T-010/T-011 status |
 | agent-runs/2026-06-20-codebase-pass/03-findings-backlog.md | In-scope report | F-002 status update |
-| agent-runs/2026-06-20-codebase-pass/05-package-and-dead-code-cleanup.md | In-scope report | Package cleanup report |
+| agent-runs/2026-06-20-codebase-pass/04-execute-fixes-and-improvements.md | In-scope report | F-004/F-006 fix report |
 
 ## Blockers
 

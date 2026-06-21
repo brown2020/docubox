@@ -65,7 +65,7 @@ rg -n "@next/env|react-file-icon|react-syntax-highlighter|remark-math|tailwindcs
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | F-001 | P2 | Bug | Fixed | Uploads | Multi-file drops can skip every file after the first. `onDrop` loops over `acceptedFiles` and awaits `uploadPost`, but `uploadPost` returns after registering Firebase upload callbacks while `loadingRef.current` remains true. The next iteration hits the guard and returns. | `src/components/Dropzone.tsx:32-99`; fixed in T-004 | Users dropping multiple files lose uploads silently except for the first started upload. | Small | `npm run lint`, `npm run build`, source inspection that `uploadPost` resolves after upload completion | Commit/push fix |
 | F-002 | P1 | Package update | Open | Dependencies | Dependency audit reports 22 vulnerabilities, including one critical transitive `protobufjs` issue. | `npm audit --audit-level=moderate`; `package.json:26-50`, `package.json:62-66` | Security exposure in app/framework/transitive packages. | Medium | `npm audit --audit-level=moderate`, `npm run lint`, `npm run build` | Safe update batch in T-005 |
-| F-003 | P2 | Race condition | Open | Ragie Q&A lifecycle | Ragie upload readiness polling can run for up to 60 attempts at 3 seconds and then call `setUploadingToRagie`, `refetchDocument`, or close/toast behavior even if the modal unmounts/closes. | `src/components/chat/index.tsx:114-166` | State updates after unmount, wasted calls, and confusing modal behavior during long external processing. | Medium | Add cancellation/mounted guard; `npm run lint`, `npm run build` | Assess after F-001 |
+| F-003 | P2 | Race condition | Fixed | Ragie Q&A lifecycle | Ragie upload readiness polling can run for up to 60 attempts at 3 seconds and then call `setUploadingToRagie`, `refetchDocument`, or close/toast behavior even if the modal unmounts/closes. | `src/components/chat/index.tsx:114-166`; fixed in T-009 | State updates after unmount, wasted calls, and confusing modal behavior during long external processing. | Medium | Mounted guards added; `npm run lint` and `npm run build` passed | Commit/push fix |
 | F-004 | P3 | Lean code | Open | Modal lifecycle | `ModalProvider` suppresses `react-hooks/exhaustive-deps` to close modals only on path changes. The behavior is intentional, but the suppression hides future dependency mistakes. | `src/components/providers/ModalProvider.tsx:68-75` | Low maintainability risk around global modal state. | Small | Refactor with previous-path ref and full dependencies; `npm run lint` | Fix if time permits |
 | F-005 | P3 | Test gap | Deferred | Validation | `package.json` has lint/build/start/dev but no automated test script. | `package.json:5-10`; baseline lint/build passed | Behavioral regressions rely on manual or build-only validation. | Medium | Add tests only with approved product/engineering scope | Defer; document gap |
 | F-006 | P3 | Documentation | Open | Environment docs | Payment route requires `NEXT_PUBLIC_STRIPE_KEY`, but README environment docs list `STRIPE_SECRET_KEY` and product name only. | `src/app/payment-attempt/page.tsx:8-11`; README Stripe section | Local setup can fail at payment route with an undocumented public key. | Small | Docs update; `npm run lint` | Update docs if still valid |
@@ -89,7 +89,7 @@ rg -n "@next/env|react-file-icon|react-syntax-highlighter|remark-math|tailwindcs
 | Module cohesion | Watch | `src/services/fileService.ts` is 397 lines and owns file, folder, storage, share, parsed data, summary, and QA mutations. | Defer broad split; queue only local bugs |
 | Public surface area | Watch | Barrel exports are used for hooks/common modules; no unused export proof from search alone. | Defer API narrowing without stronger proof |
 | Data and side-effect flow | Watch | Client file mutations go through `fileService`; server actions validate auth. Share actions intentionally expose public-safe fields. | Keep inspecting as tasks touch flows |
-| Async/cache/resource lifecycle | Fail | F-001 upload loop and F-003 Ragie polling lifecycle are concrete async risks. | Fix F-001; assess F-003 |
+| Async/cache/resource lifecycle | Pass | F-001 upload loop and F-003 Ragie polling lifecycle are fixed. | Watch in review |
 | Duplication and dead code | Watch | Suspected files such as `Profile.tsx`, `PaymentsPage`, and helper hooks are reachable by search. | No deletion without stronger proof |
 | Dependency lean-ness | Fail | Audit vulnerabilities and `npm outdated` drift across Next/Firebase/React/AI/Radix/Stripe/Tailwind/Zustand packages. | Run package cleanup |
 | Testability | Watch | No test script in `package.json`; lint/build pass. | Document gap; add tests only for clear source changes if structure emerges |
@@ -112,7 +112,7 @@ rg -n "@next/env|react-file-icon|react-syntax-highlighter|remark-math|tailwindcs
 ## Stabilization
 
 - Cycle: Not started
-- Completion criteria status: F-001/F-002/F-003 remain open; F-005 deferred.
+- Completion criteria status: F-001 and F-003 fixed; F-002 remains open; F-005 deferred.
 - Remaining blockers: None.
 
 ## Risks

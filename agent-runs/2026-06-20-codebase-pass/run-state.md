@@ -11,23 +11,25 @@
 
 ## Current State
 
-- Phase: Review
-- Task: T-006
-- Status: Judge review complete; report pending commit/push
-- Last command: git diff d2f9ecd6d4ccc281dbe24db755f3e8b369ee5512..HEAD -- src/components/Dropzone.tsx src/components/chat/index.tsx src/components/providers/ModalProvider.tsx README.md package-lock.json
-- Last result: No new P0/P1 findings; residual dependency advisories are deferred with evidence
-- Last pushed commit: 837a0fa0546334e752b1a10378badea46501caa4
-- Branch sync: local dev tracks origin/dev after modal/docs cleanup checkpoint push
-- Working tree: dirty only with owned review report files
-- Next action: Commit/push review report, then run stabilization completion gate
+- Phase: Integrator
+- Task: T-008
+- Status: Final reports complete; pending final commit/push
+- Last command: git status --short --branch
+- Last result: local dev matched origin/dev before final report edits
+- Last pushed commit: 02b5b805ed46bb981ea9b5c76fd5fb992d4643a5
+- Branch sync: local dev tracks origin/dev before final report commit
+- Working tree: dirty only with owned stabilization/final report files
+- Next action: Commit/push final reports, fetch, and confirm clean synced dev
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| agent-runs/2026-06-20-codebase-pass/run-state.md | In-scope source of truth | Review phase state |
-| agent-runs/2026-06-20-codebase-pass/task-queue.md | In-scope source of truth | T-006 status |
-| agent-runs/2026-06-20-codebase-pass/06-review.md | In-scope report | Judge review report |
+| agent-runs/2026-06-20-codebase-pass/run-state.md | In-scope source of truth | Final phase state |
+| agent-runs/2026-06-20-codebase-pass/task-queue.md | In-scope source of truth | T-007/T-008 status |
+| agent-runs/2026-06-20-codebase-pass/07-stabilization-loop.md | In-scope report | Stabilization result |
+| agent-runs/2026-06-20-codebase-pass/08-integrator.md | In-scope report | Integrator report |
+| agent-runs/2026-06-20-codebase-pass/final-report.md | In-scope report | Final codebase-improvement report |
 
 ## Blockers
 

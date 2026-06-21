@@ -35,6 +35,7 @@ export default function Dropzone() {
 
       loadingRef.current = true;
       setLoading(true);
+      setUploadProgress("0");
 
       const toastId = toast.loading("Uploading file...");
       try {
@@ -49,37 +50,41 @@ export default function Dropzone() {
             folderId,
           });
 
-        uploadTask.on(
-          "state_changed",
-          (snapshot) => {
-            const progress =
-              (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setUploadProgress(progress.toFixed(2));
-          },
-          (error) => {
-            logger.error("Dropzone", "Upload error", error);
-            toast.error("Error uploading file");
-            loadingRef.current = false;
-            setLoading(false);
-          },
-          async () => {
-            try {
-              await fileService.completeFileUpload(
-                user.id,
-                docId,
-                selectedFile.name,
-                storageRef
-              );
-              toast.success("File uploaded successfully!", { id: toastId });
-            } catch (error) {
-              logger.error("Dropzone", "Error completing upload", error);
-              toast.error("Error fetching download URL!", { id: toastId });
-            } finally {
+        await new Promise<void>((resolve) => {
+          uploadTask.on(
+            "state_changed",
+            (snapshot) => {
+              const progress =
+                (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              setUploadProgress(progress.toFixed(2));
+            },
+            (error) => {
+              logger.error("Dropzone", "Upload error", error);
+              toast.error("Error uploading file", { id: toastId });
               loadingRef.current = false;
               setLoading(false);
+              resolve();
+            },
+            async () => {
+              try {
+                await fileService.completeFileUpload(
+                  user.id,
+                  docId,
+                  selectedFile.name,
+                  storageRef
+                );
+                toast.success("File uploaded successfully!", { id: toastId });
+              } catch (error) {
+                logger.error("Dropzone", "Error completing upload", error);
+                toast.error("Error fetching download URL!", { id: toastId });
+              } finally {
+                loadingRef.current = false;
+                setLoading(false);
+                resolve();
+              }
             }
-          }
-        );
+          );
+        });
       } catch (error) {
         logger.error("Dropzone", "Error creating file entry", error);
         toast.error("Error uploading file!", { id: toastId });

@@ -11,26 +11,23 @@
 
 ## Current State
 
-- Phase: Execute Fixes and Improvements
-- Task: T-010/T-011
-- Status: Modal cleanup and env docs complete; report pending commit/push
-- Last command: npm run build
-- Last result: Passed after ModalProvider and README updates
-- Last pushed commit: 9311b5087d8250a7f24566407d3850463b41105f
-- Branch sync: local dev tracks origin/dev after package cleanup checkpoint push
-- Working tree: dirty only with owned modal/docs/report files
-- Next action: Commit/push modal/docs cleanup, then start review
+- Phase: Review
+- Task: T-006
+- Status: Judge review complete; report pending commit/push
+- Last command: git diff d2f9ecd6d4ccc281dbe24db755f3e8b369ee5512..HEAD -- src/components/Dropzone.tsx src/components/chat/index.tsx src/components/providers/ModalProvider.tsx README.md package-lock.json
+- Last result: No new P0/P1 findings; residual dependency advisories are deferred with evidence
+- Last pushed commit: 837a0fa0546334e752b1a10378badea46501caa4
+- Branch sync: local dev tracks origin/dev after modal/docs cleanup checkpoint push
+- Working tree: dirty only with owned review report files
+- Next action: Commit/push review report, then run stabilization completion gate
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| src/components/providers/ModalProvider.tsx | In-scope lean code | F-004 remove hook dependency suppression |
-| README.md | In-scope documentation | F-006 document required Stripe public key |
-| agent-runs/2026-06-20-codebase-pass/run-state.md | In-scope source of truth | T-010/T-011 task state |
-| agent-runs/2026-06-20-codebase-pass/task-queue.md | In-scope source of truth | T-010/T-011 status |
-| agent-runs/2026-06-20-codebase-pass/03-findings-backlog.md | In-scope report | F-002 status update |
-| agent-runs/2026-06-20-codebase-pass/04-execute-fixes-and-improvements.md | In-scope report | F-004/F-006 fix report |
+| agent-runs/2026-06-20-codebase-pass/run-state.md | In-scope source of truth | Review phase state |
+| agent-runs/2026-06-20-codebase-pass/task-queue.md | In-scope source of truth | T-006 status |
+| agent-runs/2026-06-20-codebase-pass/06-review.md | In-scope report | Judge review report |
 
 ## Blockers
 

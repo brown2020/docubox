@@ -6,6 +6,7 @@ import {
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
@@ -43,6 +44,7 @@ export interface FirebaseAuthState {
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   createAccount: (email: string, password: string, displayName?: string) => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<boolean>;
   sendMagicLink: (email: string) => Promise<void>;
   completeMagicLinkSignIn: (email: string) => Promise<void>;
 }
@@ -183,6 +185,17 @@ export function useFirebaseAuth(): FirebaseAuthState {
     []
   );
 
+  // Send password reset email
+  const sendPasswordReset = useCallback(async (email: string): Promise<boolean> => {
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      return true;
+    } catch (error) {
+      logger.error("useFirebaseAuth", "Password reset failed", error);
+      throw error;
+    }
+  }, []);
+
   // Send magic link email
   const sendMagicLink = useCallback(async (email: string): Promise<void> => {
     try {
@@ -229,6 +242,7 @@ export function useFirebaseAuth(): FirebaseAuthState {
     signInWithGoogle,
     signInWithEmail,
     createAccount,
+    sendPasswordReset,
     sendMagicLink,
     completeMagicLinkSignIn,
   };

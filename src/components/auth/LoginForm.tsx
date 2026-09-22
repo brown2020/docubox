@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useId } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthMethods, useAuth } from "./FirebaseAuthProvider";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,26 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock, User } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { mapFirebaseAuthError } from "@/lib/firebaseAuthErrors";
 import { isMagicLinkCallback, getStoredEmailForSignIn } from "@/hooks/useFirebaseAuth";
 import { LoadingState } from "@/components/common/LoadingState";
 
-// Google icon SVG
+type AuthMode = "signin" | "signup" | "forgot" | "forgot-sent";
+
+const MODE_HEADINGS: Record<AuthMode, string> = {
+  signin: "Sign in to Docubox",
+  signup: "Create your account",
+  forgot: "Reset your password",
+  "forgot-sent": "Check your email",
+};
+
+const MODE_DESCRIPTIONS: Record<AuthMode, string> = {
+  signin: "Sign in to access your documents",
+  signup: "Store documents and summarize with AI",
+  forgot: "We'll email you a link to choose a new password",
+  "forgot-sent": "Password reset instructions are on the way",
+};
+
 function GoogleIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24">
@@ -41,20 +57,29 @@ function GoogleIcon({ className }: { className?: string }) {
 export function LoginForm() {
   const router = useRouter();
   const { isSignedIn, isLoaded } = useAuth();
-  const { signInWithGoogle, signInWithEmail, createAccount, sendMagicLink, completeMagicLinkSignIn } = useAuthMethods();
+  const {
+    signInWithGoogle,
+    signInWithEmail,
+    createAccount,
+    sendPasswordReset,
+    sendMagicLink,
+    completeMagicLinkSignIn,
+  } = useAuthMethods();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [mode, setMode] = useState<AuthMode>("signin");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const errorId = useId();
 
   const redirectAfterSignIn = useCallback(() => {
-    const redirectPath = typeof window !== "undefined"
-      ? sessionStorage.getItem("redirectAfterSignIn")
-      : null;
+    const redirectPath =
+      typeof window !== "undefined"
+        ? sessionStorage.getItem("redirectAfterSignIn")
+        : null;
     if (redirectPath) {
       sessionStorage.removeItem("redirectAfterSignIn");
       router.replace(redirectPath);
@@ -62,6 +87,12 @@ export function LoginForm() {
       router.replace("/dashboard");
     }
   }, [router]);
+
+  const switchMode = (next: AuthMode) => {
+    setError(null);
+    setPassword("");
+    setMode(next);
+  };
 
   // Handle magic link callback on mount
   useEffect(() => {
@@ -75,7 +106,12 @@ export function LoginForm() {
           })
           .catch((err) => {
             logger.error("LoginForm", "Magic link sign in failed", err);
-            setError("Failed to complete sign in. Please try again.");
+            setError(
+              mapFirebaseAuthError(
+                err,
+                "Failed to complete sign in. Please try again."
+              )
+            );
             setLoading(false);
           });
       }
@@ -88,8 +124,6 @@ export function LoginForm() {
   }
 
   // If already signed in, show a button to go to dashboard
-  // Note: The proxy middleware should redirect authenticated users from /login,
-  // but if that doesn't happen, we show this fallback UI
   if (isSignedIn) {
     return (
       <Card className="w-full max-w-md">
@@ -111,7 +145,9 @@ export function LoginForm() {
       redirectAfterSignIn();
     } catch (err) {
       logger.error("LoginForm", "Google sign in failed", err);
-      setError("Failed to sign in with Google. Please try again.");
+      setError(
+        mapFirebaseAuthError(err, "Failed to sign in with Google. Please try again.")
+      );
     } finally {
       setLoading(false);
     }
@@ -123,7 +159,12 @@ export function LoginForm() {
     setError(null);
 
     try {
-      if (isSignUp) {
+      if (mode === "forgot") {
+        await sendPasswordReset(email);
+        setMode("forgot-sent");
+        return;
+      }
+      if (mode === "signup") {
         await createAccount(email, password, displayName || undefined);
       } else {
         await signInWithEmail(email, password);
@@ -131,16 +172,13 @@ export function LoginForm() {
       redirectAfterSignIn();
     } catch (err: unknown) {
       logger.error("LoginForm", "Email auth failed", err);
-      const errorMessage = err instanceof Error ? err.message : "Authentication failed";
-      if (errorMessage.includes("user-not-found") || errorMessage.includes("wrong-password") || errorMessage.includes("invalid-credential")) {
-        setError("Invalid email or password.");
-      } else if (errorMessage.includes("email-already-in-use")) {
-        setError("An account with this email already exists.");
-      } else if (errorMessage.includes("weak-password")) {
-        setError("Password should be at least 6 characters.");
-      } else {
-        setError(isSignUp ? "Failed to create account." : "Failed to sign in.");
-      }
+      const fallback =
+        mode === "forgot"
+          ? "Could not send reset email. Check the address and try again."
+          : mode === "signup"
+            ? "Could not create account. Please try again."
+            : "Email sign-in failed. Check your email and password.";
+      setError(mapFirebaseAuthError(err, fallback));
     } finally {
       setLoading(false);
     }
@@ -156,167 +194,266 @@ export function LoginForm() {
       setMagicLinkSent(true);
     } catch (err) {
       logger.error("LoginForm", "Magic link failed", err);
-      setError("Failed to send sign in link. Please try again.");
+      setError(
+        mapFirebaseAuthError(err, "Failed to send sign in link. Please try again.")
+      );
     } finally {
       setLoading(false);
     }
   }
 
+  const submitLabel =
+    mode === "signup"
+      ? "Create Account"
+      : mode === "forgot"
+        ? "Send reset link"
+        : "Sign In";
+
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
-        <h1 className="text-2xl font-semibold leading-none tracking-tight">Welcome to Docubox</h1>
-        <CardDescription>Sign in to access your documents</CardDescription>
+        <h1 className="text-2xl font-semibold leading-none tracking-tight">
+          {MODE_HEADINGS[mode]}
+        </h1>
+        <CardDescription>{MODE_DESCRIPTIONS[mode]}</CardDescription>
       </CardHeader>
       <CardContent>
         {error && (
           <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription id={errorId} role="alert">
+              {error}
+            </AlertDescription>
           </Alert>
         )}
 
-        {/* Google Sign In */}
-        <Button
-          variant="outline"
-          className="w-full mb-4"
-          onClick={handleGoogleSignIn}
-          disabled={loading}
-        >
-          {loading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <GoogleIcon className="mr-2 h-4 w-4" />
-          )}
-          Continue with Google
-        </Button>
-
-        <div className="relative mb-4">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or</span>
-          </div>
-        </div>
-
-        <Tabs defaultValue="email" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="email">Email & Password</TabsTrigger>
-            <TabsTrigger value="magic">Email Link</TabsTrigger>
-          </TabsList>
-
-          {/* Email/Password Tab */}
-          <TabsContent value="email">
-            <form onSubmit={handleEmailAuth} className="space-y-4">
-              {isSignUp && (
-                <div className="space-y-2">
-                  <Label htmlFor="displayName">Name (optional)</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="displayName"
-                      type="text"
-                      placeholder="Your name"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
+        {mode !== "forgot" && mode !== "forgot-sent" ? (
+          <>
+            <Button
+              variant="outline"
+              className="w-full mb-4"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <GoogleIcon className="mr-2 h-4 w-4" />
               )}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSignUp ? "Create Account" : "Sign In"}
-              </Button>
-              <p className="text-center text-sm text-muted-foreground">
-                {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-                <button
-                  type="button"
-                  onClick={() => setIsSignUp(!isSignUp)}
-                  className="text-primary underline hover:no-underline"
-                >
-                  {isSignUp ? "Sign in" : "Create one"}
-                </button>
-              </p>
-            </form>
-          </TabsContent>
+              Continue with Google
+            </Button>
 
-          {/* Magic Link Tab */}
-          <TabsContent value="magic">
-            {magicLinkSent ? (
-              <div className="text-center py-4">
-                <Mail className="mx-auto h-12 w-12 text-green-500 mb-4" />
-                <p className="font-medium">Check your email!</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  We sent a sign-in link to <strong>{email}</strong>
-                </p>
-                <Button
-                  variant="link"
-                  onClick={() => setMagicLinkSent(false)}
-                  className="mt-4"
-                >
-                  Use a different email
-                </Button>
+            <div className="relative mb-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
               </div>
-            ) : (
-              <form onSubmit={handleMagicLink} className="space-y-4">
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or</span>
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {mode === "forgot-sent" ? (
+          <div className="text-center py-4 space-y-4">
+            <Mail className="mx-auto h-12 w-12 text-green-500" />
+            <p className="font-medium" role="status">
+              If an account exists for{" "}
+              <strong>{email.trim() || "that address"}</strong>, we sent a password
+              reset link. Check your inbox and spam folder.
+            </p>
+            <Button variant="link" onClick={() => switchMode("signin")}>
+              Back to sign in
+            </Button>
+          </div>
+        ) : mode === "forgot" ? (
+          <form onSubmit={handleEmailAuth} className="space-y-4" noValidate>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  name="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="pl-9"
+                  autoComplete="username"
+                  aria-describedby={error ? errorId : undefined}
+                />
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              We&apos;ll email you a link to choose a new password.
+            </p>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send reset link
+            </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              Remembered it?{" "}
+              <button
+                type="button"
+                onClick={() => switchMode("signin")}
+                className="text-primary underline hover:no-underline"
+              >
+                Back to sign in
+              </button>
+            </p>
+          </form>
+        ) : (
+          <Tabs defaultValue="email" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="email">Email & Password</TabsTrigger>
+              <TabsTrigger value="magic">Email Link</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="email">
+              <form onSubmit={handleEmailAuth} className="space-y-4" noValidate>
+                {mode === "signup" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="displayName">Name (optional)</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="displayName"
+                        type="text"
+                        placeholder="Your name"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        className="pl-9"
+                        autoComplete="name"
+                      />
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
-                  <Label htmlFor="magic-email">Email</Label>
+                  <Label htmlFor="email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="magic-email"
+                      id="email"
                       type="email"
+                      name="email"
                       placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       className="pl-9"
+                      autoComplete="username"
+                      aria-describedby={error ? errorId : undefined}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type="password"
+                      name="password"
+                      placeholder={
+                        mode === "signup" ? "At least 6 characters" : "••••••••"
+                      }
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={mode === "signup" ? 6 : undefined}
+                      className="pl-9"
+                      autoComplete={
+                        mode === "signup" ? "new-password" : "current-password"
+                      }
+                      aria-describedby={error ? errorId : undefined}
                     />
                   </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Send Sign-In Link
+                  {submitLabel}
                 </Button>
-                <p className="text-center text-sm text-muted-foreground">
-                  We&apos;ll email you a magic link for password-free sign in.
-                </p>
+                {mode === "signin" ? (
+                  <p className="text-center text-sm text-muted-foreground">
+                    Don&apos;t have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => switchMode("signup")}
+                      className="text-primary underline hover:no-underline"
+                    >
+                      Create one
+                    </button>
+                    {" · "}
+                    <button
+                      type="button"
+                      onClick={() => switchMode("forgot")}
+                      className="text-primary underline hover:no-underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </p>
+                ) : (
+                  <p className="text-center text-sm text-muted-foreground">
+                    Already have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => switchMode("signin")}
+                      className="text-primary underline hover:no-underline"
+                    >
+                      Sign in
+                    </button>
+                  </p>
+                )}
               </form>
-            )}
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+
+            <TabsContent value="magic">
+              {magicLinkSent ? (
+                <div className="text-center py-4">
+                  <Mail className="mx-auto h-12 w-12 text-green-500 mb-4" />
+                  <p className="font-medium">Check your email!</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    We sent a sign-in link to <strong>{email}</strong>
+                  </p>
+                  <Button
+                    variant="link"
+                    onClick={() => setMagicLinkSent(false)}
+                    className="mt-4"
+                  >
+                    Use a different email
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleMagicLink} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="magic-email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="magic-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="pl-9"
+                        autoComplete="username"
+                      />
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Send Sign-In Link
+                  </Button>
+                  <p className="text-center text-sm text-muted-foreground">
+                    We&apos;ll email you a magic link for password-free sign in.
+                  </p>
+                </form>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
       </CardContent>
     </Card>
   );

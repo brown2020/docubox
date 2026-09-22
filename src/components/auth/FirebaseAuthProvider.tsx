@@ -84,6 +84,7 @@ export function useAuthMethods() {
     signInWithGoogle: context.signInWithGoogle,
     signInWithEmail: context.signInWithEmail,
     createAccount: context.createAccount,
+    sendPasswordReset: context.sendPasswordReset,
     sendMagicLink: context.sendMagicLink,
     completeMagicLinkSignIn: context.completeMagicLinkSignIn,
     signOut: context.signOut,

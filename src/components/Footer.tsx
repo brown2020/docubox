@@ -17,7 +17,7 @@ export default function Footer() {
           <Link
             key={href}
             href={href}
-            className="text-blue-600 dark:text-blue-400 hover:underline transition-colors"
+            className="text-blue-700 dark:text-blue-300 hover:underline transition-colors"
           >
             {label}
           </Link>

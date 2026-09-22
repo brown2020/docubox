@@ -26,6 +26,7 @@ function DashboardSkeleton() {
 export default function Dashboard() {
   return (
     <div className="pt-2">
+      <h1 className="sr-only">Dashboard</h1>
       <Suspense fallback={<DashboardSkeleton />}>
         <Dropzone />
         <TableWrapper />

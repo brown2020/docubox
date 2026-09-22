@@ -55,7 +55,7 @@ export default function RootLayout({
                   </ErrorBoundary>
                   <div className="flex flex-col h-full">
                     <ErrorBoundary name="MainContent">
-                      <div className="flex-1">{children}</div>
+                      <main id="main-content" className="flex-1">{children}</main>
                     </ErrorBoundary>
                     <Footer />
                   </div>

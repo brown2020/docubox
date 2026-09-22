@@ -118,7 +118,7 @@ export default function Dropzone() {
         <>
           {/* Invisible root that captures drag events across the entire wrapper */}
           <div {...getRootProps()} className="contents">
-            <input {...getInputProps()} />
+            <input {...getInputProps({ "aria-label": "Upload files" })} />
 
             {/* Upload button for toolbar — rendered via ref/callback or portal */}
             <UploadButtonSlot open={openFilePicker} loading={loading} />

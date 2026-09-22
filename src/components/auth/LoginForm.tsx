@@ -109,10 +109,10 @@ export function LoginForm() {
             redirectAfterSignIn();
           })
           .catch((err) => {
-            logger.error(
+            // Expected auth failure — warn only (console.error triggers Next "Console Error" overlay).
+      logger.warn(
         "LoginForm",
-        "Magic link sign in failed",
-        formatFirebaseAuthErrorForLog(err)
+        `Magic link sign in failed: ${formatFirebaseAuthErrorForLog(err)}`
       );
             setError(
               mapFirebaseAuthError(
@@ -152,10 +152,9 @@ export function LoginForm() {
       await signInWithGoogle();
       redirectAfterSignIn();
     } catch (err) {
-      logger.error(
+      logger.warn(
         "LoginForm",
-        "Google sign in failed",
-        formatFirebaseAuthErrorForLog(err)
+        `Google sign in failed: ${formatFirebaseAuthErrorForLog(err)}`
       );
       setError(
         mapFirebaseAuthError(err, "Failed to sign in with Google. Please try again.")
@@ -183,10 +182,9 @@ export function LoginForm() {
       }
       redirectAfterSignIn();
     } catch (err: unknown) {
-      logger.error(
+      logger.warn(
         "LoginForm",
-        "Email auth failed",
-        formatFirebaseAuthErrorForLog(err)
+        `Email auth failed: ${formatFirebaseAuthErrorForLog(err)}`
       );
       const fallback =
         mode === "forgot"
@@ -209,10 +207,9 @@ export function LoginForm() {
       await sendMagicLink(email);
       setMagicLinkSent(true);
     } catch (err) {
-      logger.error(
+      logger.warn(
         "LoginForm",
-        "Magic link failed",
-        formatFirebaseAuthErrorForLog(err)
+        `Magic link failed: ${formatFirebaseAuthErrorForLog(err)}`
       );
       setError(
         mapFirebaseAuthError(err, "Failed to send sign in link. Please try again.")

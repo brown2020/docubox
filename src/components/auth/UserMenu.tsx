@@ -43,10 +43,9 @@ export function UserMenu() {
       await signOut();
       router.push("/");
     } catch (error) {
-      logger.error(
+      logger.warn(
         "UserMenu",
-        "Sign out failed",
-        formatFirebaseAuthErrorForLog(error)
+        `Sign out failed: ${formatFirebaseAuthErrorForLog(error)}`
       );
     }
   }

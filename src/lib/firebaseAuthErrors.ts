@@ -66,3 +66,12 @@ export function mapFirebaseAuthError(
 
   return fallback;
 }
+
+/** Safe string for logger / console — never pass the raw Error (Next overlays it). */
+export function formatFirebaseAuthErrorForLog(error: unknown): string {
+  const code = getFirebaseAuthErrorCode(error);
+  if (code) return code;
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "unknown";
+}

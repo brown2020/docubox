@@ -12,6 +12,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, User } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { formatFirebaseAuthErrorForLog } from "@/lib/firebaseAuthErrors";
 
 /**
  * User menu component - replaces Clerk's UserButton.
@@ -42,7 +43,11 @@ export function UserMenu() {
       await signOut();
       router.push("/");
     } catch (error) {
-      logger.error("UserMenu", "Sign out failed", error);
+      logger.error(
+        "UserMenu",
+        "Sign out failed",
+        formatFirebaseAuthErrorForLog(error)
+      );
     }
   }
 

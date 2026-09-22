@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatFirebaseAuthErrorForLog,
   getFirebaseAuthErrorCode,
   mapFirebaseAuthError,
 } from "@/lib/firebaseAuthErrors";
@@ -39,5 +40,12 @@ describe("mapFirebaseAuthError", () => {
       "auth/invalid-email"
     );
     expect(getFirebaseAuthErrorCode("nope")).toBeNull();
+  });
+
+  it("formatFirebaseAuthErrorForLog returns code string only", () => {
+    expect(
+      formatFirebaseAuthErrorForLog({ code: "auth/invalid-credential" })
+    ).toBe("auth/invalid-credential");
+    expect(formatFirebaseAuthErrorForLog(new Error("boom"))).toBe("boom");
   });
 });

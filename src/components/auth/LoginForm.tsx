@@ -11,7 +11,11 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock, User } from "lucide-react";
 import { logger } from "@/lib/logger";
-import { mapFirebaseAuthError } from "@/lib/firebaseAuthErrors";
+import {
+  formatFirebaseAuthErrorForLog,
+  mapFirebaseAuthError,
+} from "@/lib/firebaseAuthErrors";
+import { PasswordInput } from "@/components/ui/password-input";
 import { isMagicLinkCallback, getStoredEmailForSignIn } from "@/hooks/useFirebaseAuth";
 import { LoadingState } from "@/components/common/LoadingState";
 
@@ -105,7 +109,11 @@ export function LoginForm() {
             redirectAfterSignIn();
           })
           .catch((err) => {
-            logger.error("LoginForm", "Magic link sign in failed", err);
+            logger.error(
+        "LoginForm",
+        "Magic link sign in failed",
+        formatFirebaseAuthErrorForLog(err)
+      );
             setError(
               mapFirebaseAuthError(
                 err,
@@ -144,7 +152,11 @@ export function LoginForm() {
       await signInWithGoogle();
       redirectAfterSignIn();
     } catch (err) {
-      logger.error("LoginForm", "Google sign in failed", err);
+      logger.error(
+        "LoginForm",
+        "Google sign in failed",
+        formatFirebaseAuthErrorForLog(err)
+      );
       setError(
         mapFirebaseAuthError(err, "Failed to sign in with Google. Please try again.")
       );
@@ -171,7 +183,11 @@ export function LoginForm() {
       }
       redirectAfterSignIn();
     } catch (err: unknown) {
-      logger.error("LoginForm", "Email auth failed", err);
+      logger.error(
+        "LoginForm",
+        "Email auth failed",
+        formatFirebaseAuthErrorForLog(err)
+      );
       const fallback =
         mode === "forgot"
           ? "Could not send reset email. Check the address and try again."
@@ -193,7 +209,11 @@ export function LoginForm() {
       await sendMagicLink(email);
       setMagicLinkSent(true);
     } catch (err) {
-      logger.error("LoginForm", "Magic link failed", err);
+      logger.error(
+        "LoginForm",
+        "Magic link failed",
+        formatFirebaseAuthErrorForLog(err)
+      );
       setError(
         mapFirebaseAuthError(err, "Failed to send sign in link. Please try again.")
       );
@@ -350,10 +370,9 @@ export function LoginForm() {
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+                    <PasswordInput
                       id="password"
-                      type="password"
                       name="password"
                       placeholder={
                         mode === "signup" ? "At least 6 characters" : "••••••••"

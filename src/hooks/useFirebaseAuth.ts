@@ -17,6 +17,7 @@ import {
 } from "firebase/auth";
 import { auth } from "@/firebase";
 import { logger } from "@/lib/logger";
+import { formatFirebaseAuthErrorForLog } from "@/lib/firebaseAuthErrors";
 import { createSessionCookie, clearSessionCookie } from "@/lib/session-client";
 
 /**
@@ -93,7 +94,7 @@ export function useFirebaseAuth(): FirebaseAuthState {
           logger.error(
             "useFirebaseAuth",
             "Failed to create session cookie in auth listener",
-            error
+            formatFirebaseAuthErrorForLog(error)
           );
         });
       } else {
@@ -113,7 +114,11 @@ export function useFirebaseAuth(): FirebaseAuthState {
     try {
       return await firebaseUser.getIdToken();
     } catch (error) {
-      logger.error("useFirebaseAuth", "Failed to get token", error);
+      logger.error(
+        "useFirebaseAuth",
+        "Failed to get token",
+        formatFirebaseAuthErrorForLog(error)
+      );
       return null;
     }
   }, [firebaseUser]);
@@ -132,7 +137,11 @@ export function useFirebaseAuth(): FirebaseAuthState {
         sessionStorage.clear();
       }
     } catch (error) {
-      logger.error("useFirebaseAuth", "Failed to sign out", error);
+      logger.error(
+        "useFirebaseAuth",
+        "Failed to sign out",
+        formatFirebaseAuthErrorForLog(error)
+      );
       // Best-effort cleanup even on error
       if (typeof window !== "undefined") {
         sessionStorage.clear();
@@ -141,94 +150,64 @@ export function useFirebaseAuth(): FirebaseAuthState {
     }
   }, []);
 
-  // Sign in with Google
+  // Sign in with Google — errors propagate to LoginForm (map + UI; do not rethrow there).
   const signInWithGoogle = useCallback(async (): Promise<void> => {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      await createSessionCookie(result.user);
-    } catch (error) {
-      logger.error("useFirebaseAuth", "Google sign-in failed", error);
-      throw error;
-    }
+    const result = await signInWithPopup(auth, googleProvider);
+    await createSessionCookie(result.user);
   }, []);
 
-  // Sign in with email and password
+  // Sign in with email and password — errors propagate to LoginForm.
   const signInWithEmail = useCallback(
     async (email: string, password: string): Promise<void> => {
-      try {
-        const result = await signInWithEmailAndPassword(auth, email, password);
-        await createSessionCookie(result.user);
-      } catch (error) {
-        logger.error("useFirebaseAuth", "Email sign-in failed", error);
-        throw error;
-      }
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      await createSessionCookie(result.user);
     },
     []
   );
 
-  // Create account with email and password
+  // Create account with email and password — errors propagate to LoginForm.
   const createAccount = useCallback(
     async (email: string, password: string, displayName?: string): Promise<void> => {
-      try {
-        const result = await createUserWithEmailAndPassword(auth, email, password);
+      const result = await createUserWithEmailAndPassword(auth, email, password);
 
-        // Update display name if provided
-        if (displayName) {
-          await updateProfile(result.user, { displayName });
-        }
-        await createSessionCookie(result.user);
-      } catch (error) {
-        logger.error("useFirebaseAuth", "Account creation failed", error);
-        throw error;
+      // Update display name if provided
+      if (displayName) {
+        await updateProfile(result.user, { displayName });
       }
+      await createSessionCookie(result.user);
     },
     []
   );
 
-  // Send password reset email
+  // Send password reset email — errors propagate to LoginForm.
   const sendPasswordReset = useCallback(async (email: string): Promise<boolean> => {
-    try {
-      await sendPasswordResetEmail(auth, email.trim());
-      return true;
-    } catch (error) {
-      logger.error("useFirebaseAuth", "Password reset failed", error);
-      throw error;
-    }
+    await sendPasswordResetEmail(auth, email.trim());
+    return true;
   }, []);
 
-  // Send magic link email
+  // Send magic link email — errors propagate to LoginForm.
   const sendMagicLink = useCallback(async (email: string): Promise<void> => {
-    try {
-      // Store email for completing sign-in
-      if (typeof window !== "undefined") {
-        localStorage.setItem("emailForSignIn", email);
-      }
-
-      await sendSignInLinkToEmail(auth, email, {
-        url: `${window.location.origin}/login`,
-        handleCodeInApp: true,
-      });
-    } catch (error) {
-      logger.error("useFirebaseAuth", "Failed to send magic link", error);
-      throw error;
+    // Store email for completing sign-in
+    if (typeof window !== "undefined") {
+      localStorage.setItem("emailForSignIn", email);
     }
+
+    await sendSignInLinkToEmail(auth, email, {
+      url: `${window.location.origin}/login`,
+      handleCodeInApp: true,
+    });
   }, []);
 
-  // Complete magic link sign-in
+  // Complete magic link sign-in — errors propagate to LoginForm.
   const completeMagicLinkSignIn = useCallback(async (email: string): Promise<void> => {
-    try {
-      if (typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
 
-      if (isSignInWithEmailLink(auth, window.location.href)) {
-        const result = await signInWithEmailLink(auth, email, window.location.href);
-        await createSessionCookie(result.user);
+    if (isSignInWithEmailLink(auth, window.location.href)) {
+      const result = await signInWithEmailLink(auth, email, window.location.href);
+      await createSessionCookie(result.user);
 
-        // Clean up stored email
-        localStorage.removeItem("emailForSignIn");
-      }
-    } catch (error) {
-      logger.error("useFirebaseAuth", "Magic link sign-in failed", error);
-      throw error;
+      // Clean up stored email
+      localStorage.removeItem("emailForSignIn");
     }
   }, []);
 

@@ -3,7 +3,7 @@ import "./globals.css";
 import { FirebaseAuthProvider } from "@/components/auth";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeProvider } from "@wrksz/themes/next";
 import { Toaster } from "react-hot-toast";
 import FileUploadModal from "@/components/FileUploadModal";
 import { ModalProvider } from "@/components/providers/ModalProvider";

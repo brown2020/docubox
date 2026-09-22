@@ -1,10 +1,17 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { usePaymentsStore, PaymentType } from "@/zustand/usePaymentsStore";
 import { useEffect } from "react";
 import { LoadingState } from "./common/LoadingState";
+
+function formatPaymentCreated(payment: PaymentType): string {
+  if (!payment.createdAt) return "N/A";
+  return payment.createdAt.toDate().toLocaleString("en-US", {
+    timeZone: "UTC",
+  });
+}
 
 /**
  * Individual payment card component - memoized to prevent re-renders.
@@ -14,15 +21,13 @@ const PaymentCard = memo(function PaymentCard({
 }: {
   payment: PaymentType;
 }) {
+  const createdLabel = useMemo(() => formatPaymentCreated(payment), [payment]);
+
   return (
     <div className="border p-4 rounded-md bg-white dark:bg-slate-700 shadow-md">
       <div className="text-sm text-muted-foreground">ID: {payment.id}</div>
       <div className="text-lg font-semibold">${payment.amount / 100}</div>
-      <div className="text-sm">
-        {payment.createdAt
-          ? payment.createdAt.toDate().toLocaleString()
-          : "N/A"}
-      </div>
+      <div className="text-sm">{createdLabel}</div>
       <div className="text-sm capitalize">{payment.status}</div>
     </div>
   );

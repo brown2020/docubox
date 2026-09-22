@@ -16,6 +16,7 @@ import {
 } from "firebase/auth";
 import { auth } from "@/firebase";
 import { logger } from "@/lib/logger";
+import { createSessionCookie, clearSessionCookie } from "@/lib/session-client";
 
 /**
  * Firebase user interface mapped to match Clerk's user structure.
@@ -68,42 +69,6 @@ function adaptFirebaseUser(user: User | null): FirebaseUser | null {
   };
 }
 
-/**
- * Creates a session cookie by calling the session API.
- * Returns true if successful, false otherwise.
- */
-async function createSessionCookie(user: User): Promise<boolean> {
-  try {
-    const idToken = await user.getIdToken();
-    const response = await fetch("/api/auth/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ idToken }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ parseError: true }));
-      logger.error("useFirebaseAuth", "Session API returned error", errorData);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    logger.error("useFirebaseAuth", "Failed to create session cookie", error);
-    return false;
-  }
-}
-
-/**
- * Clears the session cookie by calling the session API.
- */
-async function clearSessionCookie(): Promise<void> {
-  try {
-    await fetch("/api/auth/session", { method: "DELETE" });
-  } catch (error) {
-    logger.error("useFirebaseAuth", "Failed to clear session cookie", error);
-  }
-}
 
 /**
  * Core Firebase Auth hook that provides authentication state and methods.
@@ -117,14 +82,21 @@ export function useFirebaseAuth(): FirebaseAuthState {
   // Await session cookie before setting signed-in state so middleware sees the cookie
   // and we don't show "already signed in" / redirect to dashboard before the cookie exists.
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        await createSessionCookie(user).catch((error) => {
-          logger.error("useFirebaseAuth", "Failed to create session cookie in auth listener", error);
-        });
-      }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      // Update React auth state immediately; session cookie sync is a side effect.
       setFirebaseUser(user);
       setIsLoaded(true);
+      if (user) {
+        void createSessionCookie(user).catch((error) => {
+          logger.error(
+            "useFirebaseAuth",
+            "Failed to create session cookie in auth listener",
+            error
+          );
+        });
+      } else {
+        void clearSessionCookie();
+      }
     });
 
     return () => unsubscribe();

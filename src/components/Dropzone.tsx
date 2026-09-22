@@ -61,8 +61,6 @@ export default function Dropzone() {
             (error) => {
               logger.error("Dropzone", "Upload error", error);
               toast.error("Error uploading file", { id: toastId });
-              loadingRef.current = false;
-              setLoading(false);
               resolve();
             },
             async () => {
@@ -78,8 +76,6 @@ export default function Dropzone() {
                 logger.error("Dropzone", "Error completing upload", error);
                 toast.error("Error fetching download URL!", { id: toastId });
               } finally {
-                loadingRef.current = false;
-                setLoading(false);
                 resolve();
               }
             }
@@ -88,6 +84,7 @@ export default function Dropzone() {
       } catch (error) {
         logger.error("Dropzone", "Error creating file entry", error);
         toast.error("Error uploading file!", { id: toastId });
+      } finally {
         loadingRef.current = false;
         setLoading(false);
       }
@@ -98,9 +95,11 @@ export default function Dropzone() {
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
-      for (const file of acceptedFiles) {
-        await uploadPost(file);
-      }
+      // Upload sequentially without an await-in-for loop (chain promises).
+      await acceptedFiles.reduce<Promise<void>>(
+        (chain, file) => chain.then(() => uploadPost(file)),
+        Promise.resolve()
+      );
     },
     [uploadPost]
   );

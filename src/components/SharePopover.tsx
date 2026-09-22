@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -21,6 +21,7 @@ interface SharePopoverProps {
 
 /**
  * Popover for creating, copying, and revoking share links.
+ * Optimistic local state starts from props; parent remounts via file list refresh.
  */
 export function SharePopover({
   fileId,
@@ -30,50 +31,61 @@ export function SharePopover({
   const { user } = useUser();
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [localToken, setLocalToken] = useState(shareToken);
-  const [localEnabled, setLocalEnabled] = useState(shareEnabled);
+  const [draft, setDraft] = useState<{
+    token: string | null;
+    enabled: boolean;
+  } | null>(null);
+  const requestIdRef = useRef(0);
 
-  const shareUrl =
-    localToken && typeof window !== "undefined"
-      ? `${window.location.origin}/share/${localToken}`
-      : null;
+  const token = draft ? draft.token : shareToken;
+  const enabled = draft ? draft.enabled : shareEnabled;
+  const sharePath = token ? `/share/${token}` : null;
 
   const handleCreateLink = async () => {
     if (!user) return;
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     try {
-      const token = await fileService.createShareLink(user.id, fileId);
-      setLocalToken(token);
-      setLocalEnabled(true);
+      const nextToken = await fileService.createShareLink(user.id, fileId);
+      if (requestId !== requestIdRef.current) return;
+      setDraft({ token: nextToken, enabled: true });
       toast.success("Share link created!");
     } catch (error) {
+      if (requestId !== requestIdRef.current) return;
       logger.error("SharePopover", "Failed to create share link", error);
       toast.error("Failed to create share link.");
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
   const handleDisableLink = async () => {
-    if (!user || !localToken) return;
+    if (!user || !token) return;
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     try {
-      await fileService.disableShareLink(user.id, fileId, localToken);
-      setLocalToken(null);
-      setLocalEnabled(false);
+      await fileService.disableShareLink(user.id, fileId, token);
+      if (requestId !== requestIdRef.current) return;
+      setDraft({ token: null, enabled: false });
       toast.success("Share link disabled.");
     } catch (error) {
+      if (requestId !== requestIdRef.current) return;
       logger.error("SharePopover", "Failed to disable share link", error);
       toast.error("Failed to disable share link.");
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
   const handleCopy = async () => {
-    if (!shareUrl) return;
+    if (!sharePath) return;
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      const absolute = `${window.location.origin}${sharePath}`;
+      await navigator.clipboard.writeText(absolute);
       setCopied(true);
       toast.success("Link copied!");
       setTimeout(() => setCopied(false), 2000);
@@ -101,13 +113,12 @@ export function SharePopover({
             <h4 className="text-sm font-medium">Share file</h4>
           </div>
 
-          {localEnabled && shareUrl ? (
+          {enabled && sharePath ? (
             <>
-              {/* Link display + copy */}
               <div className="flex items-center gap-2">
                 <div className="flex-1 min-w-0 rounded-md border bg-muted/50 px-3 py-2">
                   <p className="text-xs text-muted-foreground truncate">
-                    {shareUrl}
+                    {sharePath}
                   </p>
                 </div>
                 <Button
@@ -116,6 +127,7 @@ export function SharePopover({
                   className="shrink-0"
                   onClick={handleCopy}
                   disabled={loading}
+                  aria-label="Copy share link"
                 >
                   {copied ? (
                     <Check className="h-4 w-4 text-green-500" />
@@ -129,7 +141,6 @@ export function SharePopover({
                 Anyone with this link can view and download this file.
               </p>
 
-              {/* Disable link */}
               <Button
                 variant="ghost"
                 size="sm"

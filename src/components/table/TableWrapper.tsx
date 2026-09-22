@@ -151,6 +151,8 @@ export default function TableWrapper() {
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              id="file-search"
+              aria-label="Search files, summaries, tags"
               placeholder="Search files, summaries, tags..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -158,7 +160,9 @@ export default function TableWrapper() {
             />
             {searchInput && (
               <button
+                type="button"
                 onClick={() => setSearchInput("")}
+                aria-label="Clear search"
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-3.5 w-3.5" />

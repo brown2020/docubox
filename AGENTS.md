@@ -14,10 +14,12 @@ TanStack Table.
 - `npm run build` runs the production Next.js build.
 - `npm run start` starts a built app.
 - `npm run lint` runs ESLint with `--max-warnings=0`.
+- `npm run typecheck` runs `tsc --noEmit`.
+- `npm test` runs Vitest (`src/**/*.test.ts`).
 
-Use `npm` and keep `package-lock.json` authoritative. There is no dedicated
-test script in `package.json`; use lint and build as the main local quality
-gates unless a future test script is added.
+Use `npm` and keep `package-lock.json` authoritative. Local quality gates are
+lint, typecheck, test, and build. GitHub Actions workflow `.github/workflows/ci.yml`
+runs the same gates on `dev`/`main` and smokes `GET /api/health`.
 
 ## Architecture Notes
 
@@ -54,8 +56,9 @@ gates unless a future test script is added.
 
 ## Current Validation Notes
 
-- The main quality gate is `npm run lint`.
-- `npm run build` is the closest broad integration gate.
+- Quality gates: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
+- CI: `.github/workflows/ci.yml` (lint/typecheck/test/build + `/api/health` smoke).
+- Auth is Firebase Auth with Clerk-compatible client adapters; server actions use `requireAuth()` / session cookies.
 - Several older `spec.md`/`CLAUDE.md` rough-edge items are already implemented
   or mitigated in code, including share links, previews, breadcrumbs, storage
   usage, broader search, sort options, compact upload controls, delete-modal

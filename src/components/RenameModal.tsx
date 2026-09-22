@@ -84,8 +84,8 @@ export function RenameModal() {
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium">Tags</label>
-          <TagInput tags={localTags} setTags={setLocalTags} />
+          <label htmlFor="file-tags" className="text-sm font-medium">Tags</label>
+          <TagInput id="file-tags" tags={localTags} setTags={setLocalTags} />
         </div>
       </div>
     </BaseModal>

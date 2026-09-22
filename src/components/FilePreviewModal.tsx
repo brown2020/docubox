@@ -144,11 +144,20 @@ function ImagePreview({ url, filename }: { url: string; filename: string }) {
 
 function PdfPreview({ url }: { url: string }) {
   return (
-    <iframe
-      src={url}
+    <object
+      data={url}
+      type="application/pdf"
       title="PDF Preview"
       className="w-full h-[70vh] border-0"
-    />
+    >
+      <p className="p-4 text-sm text-muted-foreground">
+        PDF preview unavailable.{" "}
+        <a href={url} target="_blank" rel="noopener noreferrer" className="underline">
+          Open or download the file
+        </a>
+        .
+      </p>
+    </object>
   );
 }
 

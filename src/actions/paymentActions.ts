@@ -4,16 +4,11 @@ import Stripe from "stripe";
 import { logger } from "@/lib/logger";
 import { requireAuth } from "@/lib/server-auth";
 
-let _stripe: Stripe | null = null;
-
-function getStripe(): Stripe {
-  if (!_stripe) {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error("STRIPE_SECRET_KEY is not configured");
-    }
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+function createStripeClient(): Stripe {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error("STRIPE_SECRET_KEY is not configured");
   }
-  return _stripe;
+  return new Stripe(process.env.STRIPE_SECRET_KEY);
 }
 
 export async function createPaymentIntent(amount: number) {
@@ -30,7 +25,7 @@ export async function createPaymentIntent(amount: number) {
   try {
     if (!product) throw new Error("Stripe product name is not defined");
 
-    const paymentIntent = await getStripe().paymentIntents.create({
+    const paymentIntent = await createStripeClient().paymentIntents.create({
       amount,
       currency: "usd",
       metadata: { product },
@@ -49,7 +44,8 @@ export async function validatePaymentIntent(paymentIntentId: string) {
   await requireAuth();
 
   try {
-    const paymentIntent = await getStripe().paymentIntents.retrieve(paymentIntentId);
+    const paymentIntent =
+      await createStripeClient().paymentIntents.retrieve(paymentIntentId);
 
     if (paymentIntent.status === "succeeded") {
       // Convert the Stripe object to a plain object

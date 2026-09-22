@@ -53,9 +53,9 @@ export function DataTable<TData, TValue>({
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header, index) => (
+              {headerGroup.headers.map((header) => (
                 <TableHead
-                  key={`header-${index}${header.id}`}
+                  key={header.id}
                   className="text-left py-3 px-4 font-semibold text-gray-500 dark:text-white"
                 >
                   {header.isPlaceholder

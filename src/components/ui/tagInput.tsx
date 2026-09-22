@@ -5,6 +5,7 @@ interface TagInputProps {
   tags: string[];
   setTags: React.Dispatch<React.SetStateAction<string[]>>;
   placeholder?: string;
+  id?: string;
 }
 
 /**
@@ -15,6 +16,7 @@ const TagInput = memo(function TagInput({
   tags,
   setTags,
   placeholder = "Type and press Enter to add a tag",
+  id,
 }: TagInputProps) {
   const [inputValue, setInputValue] = useState("");
 
@@ -66,6 +68,7 @@ const TagInput = memo(function TagInput({
         </span>
       ))}
       <input
+        id={id}
         type="text"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}

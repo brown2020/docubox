@@ -21,13 +21,15 @@ export default function PaymentCheckoutPage({ amount }: Props) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    async function initializePayment() {
-      try {
-        const secret = await createPaymentIntent(convertToSubcurrency(amount));
-        if (secret) {
-          setClientSecret(secret);
-        }
-      } catch (error: unknown) {
+    let cancelled = false;
+
+    createPaymentIntent(convertToSubcurrency(amount))
+      .then((secret) => {
+        if (cancelled || !secret) return;
+        setClientSecret(secret);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
         if (error instanceof Error) {
           setErrorMessage(
             error.message || "Failed to initialize payment. Please try again."
@@ -37,10 +39,11 @@ export default function PaymentCheckoutPage({ amount }: Props) {
             "An unknown error occurred while initializing payment."
           );
         }
-      }
-    }
+      });
 
-    initializePayment();
+    return () => {
+      cancelled = true;
+    };
   }, [amount]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -56,7 +59,6 @@ export default function PaymentCheckoutPage({ amount }: Props) {
       const { error: submitError } = await elements.submit();
       if (submitError) {
         setErrorMessage(submitError.message || "Payment submission failed");
-        setLoading(false);
         return;
       }
 
@@ -79,9 +81,9 @@ export default function PaymentCheckoutPage({ amount }: Props) {
       } else {
         setErrorMessage("An unknown error occurred. Please try again.");
       }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   if (!clientSecret || !stripe || !elements) {

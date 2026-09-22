@@ -1,7 +1,7 @@
 import { ArrowUp, LoaderCircleIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   checkDocumentReadiness,
   retrieveChunks,
@@ -66,7 +66,7 @@ export const Chat = ({ fileId }: IChatProps) => {
   const newQuestionRef = useRef("");
   const [generatedContent, setGeneratedContent] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [history, setHistory] = useState<IQARecord[]>([]);
+  const [localHistory, setLocalHistory] = useState<IQARecord[]>([]);
   const [isUploadingToRagie, setUploadingToRagie] = useState(false);
 
   // Guard to prevent duplicate Ragie uploads
@@ -82,18 +82,15 @@ export const Chat = ({ fileId }: IChatProps) => {
   const closeModal = useModalStore((state) => state.close);
   const isMountedRef = useMountedRef();
 
-  // Load QA records when document is fetched
-  useEffect(() => {
-    if (document && hasQARecords(document)) {
-      const records = document.qaRecords.map((record) => ({
-        ...record,
-        id: record.id || generateRecordId(),
-      }));
-      setHistory(records);
-    } else if (document) {
-      setHistory([]);
-    }
+  const persistedHistory = useMemo<IQARecord[]>(() => {
+    if (!document || !hasQARecords(document)) return [];
+    return document.qaRecords.map((record) => ({
+      ...record,
+      id: record.id || generateRecordId(),
+    }));
   }, [document]);
+
+  const history = localHistory.length > 0 ? localHistory : persistedHistory;
 
   // Function to upload a document to Ragie using server action
   const _uploadToRagie = useCallback(
@@ -139,9 +136,7 @@ export const Chat = ({ fileId }: IChatProps) => {
           throw new Error("Error uploading to Ragie");
         }
       } finally {
-        if (isMountedRef.current) {
-          setUploadingToRagie(false);
-        }
+        setUploadingToRagie(false);
       }
     },
     [apiProfileData, closeModal, isMountedRef]
@@ -201,7 +196,7 @@ export const Chat = ({ fileId }: IChatProps) => {
 
       try {
         await updateQARecords(updatedRecords);
-        setHistory(updatedRecords);
+        setLocalHistory(updatedRecords);
         setGeneratedContent("");
       } catch (error) {
         logger.error("Chat", "Error updating document", error);
@@ -284,7 +279,7 @@ export const Chat = ({ fileId }: IChatProps) => {
 
     try {
       await updateQARecords(updatedHistory);
-      setHistory(updatedHistory);
+      setLocalHistory(updatedHistory);
       toast.success("Record is removed.");
     } catch (error) {
       logger.error("Chat", "Error deleting QA record", error);
@@ -338,6 +333,7 @@ export const Chat = ({ fileId }: IChatProps) => {
           className="bg-slate-200 dark:bg-slate-600 border-gray-400"
           onClick={handleAsk}
           disabled={isGenerating || newQuestion.length === 0}
+          aria-label="Send question"
         >
           {isGenerating ? (
             <LoaderCircleIcon className="animate-spin" size={18} />

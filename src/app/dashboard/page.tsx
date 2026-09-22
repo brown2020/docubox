@@ -6,18 +6,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col px-4 gap-3">
+    <section className="flex flex-col gap-4 px-4" aria-busy="true" aria-label="Loading dashboard">
       <Skeleton className="h-10 w-full rounded-lg" />
-      <div className="border rounded-lg">
-        <div className="border-b h-12" />
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="flex items-center space-x-4 p-4 w-full">
-            <Skeleton className="h-12 w-12" />
-            <Skeleton className="h-12 w-full" />
-          </div>
-        ))}
+      <div className="overflow-hidden rounded-lg border">
+        <Skeleton className="h-12 w-full rounded-none" />
+        <Skeleton className="h-16 w-full rounded-none border-t" />
+        <Skeleton className="h-16 w-full rounded-none border-t" />
+        <Skeleton className="h-16 w-full rounded-none border-t" />
       </div>
-    </div>
+    </section>
   );
 }
 

@@ -49,64 +49,64 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
       setLoading(false);
       return;
     }
+    if (!uid) return;
 
-    const handlePaymentSuccess = async () => {
-      try {
-        const data = await validatePaymentIntent(payment_intent);
+    let cancelled = false;
 
-        // Check if component is still mounted before updating state
-        if (!isMountedRef.current) return;
-
-        if (data.status === "succeeded") {
-          const existingPayment = await checkIfPaymentProcessed(data.id);
-
-          if (!isMountedRef.current) return;
-
-          if (existingPayment) {
-            setMessage("Payment has already been processed.");
-            setPaymentData({
-              id: existingPayment.id,
-              amount: existingPayment.amount,
-              status: existingPayment.status,
-              created: existingPayment.createdAt?.toMillis() ?? 0,
-            });
-            setLoading(false);
-            return;
-          }
-
-          setMessage("Payment successful");
-          setPaymentData({
-            id: data.id,
-            amount: data.amount,
-            status: data.status,
-            created: data.created * 1000,
-          });
-
-          await addPayment({
-            id: data.id,
-            amount: data.amount,
-            status: data.status,
-          });
-
-          if (!isMountedRef.current) return;
-
-          const creditsToAdd = data.amount + 1;
-          await addCredits(creditsToAdd);
-        } else {
+    validatePaymentIntent(payment_intent)
+      .then(async (data) => {
+        if (cancelled || !isMountedRef.current) return;
+        if (data.status !== "succeeded") {
           setMessage("Payment validation failed");
+          return;
         }
-      } catch (error) {
-        if (!isMountedRef.current) return;
+
+        const existingPayment = await checkIfPaymentProcessed(data.id);
+        if (cancelled || !isMountedRef.current) return;
+
+        if (existingPayment) {
+          setMessage("Payment has already been processed.");
+          setPaymentData({
+            id: existingPayment.id,
+            amount: existingPayment.amount,
+            status: existingPayment.status,
+            created: existingPayment.createdAt?.toMillis() ?? 0,
+          });
+          return;
+        }
+
+        setMessage("Payment successful");
+        setPaymentData({
+          id: data.id,
+          amount: data.amount,
+          status: data.status,
+          created: data.created * 1000,
+        });
+
+        await addPayment({
+          id: data.id,
+          amount: data.amount,
+          status: data.status,
+        });
+        if (cancelled || !isMountedRef.current) return;
+
+        const creditsToAdd = data.amount + 1;
+        await addCredits(creditsToAdd);
+      })
+      .catch((error) => {
+        if (cancelled || !isMountedRef.current) return;
         logger.error("PaymentSuccessPage", "Error handling payment", error);
         setMessage("Error handling payment success");
-      } finally {
-        if (isMountedRef.current) {
+      })
+      .finally(() => {
+        if (!cancelled && isMountedRef.current) {
           setLoading(false);
         }
-      }
-    };
+      });
 
-    if (uid) handlePaymentSuccess();
+    return () => {
+      cancelled = true;
+    };
   }, [payment_intent, addPayment, checkIfPaymentProcessed, addCredits, uid]);
 
   if (loading) {

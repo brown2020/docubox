@@ -34,13 +34,13 @@ export function Hero() {
           {/* CTAs */}
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" className="gap-2" asChild>
-              <Link href="/login">
-                Get started free
+              <Link href="/signup">
+                Create account
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link href="#features">See how it works</Link>
+              <Link href="/login">Sign in</Link>
             </Button>
           </div>
 

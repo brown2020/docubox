@@ -51,6 +51,9 @@ export default function Header() {
               <UserMenu />
             </SignedIn>
             <SignedOut>
+              <Button asChild variant="ghost" className="hidden sm:inline-flex">
+                <Link href="/signup">Create account</Link>
+              </Button>
               <SignInButton />
             </SignedOut>
           </div>

@@ -3,16 +3,16 @@ import Link from "next/link";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export const metadata: Metadata = {
-  title: "Sign In",
-  description: "Sign in to Docubox to store and summarize your documents.",
+  title: "Create Account",
+  description: "Create a Docubox account to store documents and summarize with AI.",
 };
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <LoginForm initialMode="signin" />
+      <LoginForm initialMode="signup" />
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        By signing in, you agree to our{" "}
+        By creating an account, you agree to our{" "}
         <Link href="/terms" className="underline hover:no-underline">
           Terms of Service
         </Link>{" "}
@@ -22,9 +22,9 @@ export default function LoginPage() {
         </Link>
       </p>
       <p className="mt-3 text-center text-sm text-muted-foreground">
-        New here?{" "}
-        <Link href="/signup" className="text-primary underline hover:no-underline">
-          Create an account
+        Already have an account?{" "}
+        <Link href="/login" className="text-primary underline hover:no-underline">
+          Sign in
         </Link>
       </p>
     </div>

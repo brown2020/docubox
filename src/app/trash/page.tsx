@@ -1,14 +1,11 @@
-"use client";
+import type { Metadata } from "next";
+import TrashClient from "./TrashClient";
 
-import TableWrapper from "@/components/table/TableWrapper";
-import { Suspense } from "react";
+export const metadata: Metadata = {
+  title: "Trash",
+  description: "Restore or permanently delete Docubox files.",
+};
 
 export default function TrashPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <div className="pt-10">
-        <TableWrapper />
-      </div>
-    </Suspense>
-  );
+  return <TrashClient />;
 }

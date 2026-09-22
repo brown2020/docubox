@@ -27,7 +27,7 @@ export function CTA() {
                 className="gap-2"
                 asChild
               >
-                <Link href="/login">
+                <Link href="/signup">
                   Get started free
                   <ArrowRight className="h-4 w-4" />
                 </Link>

@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSharedFile } from "@/actions/shareActions";
 import { Download, FileText, Calendar, HardDrive } from "lucide-react";
 import prettyBytes from "pretty-bytes";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Shared File",
+  description: "View a shared Docubox file.",
+};
 
 interface SharePageProps {
   params: Promise<{ token: string }>;

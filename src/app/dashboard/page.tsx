@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import Dropzone from "@/components/Dropzone";
 import TableWrapper from "@/components/table/TableWrapper";
 import { TrashLink } from "@/components/TrashLink";
 import { Skeleton } from "@/components/ui/skeleton";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Browse and manage your Docubox files.",
+};
 
 function DashboardSkeleton() {
   return (

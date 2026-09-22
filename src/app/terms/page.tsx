@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import TermsPage from "@/components/TermsPage";
+
+export const metadata: Metadata = {
+  title: "Terms",
+  description: "Docubox terms of service.",
+};
 
 export default function Terms() {
   return (

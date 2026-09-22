@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Login Finish",
+  description: "Complete Docubox sign-in.",
+};
 
 /**
  * Legacy route from Clerk auth era. Firebase Auth doesn't use this flow.

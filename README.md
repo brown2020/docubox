@@ -1,277 +1,142 @@
 # Docubox
 
-Docubox is a modern document management application with AI-powered parsing, summarization, and RAG-based Q&A capabilities. Built with [Next.js](https://nextjs.org/) 16, [Firebase](https://firebase.google.com/), and the [Vercel AI SDK](https://sdk.vercel.ai/).
+AI-assisted document management: upload files, parse with Unstructured, summarize with OpenAI, ask RAG questions via Ragie, organize folders, share links, and optionally buy credits with Stripe. Live site: [https://docubox.ai](https://docubox.ai)
 
 ## Features
 
-- **AI Document Parsing:** Extract text, tables, headers, and metadata from documents using the [Unstructured API](https://unstructured.io/).
-- **AI Summaries:** Generate concise summaries powered by GPT-4.1 to understand documents at a glance.
-- **RAG-Powered Q&A:** Ask questions about your documents and get accurate, context-aware answers using [Ragie](https://ragie.ai/).
-- **File Management:** Upload, rename, delete, and organize files into folders with drag-and-drop support.
-- **Secure Storage:** Documents stored securely with [Firebase Storage](https://firebase.google.com/docs/storage) and metadata in [Firestore](https://firebase.google.com/docs/firestore).
-- **Flexible Pricing:** Pay-as-you-go credits or bring your own API keys to use AI features for free.
-- **Dark Mode:** Full dark mode support with system preference detection.
+Verified from the current codebase:
 
-## How It Works
+- **Upload & organize** — drag-and-drop uploads, folders, rename, trash, breadcrumbs, grid/table views, DnD
+- **File preview** — in-browser preview for images, PDFs, text/code, video, and audio
+- **AI parsing** — Unstructured API extraction; parsed chunks stored in Firebase Storage
+- **AI summaries** — OpenAI via Vercel AI SDK
+- **RAG Q&A** — chat against document context with Ragie
+- **Share links** — public `/share/[token]` pages for download without auth
+- **Storage usage** — file count and byte totals
+- **Search / sort** — filename, summary, tags; sort by time, name, size, type
+- **Auth** — Firebase Auth (login, signup, forgot password, session cookie API)
+- **Credits / BYOK** — Stripe credit purchases or bring-your-own API keys on the profile
+- **Theming** — dark/light via `@wrksz/themes`
+- **Health check** — `GET /api/health`
 
-1. **Upload** - Drag and drop documents (PDF, DOCX, TXT, and more) into Docubox.
-2. **Parse & Analyze** - AI extracts text, identifies structure, and generates a summary of key points.
-3. **Chat & Explore** - Ask questions about your documents and get instant, accurate answers backed by RAG technology.
+## Tech stack
 
-## Tech Stack
+| Area | Choice |
+|------|--------|
+| Framework | Next.js 16 (App Router, Server Actions) |
+| UI | React 19, Tailwind CSS 4, Radix UI, Lucide, CVA, TanStack Table |
+| Language | TypeScript 6 |
+| AI | Vercel AI SDK 6, `@ai-sdk/openai`, Unstructured client, Ragie API |
+| Backend | Firebase 12 + firebase-admin 13 |
+| Payments | Stripe |
+| State | Zustand 5 |
+| Markdown | react-markdown, remark-gfm, remark-math, syntax highlighter |
+| Upload UX | react-dropzone, react-dnd |
+| Tests | Vitest 3 |
+| Node | `>=22` (`engines`) |
 
-### Core Framework
+`.npmrc` sets `legacy-peer-deps=true`.
 
-- **[Next.js](https://nextjs.org/)** `16.0.3` - App Router with React Server Components
-- **[React](https://react.dev/)** `19.0.0` - UI runtime
-- **[TypeScript](https://www.typescriptlang.org/)** `5.6.2` - Type safety
+## Project structure
 
-### Styling
+```
+docubox/
+├── src/
+│   ├── app/           # Routes: dashboard, auth, share, payments, trash, legal
+│   ├── components/    # Table/grid, chat, auth, landing, UI primitives
+│   ├── actions/       # Server Actions (parse, payment, …)
+│   ├── services/      # File and domain services
+│   ├── firebase/      # Client + Admin
+│   ├── hooks/, lib/, zustand/, utils/, constants/, types/
+├── .env.example
+├── firestore.rules
+├── storage.rules
+└── .github/workflows/ci.yml
+```
 
-- **[Tailwind CSS](https://tailwindcss.com/)** `4.0.8` - Utility-first CSS
-- **[shadcn/ui](https://ui.shadcn.com/)** - Accessible UI components
-- **[Radix UI](https://www.radix-ui.com/)** - Unstyled, accessible primitives
-- **[Lucide React](https://lucide.dev/)** `0.563.0` - Icons
-- **[tailwindcss-animate](https://www.npmjs.com/package/tailwindcss-animate)** `1.0.7` - Animation utilities
-- **[next-themes](https://github.com/pacocoursey/next-themes)** `0.4.3` - Theme management
-
-### Backend & Data
-
-- **[Firebase](https://firebase.google.com/)** `12.2.1` - Client SDK for Firestore & Storage
-- **[firebase-admin](https://firebase.google.com/docs/admin/setup)** `13.0.1` - Server-side admin SDK
-- **[react-firebase-hooks](https://github.com/CSFrequency/react-firebase-hooks)** `5.1.1` - React hooks for Firebase
-
-### AI & Document Processing
-
-- **[Vercel AI SDK](https://sdk.vercel.ai/)** `6.0.3` - AI integrations and streaming
-- **[@ai-sdk/openai](https://www.npmjs.com/package/@ai-sdk/openai)** `3.0.1` - OpenAI provider
-- **[unstructured-client](https://www.npmjs.com/package/unstructured-client)** `0.30.1` - Document parsing
-- **Ragie API** - RAG retrieval for Q&A
-
-### Payments
-
-- **[Stripe](https://stripe.com/)** `20.0.0` - Payment processing
-- **[@stripe/stripe-js](https://www.npmjs.com/package/@stripe/stripe-js)** `8.5.2` - Stripe.js loader
-- **[@stripe/react-stripe-js](https://www.npmjs.com/package/@stripe/react-stripe-js)** `5.4.0` - React components
-
-### State Management
-
-- **[Zustand](https://docs.pmnd.rs/zustand)** `5.0.1` - Lightweight state management
-
-### UI Components & Utilities
-
-- **[@tanstack/react-table](https://tanstack.com/table)** `8.20.5` - Data tables
-- **[react-dropzone](https://react-dropzone.js.org/)** `14.2.3` - Drag-and-drop file uploads
-- **[react-dnd](https://react-dnd.github.io/react-dnd/)** `16.0.1` - Drag and drop for file organization
-- **[react-markdown](https://github.com/remarkjs/react-markdown)** `10.0.0` - Markdown rendering
-- **[react-syntax-highlighter](https://github.com/react-syntax-highlighter/react-syntax-highlighter)** `16.1.0` - Code highlighting
-- **[react-hot-toast](https://react-hot-toast.com/)** `2.4.1` - Toast notifications
-- **[react-file-icon](https://www.npmjs.com/package/react-file-icon)** `1.5.0` - File type icons
-- **[pretty-bytes](https://www.npmjs.com/package/pretty-bytes)** `7.0.1` - Human-readable file sizes
-- **[remark-gfm](https://github.com/remarkjs/remark-gfm)** `4.0.0` - GitHub Flavored Markdown
-- **[remark-math](https://github.com/remarkjs/remark-math)** `6.0.0` - Math notation support
-
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
-- **[Node.js](https://nodejs.org/)** v18+ (required by dependencies)
-- **[Firebase Project](https://firebase.google.com/)** with Firestore and Storage enabled
-- **API Keys** for AI features (see below)
+- Node.js 22+
+- npm
+- Firebase project (Auth, Firestore, Storage)
+- Unstructured API access
+- OpenAI API key
+- Ragie API key
+- Stripe (optional)
 
-### Installation
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/brown2020/docubox.git
-   cd docubox
-   ```
-
-2. **Install dependencies:**
-
-   ```bash
-   npm install
-   ```
-
-3. **Configure environment variables:**
-
-   Copy `.env.example` to `.env.local` and fill in your values:
-
-   ```bash
-   cp .env.example .env.local
-   ```
-
-### Running the Development Server
+### Install
 
 ```bash
+git clone https://github.com/brown2020/docubox.git
+cd docubox
+git checkout dev
+npm install
+cp .env.example .env.local
+# fill in values — never commit secrets
 npm run dev
 ```
 
-Visit the app at `http://localhost:3000`.
+Open [http://localhost:3000](http://localhost:3000).
 
-### Available Scripts
+## Environment variables
 
-```bash
-npm run dev      # Start development server
-npm run build    # Production build
-npm run start    # Run production build
-npm run lint     # ESLint with zero warnings policy
-```
+| Name | Purpose | Where to get it |
+|------|---------|-----------------|
+| `NEXT_PUBLIC_FIREBASE_APIKEY` | Firebase web API key | Firebase Console → Your apps |
+| `NEXT_PUBLIC_FIREBASE_AUTHDOMAIN` | Auth domain | Same |
+| `NEXT_PUBLIC_FIREBASE_PROJECTID` | Project ID | Same |
+| `NEXT_PUBLIC_FIREBASE_STORAGEBUCKET` | Storage bucket | Same |
+| `NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID` | Messaging sender ID | Same |
+| `NEXT_PUBLIC_FIREBASE_APPID` | App ID | Same |
+| `NEXT_PUBLIC_FIREBASE_MEASUREMENTID` | Analytics ID | Optional |
+| `FIREBASE_PROJECT_ID` | Admin SDK project ID | Service account JSON |
+| `FIREBASE_CLIENT_EMAIL` | Admin SDK client email | Same |
+| `FIREBASE_PRIVATE_KEY` | Admin SDK private key (`\n` escaped) | Same |
+| `UNSTRUCTURED_API_KEY` | Unstructured API key (also overridable per profile) | [unstructured.io](https://unstructured.io) |
+| `UNSTRUCTURED_API_URL` | Unstructured API base URL | Unstructured docs / dashboard |
+| `OPENAI_API_KEY` | OpenAI API key (also BYOK on profile) | [platform.openai.com](https://platform.openai.com) |
+| `RAGIE_API_KEY` | Ragie API key (also BYOK on profile) | [ragie.ai](https://ragie.ai) |
+| `STRIPE_SECRET_KEY` | Stripe secret key | Stripe Dashboard |
+| `NEXT_PUBLIC_STRIPE_KEY` | Stripe publishable key | Stripe Dashboard |
+| `NEXT_PUBLIC_STRIPE_PRODUCT_NAME` | Product name for credit checkout | Stripe product config |
 
-## Environment Variables
+See `.env.example`. Server Actions body size limit is 4mb (`next.config.js`).
 
-### Firebase Client Config (Required)
+## Firebase
 
-```bash
-NEXT_PUBLIC_FIREBASE_APIKEY=your_firebase_api_key
-NEXT_PUBLIC_FIREBASE_AUTHDOMAIN=your_firebase_auth_domain
-NEXT_PUBLIC_FIREBASE_PROJECTID=your_firebase_project_id
-NEXT_PUBLIC_FIREBASE_STORAGEBUCKET=your_firebase_storage_bucket
-NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID=your_firebase_messaging_sender_id
-NEXT_PUBLIC_FIREBASE_APPID=your_firebase_app_id
-```
+- Rules: `firestore.rules`, `storage.rules`
+- Session cookies use the Admin SDK trio above
 
-### Firebase Admin Config (Required for server-side auth)
+## Scripts
 
-Get these from Firebase Console > Project Settings > Service Accounts > Generate New Private Key:
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Next.js dev server |
+| `npm run build` | Production build |
+| `npm start` | Serve production build |
+| `npm run lint` | ESLint (`--max-warnings=0`) |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Vitest |
 
-```bash
-FIREBASE_PROJECT_ID=your_firebase_project_id
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-FIREBASE_CLIENT_EMAIL=your_service_account_email@your_project.iam.gserviceaccount.com
-```
+## Testing and CI
 
-### Third-Party APIs (Required for AI features)
+Vitest covers server-auth, Firebase auth errors, and payment action auth.
 
-```bash
-UNSTRUCTURED_API_KEY=your_unstructured_api_key
-UNSTRUCTURED_API_URL=your_unstructured_api_url
-OPENAI_API_KEY=your_openai_api_key
-RAGIE_API_KEY=your_ragie_api_key
-```
+GitHub Actions (`.github/workflows/ci.yml`) on `dev` / `main` and PRs: `npm ci` → lint → typecheck → test → build → smoke `GET /api/health` against `next start`. Node 22. Required secrets: the six `NEXT_PUBLIC_FIREBASE_*` client vars used at build time.
 
-### Stripe (Optional, for payments)
+## Deployment
 
-```bash
-STRIPE_SECRET_KEY=your_stripe_secret_key
-NEXT_PUBLIC_STRIPE_KEY=your_stripe_publishable_key
-NEXT_PUBLIC_STRIPE_PRODUCT_NAME=your_stripe_product_name
-```
-
-## Pricing & Credits
-
-Docubox uses a **pay-as-you-go** credit system:
-
-| Operation        | Credit Cost |
-| ---------------- | ----------- |
-| Document Parsing | 4 credits   |
-| AI Summary       | 4 credits   |
-| Q&A Query        | 8 credits   |
-
-- **Free tier:** New accounts start with 1,000 free credits
-- **Buy credits:** Purchase credit packages when you need more
-- **Bring your own keys:** Configure your own OpenAI, Unstructured, and Ragie API keys in your profile to use AI features without spending credits
-
-## Supported File Types
-
-- PDF (`.pdf`)
-- Microsoft Word (`.doc`, `.docx`)
-- PowerPoint (`.ppt`, `.pptx`)
-- Excel (`.xls`, `.xlsx`)
-- Text files (`.txt`)
-- Markdown (`.md`)
-- Images (`.jpg`, `.jpeg`, `.png`, `.gif`)
-- Email (`.msg`, `.eml`)
-- Archives (`.zip`, `.rar`)
-
-## Project Structure
-
-```
-/src
-├── app/                    # Next.js App Router pages
-│   ├── api/               # API routes (auth session)
-│   ├── dashboard/         # Main file management view
-│   ├── login/             # Authentication pages
-│   ├── profile/           # User profile & API keys
-│   ├── trash/             # Deleted files
-│   └── payment-*/         # Payment flow pages
-├── actions/               # Server Actions
-│   ├── parse.ts           # Document parsing (Unstructured)
-│   ├── generateSummary.ts # AI summaries (OpenAI)
-│   ├── generateActions.ts # RAG response generation
-│   ├── ragieActions.ts    # Ragie API operations
-│   └── paymentActions.ts  # Stripe operations
-├── components/
-│   ├── ui/                # shadcn/ui primitives
-│   ├── auth/              # Firebase auth components
-│   ├── table/             # DataTable (TanStack)
-│   ├── grid/              # GridView layout
-│   ├── chat/              # Q&A components
-│   ├── landing/           # Landing page sections
-│   └── common/            # Shared components
-├── firebase/              # Firebase client & admin setup
-├── hooks/                 # Custom React hooks
-├── lib/                   # Utilities (ai, errors, logger)
-├── services/              # Business logic (fileService)
-├── types/                 # TypeScript definitions
-├── utils/                 # Helper functions
-└── zustand/               # State stores
-```
-
-## Architecture
-
-### Authentication
-
-Docubox uses Firebase Authentication with:
-
-- Google OAuth sign-in
-- Email/password authentication
-- Magic link (passwordless) sign-in
-- Session cookies for server-side auth
-
-### State Management (Zustand)
-
-- `useAuthStore` - Firebase auth state
-- `useProfileStore` - User profile, API keys, credits
-- `useModalStore` - Global modal state
-- `useUploadStore` - File upload progress
-- `useFileSelectionStore` - Selected file + parsed data
-- `useNavigationStore` - Folder navigation, breadcrumbs
-
-### File Operations
-
-The `fileService` in `/src/services/fileService.ts` provides:
-
-- File upload with progress tracking
-- Soft delete (trash) and permanent delete
-- Folder creation and recursive deletion
-- Parsed data and summary storage
-- Ragie integration status
-
-### AI Pipeline
-
-1. **Parse** - Unstructured API extracts text and structure
-2. **Summarize** - OpenAI generates concise summaries
-3. **Index** - Ragie stores document for retrieval
-4. **Query** - RAG retrieves relevant chunks for Q&A
-
-## Learn More
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Firebase Documentation](https://firebase.google.com/docs)
-- [Vercel AI SDK Documentation](https://sdk.vercel.ai/docs)
-- [Unstructured Documentation](https://docs.unstructured.io/)
-- [Ragie Documentation](https://docs.ragie.ai/)
-- [Zustand Documentation](https://docs.pmnd.rs/zustand)
-- [shadcn/ui Documentation](https://ui.shadcn.com/)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-- [Radix UI Documentation](https://www.radix-ui.com/docs/primitives)
+Deploy as a Next.js app (e.g. Vercel) to [https://docubox.ai](https://docubox.ai). Set all env vars in the host. Deploy Firestore/Storage rules when they change.
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request with your suggestions or improvements.
+- `main` — production
+- `dev` — integration
+
+See [AGENTS.md](./AGENTS.md) and [spec.md](./spec.md).
 
 ## License
 
-This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See [`LICENSE.md`](LICENSE.md).
+[GNU Affero General Public License v3](./LICENSE.md) (AGPL-3.0).

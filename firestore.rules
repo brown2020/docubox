@@ -9,6 +9,30 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Keep in sync with INITIAL_FREE_CREDITS in src/constants/billing.ts
+    function isFreeStarterCredits(credits) {
+      return credits is number && credits == 1000;
+    }
+
+    function ragieFieldsUntouched() {
+      return request.resource.data.get('ragieUsesPlatformKey', false)
+          == resource.data.get('ragieUsesPlatformKey', false)
+        && request.resource.data.get('ragieFileId', null)
+          == resource.data.get('ragieFileId', null)
+        && request.resource.data.get('isUploadedToRagie', false)
+          == resource.data.get('isUploadedToRagie', false);
+    }
+
+    // Share flags are server-owned so revoke can rotate the download token.
+    function shareFieldsUntouched() {
+      return request.resource.data.get('shareToken', null)
+          == resource.data.get('shareToken', null)
+        && request.resource.data.get('shareEnabled', false)
+          == resource.data.get('shareEnabled', false)
+        && request.resource.data.get('shareCreatedAt', null)
+          == resource.data.get('shareCreatedAt', null);
+    }
+
     // Deny all access by default
     match /{document=**} {
       allow read, write: if false;
@@ -19,30 +43,50 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
 
-    // User profile subcollection
+    // User profile subcollection.
+    // Clients may create the free starter balance once. They cannot change
+    // credits afterward — purchases are granted by the Admin SDK.
     match /users/{userId}/profile/{docId} {
       allow read: if isOwner(userId);
-      allow write: if isOwner(userId)
+      allow create: if isOwner(userId)
+        && docId == 'userData'
+        && request.resource.data.keys().hasAll(['email', 'credits', 'useCredits'])
+        && isFreeStarterCredits(request.resource.data.credits);
+      allow update: if isOwner(userId)
+        && docId == 'userData'
         && request.resource.data.keys().hasAll(['email', 'credits', 'useCredits'])
         && request.resource.data.credits is number
-        && request.resource.data.credits >= 0;
+        && request.resource.data.credits == resource.data.credits;
+      allow delete: if false;
     }
 
-    // User files subcollection
+    // User files subcollection.
+    // Ragie indexing fields are server-owned so clients cannot point retrieval
+    // at the platform Ragie key.
     match /users/{userId}/files/{fileId} {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId)
-        && request.resource.data.userId == userId;
-      allow update: if isOwner(userId);
+        && request.resource.data.userId == userId
+        && request.resource.data.get('ragieUsesPlatformKey', false) == false
+        && request.resource.data.get('isUploadedToRagie', false) == false
+        && request.resource.data.get('ragieFileId', null) == null
+        && request.resource.data.get('shareEnabled', false) == false
+        && request.resource.data.get('shareToken', null) == null;
+      allow update: if isOwner(userId)
+        && ragieFieldsUntouched()
+        && shareFieldsUntouched();
       allow delete: if isOwner(userId);
     }
 
-    // User payments subcollection
+    // Payment documents are written only by the Admin SDK (webhook / server action).
     match /users/{userId}/payments/{paymentId} {
       allow read: if isOwner(userId);
-      allow create: if isOwner(userId);
-      // Payments should not be updated or deleted by the client
-      allow update, delete: if false;
+      allow create, update, delete: if false;
+    }
+
+    // Share lookup documents are written only by the Admin SDK.
+    match /shares/{token} {
+      allow read, write: if false;
     }
   }
 }

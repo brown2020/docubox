@@ -2,8 +2,10 @@
 
 import { generateText } from "ai";
 import { getOpenAIClient, getModel, DEFAULT_MODEL } from "@/lib/ai";
+import { withApiCredential } from "@/lib/api-access";
 import { requireAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
+import type { ApiRequest } from "@/types/api-request";
 
 /**
  * Generates a response using the AI model.
@@ -11,8 +13,8 @@ import { logger } from "@/lib/logger";
 async function generateResponse(
   systemPrompt: string,
   userPrompt: string,
-  modelName: string = DEFAULT_MODEL,
-  apiKey?: string | null
+  apiKey: string,
+  modelName: string = DEFAULT_MODEL
 ): Promise<string> {
   const client = getOpenAIClient(apiKey);
   const model = getModel(client, modelName);
@@ -33,10 +35,10 @@ async function generateResponse(
 export async function generateWithChunks(
   chunks: string[],
   query: string,
-  modelName: string = DEFAULT_MODEL,
-  apiKey?: string | null
+  auth: ApiRequest,
+  modelName: string = DEFAULT_MODEL
 ): Promise<string> {
-  await requireAuth();
+  const { userId } = await requireAuth();
 
   // Combine the retrieved chunks into a single text block
   const chunkText = chunks.join("\n");
@@ -59,10 +61,12 @@ ${chunkText}
 If the user asked for a search and there are no results, make sure to let the user know that you couldn't find anything,
 and what they might be able to do to find the information they need.`;
 
+  return withApiCredential(userId, "open-ai", auth, async (apiKey) => {
   try {
-    return await generateResponse(systemPrompt, query, modelName, apiKey);
+    return await generateResponse(systemPrompt, query, apiKey, modelName);
   } catch (error) {
     logger.error("generateActions", "Error generating response with chunks", error);
     throw new Error("Failed to generate response. Please try again.");
   }
+  });
 }

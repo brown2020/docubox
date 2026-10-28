@@ -57,6 +57,10 @@ async function verifySessionCookie(cookieValue: string): Promise<boolean> {
 /**
  * Clears an invalid session cookie by setting it to empty with maxAge 0.
  */
+function loginReturnPath(request: NextRequest): string {
+  return `${request.nextUrl.pathname}${request.nextUrl.search}`;
+}
+
 function clearSessionCookie(response: NextResponse): NextResponse {
   response.cookies.set(SESSION_COOKIE_NAME, "", {
     httpOnly: true,
@@ -96,7 +100,7 @@ export default async function proxy(request: NextRequest) {
       // For protected routes, redirect to login AND clear the stale cookie
       if (isProtectedRoute(pathname)) {
         const url = new URL("/login", request.url);
-        url.searchParams.set("redirect", pathname);
+        url.searchParams.set("redirect", loginReturnPath(request));
         const response = NextResponse.redirect(url);
         return clearSessionCookie(response);
       }
@@ -117,7 +121,7 @@ export default async function proxy(request: NextRequest) {
   if (isProtectedRoute(pathname) && !isAuthenticated) {
     const url = new URL("/login", request.url);
     // Store the attempted URL for redirect after login
-    url.searchParams.set("redirect", pathname);
+    url.searchParams.set("redirect", loginReturnPath(request));
     return NextResponse.redirect(url);
   }
 

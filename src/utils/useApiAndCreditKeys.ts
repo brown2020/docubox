@@ -1,67 +1,67 @@
 "use client";
 
-import { getApiKey } from "@/actions/getApiKeys";
 import { getCreditCost } from "@/constants/credits";
 import {
   type APIType,
   getProfileFieldName,
   getAPIDisplayName,
 } from "@/constants/apiConfig";
+import type { ApiRequest } from "@/types/api-request";
 import { ProfileType } from "@/zustand/useProfileStore";
 
-// Re-export APIType for backwards compatibility
 export type { APIType };
 
 /**
- * Simplified profile data interface for API/credit handling.
- * Only includes what's actually needed by handleAPIAndCredits.
+ * Profile data used to build an API request. Credits are charged on the server.
  */
 export interface APIProfileData {
   profile: ProfileType;
-  minusCredits: (amount: number) => Promise<boolean>;
+  refreshProfile?: () => Promise<void>;
 }
 
 /**
- * Handles API key resolution and credit deduction for API calls.
- * If useCredits is enabled, uses environment API key and deducts credits.
- * Otherwise, uses the user's own API key from their profile.
+ * Builds a server-action credential. Never fetches platform API keys.
+ * When credits are enabled and the user also has a key saved, both are sent
+ * so the server can pick the key that indexed a Ragie file.
+ */
+export function describeApiRequest(apiType: APIType, profile: ProfileType): ApiRequest {
+  const displayName = getAPIDisplayName(apiType);
+  const field = profile[getProfileFieldName(apiType)];
+  const userApiKey = typeof field === "string" && field.trim() ? field.trim() : undefined;
+
+  if (!profile.useCredits && !userApiKey) {
+    throw new Error(
+      `No ${displayName} API key found. Please add your API key in profile settings or enable credits.`
+    );
+  }
+
+  if (
+    profile.useCredits &&
+    !userApiKey &&
+    profile.credits < getCreditCost(apiType)
+  ) {
+    const requiredCredits = getCreditCost(apiType);
+    throw new Error(
+      `Insufficient credits. You need ${requiredCredits} credits but only have ${profile.credits}.`
+    );
+  }
+
+  return { useCredits: profile.useCredits, userApiKey };
+}
+
+/**
+ * Resolves how to call an API and refreshes the credit balance afterward.
+ * The callback receives a credential, not a platform secret.
  */
 const handleAPIAndCredits = async (
   apiType: APIType,
   profileData: APIProfileData,
-  callback: (apiKey: string) => Promise<void>
+  callback: (auth: ApiRequest) => Promise<void>
 ): Promise<void> => {
-  const { profile, minusCredits } = profileData;
-  const requiredCredits = getCreditCost(apiType);
-  const displayName = getAPIDisplayName(apiType);
-
-  if (profile.useCredits) {
-    // Using platform credits - validate and use env API key
-    if (profile.credits < requiredCredits) {
-      throw new Error(
-        `Insufficient credits. You need ${requiredCredits} credits but only have ${profile.credits}.`
-      );
-    }
-
-    const envApiKey = await getApiKey(apiType);
-    if (!envApiKey) {
-      throw new Error(`Platform API key for ${displayName} is not configured.`);
-    }
-
-    await callback(envApiKey);
-    await minusCredits(requiredCredits);
-  } else {
-    // Using user's own API key
-    const apiKeyField = getProfileFieldName(apiType);
-    const apiKey = profile[apiKeyField];
-
-    if (typeof apiKey !== "string" || !apiKey) {
-      throw new Error(
-        `No ${displayName} API key found. Please add your API key in profile settings or enable credits.`
-      );
-    }
-
-    await callback(apiKey);
+  const auth = describeApiRequest(apiType, profileData.profile);
+  await callback(auth);
+  if (profileData.profile.useCredits && profileData.refreshProfile) {
+    await profileData.refreshProfile();
   }
 };
 

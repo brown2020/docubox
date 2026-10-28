@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { INITIAL_FREE_CREDITS } from "@/constants/billing";
 import { useAuthStore } from "./useAuthStore";
 import { db } from "@/firebase";
 import { logger } from "@/lib/logger";
@@ -33,8 +34,6 @@ const defaultProfile: ProfileType = {
   useCredits: true,
 };
 
-const DEFAULT_INITIAL_CREDITS = 1000;
-
 interface AuthState {
   authEmail?: string;
   authDisplayName?: string;
@@ -51,8 +50,6 @@ export interface ProfileState {
     newProfile: Partial<ProfileType>,
     onError?: (error: Error) => void
   ) => Promise<void>;
-  addCredits: (amount: number, onError?: (error: Error) => void) => Promise<void>;
-  minusCredits: (amount: number, onError?: (error: Error) => void) => Promise<boolean>;
 }
 
 /**
@@ -66,7 +63,7 @@ function mergeProfileWithDefaults(
     ...defaultProfile,
     ...profile,
     credits:
-      typeof profile.credits === "number" ? profile.credits : DEFAULT_INITIAL_CREDITS,
+      typeof profile.credits === "number" ? profile.credits : INITIAL_FREE_CREDITS,
     email: authState.authEmail || profile.email || "",
     contactEmail: profile.contactEmail || authState.authEmail || "",
     displayName: profile.displayName || authState.authDisplayName || "",
@@ -117,7 +114,7 @@ const useProfileStore = create<ProfileState>((set, get) => ({
           displayName: authDisplayName || "",
           photoUrl: authPhotoUrl || "",
           emailVerified: authEmailVerified || false,
-          credits: DEFAULT_INITIAL_CREDITS,
+          credits: INITIAL_FREE_CREDITS,
           openai_api_key: "",
           ragie_api_key: "",
           unstructured_api_key: "",
@@ -161,64 +158,6 @@ const useProfileStore = create<ProfileState>((set, get) => ({
       // Notify caller of error
       const err = error instanceof Error ? error : new Error("Failed to update profile");
       onError?.(err);
-    }
-  },
-
-  addCredits: async (amount: number, onError?: (error: Error) => void) => {
-    const uid = useAuthStore.getState().uid;
-    if (!uid || amount <= 0) return;
-
-    try {
-      const userRef = getProfileRef(uid);
-
-      // Use Firestore increment() for atomic operation
-      await updateDoc(userRef, { credits: increment(amount) });
-
-      // Refetch to sync local state with server truth
-      await get().fetchProfile();
-    } catch (error) {
-      logger.error("useProfileStore", "Error adding credits", error);
-
-      // Refetch to ensure consistency with server
-      await get().fetchProfile();
-
-      // Notify caller of error
-      const err = error instanceof Error ? error : new Error("Failed to add credits");
-      onError?.(err);
-    }
-  },
-
-  minusCredits: async (amount: number, onError?: (error: Error) => void) => {
-    const uid = useAuthStore.getState().uid;
-    if (!uid || amount <= 0) return false;
-
-    const currentCredits = get().profile.credits;
-
-    // Fast-fail check (prevents unnecessary server calls)
-    if (currentCredits < amount) {
-      return false;
-    }
-
-    try {
-      const userRef = getProfileRef(uid);
-
-      // Use Firestore increment() for atomic operation
-      // This prevents race conditions when multiple operations run concurrently
-      await updateDoc(userRef, { credits: increment(-amount) });
-
-      // Refetch to sync local state with server truth
-      await get().fetchProfile();
-      return true;
-    } catch (error) {
-      logger.error("useProfileStore", "Error deducting credits", error);
-
-      // Refetch to ensure consistency with server
-      await get().fetchProfile();
-
-      // Notify caller of error
-      const err = error instanceof Error ? error : new Error("Failed to deduct credits");
-      onError?.(err);
-      return false;
     }
   },
 }));

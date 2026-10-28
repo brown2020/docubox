@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/firebase/firebaseAdmin";
 import { cookies } from "next/headers";
 import { logger } from "@/lib/logger";
+import { isTrustedSessionOrigin } from "@/lib/session-origin";
 
 // Session cookie name
 const SESSION_COOKIE_NAME = "__session";
@@ -26,6 +27,10 @@ const COOKIE_OPTIONS = {
  * next/headers can silently fail to propagate in Route Handlers).
  */
 export async function POST(request: NextRequest) {
+  if (!isTrustedSessionOrigin(request.headers.get("origin"), request.nextUrl.host)) {
+    return NextResponse.json({ error: "Failed to create session" }, { status: 403 });
+  }
+
   try {
     const { idToken } = await request.json();
 
@@ -39,10 +44,7 @@ export async function POST(request: NextRequest) {
     // Check if Firebase Admin is initialized
     if (!process.env.FIREBASE_PRIVATE_KEY) {
       logger.error("SessionAPI", "Firebase Admin not configured - FIREBASE_PRIVATE_KEY missing");
-      return NextResponse.json(
-        { error: "Server configuration error", details: "Firebase Admin not configured" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to create session" }, { status: 500 });
     }
 
     // Verify the ID token
@@ -67,13 +69,8 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    const errorCode = (error as { code?: string })?.code;
-    logger.error("SessionAPI", "Failed to create session", { message: errorMessage, code: errorCode });
-    return NextResponse.json(
-      { error: "Failed to create session", details: errorMessage, code: errorCode },
-      { status: 401 }
-    );
+    logger.error("SessionAPI", "Failed to create session", error);
+    return NextResponse.json({ error: "Failed to create session" }, { status: 401 });
   }
 }
 
@@ -83,22 +80,8 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE() {
   try {
-    const cookieStore = await cookies();
-
-    // Get the session cookie for revocation
-    const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME);
-
-    if (sessionCookie?.value) {
-      // Optionally revoke the session on Firebase side
-      try {
-        const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie.value);
-        await adminAuth.revokeRefreshTokens(decodedClaims.sub);
-      } catch {
-        // Session might already be invalid, that's ok
-      }
-    }
-
-    // Build response and clear the cookie directly on the response
+    // Clear only this browser's cookie. revokeRefreshTokens would sign out
+    // every device, and Firebase has no per-session revoke for cookies.
     const response = NextResponse.json({ success: true });
     response.cookies.set(SESSION_COOKIE_NAME, "", {
       ...COOKIE_OPTIONS,

@@ -7,7 +7,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { useEffect, useState } from "react";
 import { createPaymentIntent } from "@/actions/paymentActions";
-import convertToSubcurrency from "@/utils/convertToSubcurrency";
+import { CREDIT_PACKAGE_CREDITS } from "@/constants/billing";
 import { LoadingState } from "./common/LoadingState";
 import { Button } from "./ui/button";
 
@@ -23,7 +23,7 @@ export default function PaymentCheckoutPage({ amount }: Props) {
   useEffect(() => {
     let cancelled = false;
 
-    createPaymentIntent(convertToSubcurrency(amount))
+    createPaymentIntent()
       .then((secret) => {
         if (cancelled || !secret) return;
         setClientSecret(secret);
@@ -44,7 +44,7 @@ export default function PaymentCheckoutPage({ amount }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [amount]);
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -97,7 +97,7 @@ export default function PaymentCheckoutPage({ amount }: Props) {
   return (
     <main className="flex flex-col w-full items-center max-w-6xl mx-auto py-10">
       <div className="mb-10 text-center">
-        <h1 className="text-4xl font-bold">Buy 10,000 Credits</h1>
+        <h1 className="text-4xl font-bold">Buy {CREDIT_PACKAGE_CREDITS.toLocaleString()} Credits</h1>
         <h2 className="text-2xl mt-2">
           Purchase amount: <span className="font-bold">${amount}</span>
         </h2>

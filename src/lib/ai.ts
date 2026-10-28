@@ -6,13 +6,14 @@ import { createOpenAI } from "@ai-sdk/openai";
 export const DEFAULT_MODEL = "gpt-4.1" as const;
 
 /**
- * Creates an OpenAI client instance.
- * Uses provided API key or falls back to environment variable.
+ * Creates an OpenAI client instance for a key the server already resolved.
+ * Does not read OPENAI_API_KEY; callers pass either the platform key or the user's key.
  */
-export function getOpenAIClient(apiKey?: string | null) {
-  return createOpenAI({
-    apiKey: apiKey || process.env.OPENAI_API_KEY,
-  });
+export function getOpenAIClient(apiKey: string) {
+  if (!apiKey) {
+    throw new Error("OpenAI API key is required.");
+  }
+  return createOpenAI({ apiKey });
 }
 
 /**

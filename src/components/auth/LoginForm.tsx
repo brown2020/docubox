@@ -27,6 +27,7 @@ import {
   MODE_HEADINGS,
   MODE_DESCRIPTIONS,
 } from "./authModes";
+import { safeInternalPath } from "@/lib/safe-redirect";
 
 export type LoginFormProps = {
   /** Initial mode for first-class /login, /signup, /forgot-password routes */
@@ -61,16 +62,18 @@ export function LoginForm({ initialMode = "signin" }: LoginFormProps) {
   const errorId = useId();
 
   const redirectAfterSignIn = useCallback(() => {
-    const redirectPath =
+    const fromQuery =
       typeof window !== "undefined"
-        ? sessionStorage.getItem("redirectAfterSignIn")
+        ? safeInternalPath(new URLSearchParams(window.location.search).get("redirect"))
         : null;
-    if (redirectPath) {
+    const fromStorage =
+      typeof window !== "undefined"
+        ? safeInternalPath(sessionStorage.getItem("redirectAfterSignIn"))
+        : null;
+    if (typeof window !== "undefined") {
       sessionStorage.removeItem("redirectAfterSignIn");
-      settleNavigate(redirectPath);
-    } else {
-      settleNavigate("/dashboard");
     }
+    settleNavigate(fromQuery || fromStorage || "/dashboard");
   }, []);
 
   const switchMode = (next: AuthMode) => {

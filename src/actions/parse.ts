@@ -9,8 +9,9 @@ import {
   getHttpErrorMessage,
 } from "@/lib/errors";
 import { logger } from "@/lib/logger";
-import { fetchFileFromStorage } from "@/lib/storage";
+import { loadOwnedFileBytes, withApiCredential } from "@/lib/api-access";
 import { requireAuth } from "@/lib/server-auth";
+import type { ApiRequest } from "@/types/api-request";
 
 const SERVICE_NAME = "Unstructured API";
 
@@ -92,28 +93,17 @@ function createUnstructuredClient(
 }
 
 /**
- * Parses a file using the Unstructured API.
- *
- * @param fileUrl - URL of the file in Firebase Storage
- * @param fileName - Name of the file
- * @param apiKey - Unstructured API key
- * @param isHighRes - Whether to use high-resolution parsing strategy
- * @returns Array of parsed chunks
+ * Parses a file the caller owns using the Unstructured API.
+ * Bytes are read with the Admin SDK from that user's storage object.
  */
 export async function parseFile(
-  fileUrl: string,
-  fileName: string,
-  apiKey: string,
+  fileId: string,
+  auth: ApiRequest,
   isHighRes = false
 ): Promise<Chunk[]> {
-  await requireAuth();
-
-  // Validate inputs
-  if (!apiKey) {
-    throw new Error(
-      "Unstructured API key is required. Please add your API key in profile settings."
-    );
-  }
+  const { userId } = await requireAuth();
+  const { file, buffer } = await loadOwnedFileBytes(userId, fileId);
+  const fileName = file.filename;
 
   const apiURL = process.env.UNSTRUCTURED_API_URL;
   if (!apiURL) {
@@ -124,10 +114,8 @@ export async function parseFile(
 
   logger.debug("parseFile", { fileName, isHighRes, apiURL });
 
-  // Fetch file from storage
-  const fileBuffer = await fetchFileFromStorage(fileUrl);
-
-  // Create client and parse
+  return withApiCredential(userId, "unstructured", auth, async (apiKey) => {
+  const fileBuffer = buffer;
   const client = createUnstructuredClient(apiKey, apiURL);
 
   try {
@@ -195,4 +183,5 @@ export async function parseFile(
       )}`
     );
   }
+  });
 }

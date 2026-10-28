@@ -23,14 +23,17 @@ describe("createPaymentIntent auth + validation", () => {
     delete process.env.STRIPE_SECRET_KEY;
   });
 
-  it("denies unauthenticated callers", async () => {
+  it("denies unauthenticated callers before creating a Stripe intent", async () => {
     vi.mocked(requireAuth).mockRejectedValue(new UnauthorizedError());
-    await expect(createPaymentIntent(1000)).rejects.toThrow(/Unauthorized/);
+    await expect(createPaymentIntent()).rejects.toThrow(/Unauthorized/);
   });
 
-  it("rejects non-positive amounts before calling Stripe", async () => {
+  it("does not create an intent when the product name is missing", async () => {
     vi.mocked(requireAuth).mockResolvedValue({ userId: "user_1" });
-    await expect(createPaymentIntent(0)).rejects.toThrow(/Invalid payment amount/);
-    await expect(createPaymentIntent(-5)).rejects.toThrow(/Invalid payment amount/);
+    const previous = process.env.NEXT_PUBLIC_STRIPE_PRODUCT_NAME;
+    delete process.env.NEXT_PUBLIC_STRIPE_PRODUCT_NAME;
+    await expect(createPaymentIntent()).rejects.toThrow(/product name/i);
+    if (previous === undefined) delete process.env.NEXT_PUBLIC_STRIPE_PRODUCT_NAME;
+    else process.env.NEXT_PUBLIC_STRIPE_PRODUCT_NAME = previous;
   });
 });

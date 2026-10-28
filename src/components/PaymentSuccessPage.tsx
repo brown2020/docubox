@@ -6,6 +6,7 @@ import useProfileStore from "@/zustand/useProfileStore";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { validatePaymentIntent } from "@/actions/paymentActions";
+import { CREDIT_PACKAGE_CREDITS } from "@/constants/billing";
 import { logger } from "@/lib/logger";
 import { LoadingState } from "./common/LoadingState";
 import { Button } from "./ui/button";
@@ -19,6 +20,7 @@ interface PaymentData {
   amount: number;
   status: string;
   created: number;
+  alreadyProcessed: boolean;
 }
 
 export default function PaymentSuccessPage({ payment_intent }: Props) {
@@ -26,14 +28,10 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
   const [loading, setLoading] = useState(true);
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
 
-  const addPayment = usePaymentsStore((state) => state.addPayment);
-  const checkIfPaymentProcessed = usePaymentsStore(
-    (state) => state.checkIfPaymentProcessed
-  );
-  const addCredits = useProfileStore((state) => state.addCredits);
+  const fetchPayments = usePaymentsStore((state) => state.fetchPayments);
+  const fetchProfile = useProfileStore((state) => state.fetchProfile);
   const uid = useAuthStore((state) => state.uid);
 
-  // Track if component is mounted to prevent state updates after unmount
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -61,37 +59,15 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
           return;
         }
 
-        const existingPayment = await checkIfPaymentProcessed(data.id);
-        if (cancelled || !isMountedRef.current) return;
-
-        if (existingPayment) {
-          setMessage("Payment has already been processed.");
-          setPaymentData({
-            id: existingPayment.id,
-            amount: existingPayment.amount,
-            status: existingPayment.status,
-            created: existingPayment.createdAt?.toMillis() ?? 0,
-          });
-          return;
-        }
-
-        setMessage("Payment successful");
+        setMessage(data.alreadyProcessed ? "Payment has already been processed." : "Payment successful");
         setPaymentData({
           id: data.id,
           amount: data.amount,
           status: data.status,
           created: data.created * 1000,
+          alreadyProcessed: data.alreadyProcessed,
         });
-
-        await addPayment({
-          id: data.id,
-          amount: data.amount,
-          status: data.status,
-        });
-        if (cancelled || !isMountedRef.current) return;
-
-        const creditsToAdd = data.amount + 1;
-        await addCredits(creditsToAdd);
+        await Promise.all([fetchProfile(), fetchPayments()]);
       })
       .catch((error) => {
         if (cancelled || !isMountedRef.current) return;
@@ -107,7 +83,7 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [payment_intent, addPayment, checkIfPaymentProcessed, addCredits, uid]);
+  }, [payment_intent, fetchPayments, fetchProfile, uid]);
 
   if (loading) {
     return (
@@ -123,7 +99,9 @@ export default function PaymentSuccessPage({ payment_intent }: Props) {
         <div className="mb-6">
           <h1 className="text-4xl font-extrabold mb-2">Thank you!</h1>
           <h2 className="text-2xl text-muted-foreground">
-            You successfully purchased credits
+            {paymentData.alreadyProcessed
+              ? "This purchase was already applied to your account"
+              : `You received ${CREDIT_PACKAGE_CREDITS.toLocaleString()} credits`}
           </h2>
           <div className="bg-green-100 dark:bg-green-900 p-4 rounded-md my-5 text-4xl font-bold mx-auto inline-block">
             ${paymentData.amount / 100}

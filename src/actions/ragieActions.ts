@@ -6,8 +6,16 @@ import {
   APIError,
 } from "@/lib/errors";
 import { logger } from "@/lib/logger";
-import { fetchFileAsBlob } from "@/lib/storage";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/firebase/firebaseAdmin";
+import {
+  loadOwnedFileBytes,
+  requireOwnedFile,
+  withApiCredential,
+  withRagieFileCredential,
+} from "@/lib/api-access";
 import { requireAuth } from "@/lib/server-auth";
+import type { ApiRequest } from "@/types/api-request";
 
 const BASE_URL = "https://api.ragie.ai";
 const SERVICE_NAME = "Ragie API";
@@ -27,19 +35,6 @@ type RagieFileUploadResponse = {
   external_id: string;
   partition: string;
 };
-
-/**
- * Validates that the API key is present.
- */
-function validateApiKey(apiKey: string | undefined, action: string): string {
-  if (!apiKey) {
-    logger.error("ragieActions", `Missing API key for ${action}`);
-    throw new Error(
-      `${SERVICE_NAME} key is required. Please add your API key in profile settings.`
-    );
-  }
-  return apiKey;
-}
 
 /**
  * Makes an authenticated request to the Ragie API.
@@ -75,14 +70,24 @@ async function ragieRequest(
  */
 export async function checkDocumentReadiness(
   ragieFileId: string,
-  ragieApiKey: string
+  fileId: string,
+  auth: ApiRequest
 ): Promise<{ ready: boolean; status: string }> {
-  await requireAuth();
-  const apiKey = validateApiKey(ragieApiKey, "checkDocumentReadiness");
+  const { userId } = await requireAuth();
+  const file = await requireOwnedFile(userId, fileId);
+  if (!file.ragieFileId || file.ragieFileId !== ragieFileId) {
+    throw new Error("File not found");
+  }
 
   logger.debug("checkDocumentReadiness", { ragieFileId });
 
-  const response = await ragieRequest(`/documents/${ragieFileId}`, apiKey);
+  const response = await withRagieFileCredential(
+    userId,
+    file,
+    auth,
+    (apiKey) => ragieRequest(`/documents/${ragieFileId}`, apiKey),
+    { bill: false }
+  );
 
   if (!response.ok) {
     const errorMessage = await parseAPIErrorResponse(response, SERVICE_NAME);
@@ -111,48 +116,53 @@ export async function checkDocumentReadiness(
  */
 export async function uploadToRagie(
   fileId: string,
-  fileUrl: string,
-  fileName: string,
-  ragieApiKey: string
+  auth: ApiRequest
 ): Promise<RagieFileUploadResponse> {
-  await requireAuth();
-  const apiKey = validateApiKey(ragieApiKey, "uploadToRagie");
-
-  if (!fileUrl) {
-    throw new Error("File URL is required for upload.");
-  }
+  const { userId } = await requireAuth();
+  const { file, buffer } = await loadOwnedFileBytes(userId, fileId);
+  const fileName = file.filename;
+  const usePlatformKey = auth.useCredits === true;
 
   logger.debug("uploadToRagie", { fileId, fileName });
 
-  // Fetch file from storage using shared utility
-  const { blob: fileBlob } = await fetchFileAsBlob(fileUrl, "uploadToRagie");
+  const uploaded = await withApiCredential(
+    userId,
+    "ragie",
+    auth,
+    async (apiKey) => {
+      const fileBlob = new Blob([new Uint8Array(buffer)]);
+      const formData = new FormData();
+      formData.append("file", fileBlob, fileName);
+      formData.append(
+        "metadata",
+        JSON.stringify({ title: fileName, scope: fileId })
+      );
 
-  const formData = new FormData();
-  formData.append("file", fileBlob, fileName);
-  formData.append(
-    "metadata",
-    JSON.stringify({ title: fileName, scope: fileId })
+      const response = await ragieRequest("/documents", apiKey, {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        const errorMessage = await parseAPIErrorResponse(response, SERVICE_NAME);
+        logger.error("uploadToRagie", "Upload failed", { status: response.status });
+        throw new APIError(SERVICE_NAME, response.status, errorMessage);
+      }
+      return (await response.json()) as RagieFileUploadResponse;
+    }
   );
-
-  // Upload to Ragie
-  const response = await ragieRequest("/documents", apiKey, {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const errorMessage = await parseAPIErrorResponse(response, SERVICE_NAME);
-    logger.error("uploadToRagie", "Upload failed", { status: response.status });
-    throw new APIError(SERVICE_NAME, response.status, errorMessage);
-  }
-
-  const result = await response.json();
   logger.debug("uploadToRagie", {
-    documentId: result.id,
-    status: result.status,
+    documentId: uploaded.id,
+    status: uploaded.status,
   });
 
-  return result;
+  await adminDb.doc(`users/${userId}/files/${fileId}`).update({
+    isUploadedToRagie: true,
+    ragieFileId: uploaded.id,
+    ragieUsesPlatformKey: usePlatformKey,
+    ragieIndexedAt: FieldValue.serverTimestamp(),
+  });
+
+  return uploaded;
 }
 
 interface ScoredChunk {
@@ -171,72 +181,72 @@ interface RetrievalResponse {
 export async function retrieveChunks(
   query: string,
   fileId: string,
-  ragieApiKey?: string
+  auth: ApiRequest
 ): Promise<RetrievalResponse> {
-  await requireAuth();
-  const apiKey = ragieApiKey || process.env.RAGIE_API_KEY;
+  const { userId } = await requireAuth();
+  const file = await requireOwnedFile(userId, fileId);
 
   logger.debug("retrieveChunks", {
     query: query.substring(0, 100) + (query.length > 100 ? "..." : ""),
     fileId,
-    hasApiKey: !!apiKey,
   });
 
-  if (!apiKey) {
-    throw new Error(
-      `${SERVICE_NAME} key is required. Please add your API key in profile settings or set RAGIE_API_KEY in your environment.`
-    );
-  }
-
-  const response = await ragieRequest("/retrievals", apiKey, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query,
-      filter: { scope: fileId },
-    }),
-  });
-
-  logger.debug("retrieveChunks", { status: response.status });
-
-  if (!response.ok) {
-    const errorMessage = await parseAPIErrorResponse(response, SERVICE_NAME);
-    throw new APIError(SERVICE_NAME, response.status, errorMessage);
-  }
-
-  try {
-    const data = await response.json();
-    logger.debug("retrieveChunks", {
-      chunkCount: data?.scored_chunks?.length || 0,
+  return withRagieFileCredential(userId, file, auth, async (apiKey) => {
+    const response = await ragieRequest("/retrievals", apiKey, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        filter: { scope: file.id },
+      }),
     });
-    return data as RetrievalResponse;
-  } catch {
-    throw new Error("Failed to parse response from Ragie API.");
-  }
+
+    logger.debug("retrieveChunks", { status: response.status });
+
+    if (!response.ok) {
+      const errorMessage = await parseAPIErrorResponse(response, SERVICE_NAME);
+      throw new APIError(SERVICE_NAME, response.status, errorMessage);
+    }
+
+    try {
+      const data = await response.json();
+      logger.debug("retrieveChunks", {
+        chunkCount: data?.scored_chunks?.length || 0,
+      });
+      return data as RetrievalResponse;
+    } catch {
+      throw new Error("Failed to parse response from Ragie API.");
+    }
+  });
 }
 
 /**
  * Deletes a file from Ragie.
  */
 export async function deleteFileFromRagie(
+  ragieFileId: string,
   fileId: string,
-  ragieApiKey?: string
+  auth: ApiRequest
 ) {
-  await requireAuth();
-  const apiKey = ragieApiKey || process.env.RAGIE_API_KEY;
-
-  logger.debug("deleteFileFromRagie", { fileId, hasApiKey: !!apiKey });
-
-  if (!apiKey) {
-    throw new Error(
-      `${SERVICE_NAME} key is required. Please add your API key in profile settings or set RAGIE_API_KEY in your environment.`
-    );
+  const { userId } = await requireAuth();
+  const file = await requireOwnedFile(userId, fileId);
+  if (!file.ragieFileId || file.ragieFileId !== ragieFileId) {
+    throw new Error("File not found");
   }
 
-  const response = await ragieRequest(`/documents/${fileId}`, apiKey, {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-  });
+  logger.debug("deleteFileFromRagie", { ragieFileId, fileId });
+
+  const response = await withRagieFileCredential(
+    userId,
+    file,
+    auth,
+    (apiKey) =>
+      ragieRequest(`/documents/${ragieFileId}`, apiKey, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      }),
+    { bill: false }
+  );
 
   logger.debug("deleteFileFromRagie", { status: response.status });
 
@@ -248,7 +258,7 @@ export async function deleteFileFromRagie(
   // Handle 204 No Content (common for DELETE operations)
   if (response.status === 204) {
     logger.debug("deleteFileFromRagie", { action: "success", noContent: true });
-    return { success: true, fileId };
+    return { success: true, fileId: ragieFileId };
   }
 
   try {
@@ -257,6 +267,6 @@ export async function deleteFileFromRagie(
     return data;
   } catch {
     // Some DELETE endpoints return empty body on success
-    return { success: true, fileId };
+    return { success: true, fileId: ragieFileId };
   }
 }

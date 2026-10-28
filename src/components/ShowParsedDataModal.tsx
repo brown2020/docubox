@@ -22,7 +22,7 @@ import { Chunk } from "@/types/types";
 import { extractReadableText } from "@/components/ParsedDataPanels";
 import { generateSummary } from "@/actions/generateSummary";
 import useProfileStore from "@/zustand/useProfileStore";
-import { getCreditCost } from "@/constants/credits";
+import { describeApiRequest } from "@/utils/useApiAndCreditKeys";
 import { downloadUnstructuredFile } from "@/actions/unstructuredActions";
 import { useDocument, useMountedRef } from "@/hooks";
 import { logger } from "@/lib/logger";
@@ -72,10 +72,8 @@ export function ShowParsedDataModal() {
   const [parsedData, setParsedData] = useState<Chunk[]>([]);
   const [summary, setSummary] = useState("");
 
-  const useCredits = useProfileStore((state) => state.profile.useCredits);
-  const apiKey = useProfileStore((state) => state.profile.openai_api_key);
-  const currentCredits = useProfileStore((state) => state.profile.credits);
-  const minusCredits = useProfileStore((state) => state.minusCredits);
+  const profile = useProfileStore((state) => state.profile);
+  const fetchProfile = useProfileStore((state) => state.fetchProfile);
 
   const fetchUnstructuredData = useCallback(async () => {
     if (
@@ -125,18 +123,12 @@ export function ShowParsedDataModal() {
     }
     isAIAlreadyCalled.current = true;
     try {
-      const requiredCredits = getCreditCost("open-ai");
-      if (useCredits && currentCredits < requiredCredits) {
-        return;
-      }
-
       setLoading(true);
       const generatedSummary = await generateSummary(
-        useCredits ? null : apiKey,
-        unstructuredFileData
+        unstructuredFileData,
+        describeApiRequest("open-ai", profile)
       );
 
-      // Guard state updates after async operation
       if (!isMountedRef.current) return;
 
       if (generatedSummary) {
@@ -144,9 +136,8 @@ export function ShowParsedDataModal() {
       }
 
       await updateRecord(fileId, generatedSummary || "");
-
-      if (generatedSummary && useCredits) {
-        await minusCredits(requiredCredits);
+      if (profile.useCredits) {
+        await fetchProfile();
       }
     } catch (error) {
       isAIAlreadyCalled.current = false;
@@ -158,11 +149,9 @@ export function ShowParsedDataModal() {
     fileId,
     fileSummary?.summary,
     unstructuredFileData,
-    useCredits,
-    currentCredits,
-    apiKey,
+    profile,
+    fetchProfile,
     updateRecord,
-    minusCredits,
     isMountedRef,
   ]);
 

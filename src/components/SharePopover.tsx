@@ -8,7 +8,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Check, Copy, Link2, Link2Off, Loader2, Share2 } from "lucide-react";
-import { fileService } from "@/services/fileService";
+import { createShareLink, disableShareLink } from "@/actions/shareActions";
 import { useUser } from "@/components/auth";
 import toast from "react-hot-toast";
 import { logger } from "@/lib/logger";
@@ -46,7 +46,7 @@ export function SharePopover({
     const requestId = ++requestIdRef.current;
     setLoading(true);
     try {
-      const nextToken = await fileService.createShareLink(user.id, fileId);
+      const nextToken = await createShareLink(fileId);
       if (requestId !== requestIdRef.current) return;
       setDraft({ token: nextToken, enabled: true });
       toast.success("Share link created!");
@@ -66,7 +66,7 @@ export function SharePopover({
     const requestId = ++requestIdRef.current;
     setLoading(true);
     try {
-      await fileService.disableShareLink(user.id, fileId, token);
+      await disableShareLink(fileId);
       if (requestId !== requestIdRef.current) return;
       setDraft({ token: null, enabled: false });
       toast.success("Share link disabled.");

@@ -12,6 +12,7 @@ import { useUser } from "@/components/auth";
 import { QARecord } from "./QARecord";
 import toast from "react-hot-toast";
 import { handleAPIAndCredits } from "@/utils/useApiAndCreditKeys";
+import type { ApiRequest } from "@/types/api-request";
 import { useModalStore } from "@/zustand/useModalStore";
 import { useDocument, useApiProfileData, useMountedRef } from "@/hooks";
 import { DEFAULT_MODEL } from "@/lib/ai";
@@ -94,29 +95,19 @@ export const Chat = ({ fileId }: IChatProps) => {
 
   // Function to upload a document to Ragie using server action
   const _uploadToRagie = useCallback(
-    async (
-      userId: string,
-      docData: { id: string; downloadUrl: string; filename: string }
-    ) => {
+    async (docId: string) => {
       try {
         if (isMountedRef.current) {
           setUploadingToRagie(true);
         }
-        const handleUploadfile = async (apiKey: string) => {
-          const response = await uploadToRagie(
-            docData.id,
-            docData.downloadUrl,
-            docData.filename,
-            apiKey
-          );
-          await fileService.updateRagieStatus(userId, docData.id, response.id);
+        const handleUploadfile = async (auth: ApiRequest) => {
+          const response = await uploadToRagie(docId, auth);
 
-          // Client-side polling for document readiness
           const maxAttempts = 60;
           const interval = 3000;
           for (let i = 0; i < maxAttempts; i++) {
             if (!isMountedRef.current) return;
-            const { ready } = await checkDocumentReadiness(response.id, apiKey);
+            const { ready } = await checkDocumentReadiness(response.id, docId, auth);
             if (ready) return;
             await new Promise((resolve) => setTimeout(resolve, interval));
           }
@@ -144,10 +135,8 @@ export const Chat = ({ fileId }: IChatProps) => {
 
   const onDocumentLoad = useCallback(async () => {
     if (user?.id && document) {
-      const { docId, filename, downloadUrl } = document;
-
       try {
-        await _uploadToRagie(user?.id, { id: docId, filename, downloadUrl });
+        await _uploadToRagie(document.docId);
       } catch (error) {
         logger.error("Chat", "Error while uploading file to Ragie", error);
         throw new Error("Error while uploading file to Ragie.ai");
@@ -213,40 +202,26 @@ export const Chat = ({ fileId }: IChatProps) => {
 
       newQuestionRef.current = newQuestion;
 
-      // Step 1: Retrieve chunks from Ragie
       let data: RetrievalResponse | null = null;
-
-      // Try env key first (server action will also fallback internally)
-      try {
-        data = await retrieveChunks(newQuestionRef.current, fileId);
-      } catch {
-        // Env key retrieval failed, will try profile key
-      }
-
-      // If still null, try profile key via credits helper
-      if (!data) {
-        const retrieve = async (apiKey: string) => {
-          data = await retrieveChunks(newQuestionRef.current, fileId, apiKey);
-        };
-        await handleAPIAndCredits("ragie", apiProfileData, retrieve);
-      }
+      const retrieve = async (auth: ApiRequest) => {
+        data = await retrieveChunks(newQuestionRef.current, fileId, auth);
+      };
+      await handleAPIAndCredits("ragie", apiProfileData, retrieve);
 
       if (!data) {
         throw new Error("Failed to retrieve chunks from Ragie.");
       }
 
-      // Step 2: Generate content using the retrieved chunks
-      const retrievedData = data;
-      const handleContent = async (apiKey: string) => {
-        // Capture question before clearing (use ref to avoid stale closure)
+      const retrievedData: RetrievalResponse = data;
+      const handleContent = async (auth: ApiRequest) => {
         const questionToAsk = newQuestionRef.current;
         setNewQuestion("");
 
         const answer = await generateWithChunks(
           retrievedData.scored_chunks.map((chunk) => chunk.text),
           questionToAsk,
-          DEFAULT_MODEL,
-          apiKey
+          auth,
+          DEFAULT_MODEL
         );
         setGeneratedContent(answer.trim());
         await updateDocument({

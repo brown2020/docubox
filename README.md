@@ -99,14 +99,17 @@ Open [http://localhost:3000](http://localhost:3000).
 | `OPENAI_API_KEY` | OpenAI API key (also BYOK on profile) | [platform.openai.com](https://platform.openai.com) |
 | `RAGIE_API_KEY` | Ragie API key (also BYOK on profile) | [ragie.ai](https://ragie.ai) |
 | `STRIPE_SECRET_KEY` | Stripe secret key | Stripe Dashboard |
-| `NEXT_PUBLIC_STRIPE_KEY` | Stripe publishable key | Stripe Dashboard |
+| `NEXT_PUBLIC_STRIPE_KEY` | Stripe publishable key (`pk_...`). Checkout shows an unavailable message when unset | Stripe Dashboard |
 | `NEXT_PUBLIC_STRIPE_PRODUCT_NAME` | Product name for credit checkout | Stripe product config |
+| `STRIPE_WEBHOOK_SECRET` | Webhook signing secret for `POST /api/stripe/webhook`. Optional: when unset the route returns 503 and credits are granted only after the signed-in success page verifies the PaymentIntent | Stripe Dashboard → Webhooks |
 
 See `.env.example`. Server Actions body size limit is 4mb (`next.config.js`).
 
 ## Firebase
 
-- Rules: `firestore.rules`, `storage.rules`
+- Rules: `firestore.rules`, `storage.rules` (deploy these when they change; the app does not deploy them)
+- Credit purchases are granted only by the Admin SDK. Profile rules reject client changes to `credits`
+- Stripe webhook endpoint: `POST /api/stripe/webhook` (`payment_intent.succeeded`)
 - Session cookies use the Admin SDK trio above
 
 ## Scripts

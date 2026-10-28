@@ -1,6 +1,7 @@
 "use client";
 
 import { deleteFileFromRagie } from "@/actions/ragieActions";
+import useProfileStore from "@/zustand/useProfileStore";
 import {
   useModalStore,
   useIsModalOpen,
@@ -15,6 +16,7 @@ import { BaseModal, ModalFooterButtons } from "./ui/base-modal";
 
 export function DeleteModal() {
   const { user } = useUser();
+  const profile = useProfileStore((state) => state.profile);
   const pathname = usePathname();
 
   const isTrashPageActive = pathname.includes("trash");
@@ -42,7 +44,10 @@ export function DeleteModal() {
           const ragieFileId = fileData.ragieFileId as string | undefined;
           const filename = fileData.filename as string;
           if (ragieFileId) {
-            await deleteFileFromRagie(ragieFileId);
+            await deleteFileFromRagie(ragieFileId, fileId, {
+              useCredits: profile.useCredits,
+              userApiKey: profile.ragie_api_key || undefined,
+            });
           }
           await fileService.permanentDelete(user.id, fileId, filename);
         }

@@ -71,5 +71,10 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "1.14.6",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "katex": "0.19.1"
   }
 }

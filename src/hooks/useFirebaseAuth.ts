@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  onAuthStateChanged,
+  onIdTokenChanged,
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -42,6 +42,10 @@ export interface FirebaseAuthState {
   firebaseUser: User | null; // Raw Firebase user for advanced use cases
   getToken: () => Promise<string | null>;
   signOut: () => Promise<void>;
+  /** True only after the server has accepted the session cookie. */
+  sessionReady: boolean;
+  /** Set when Firebase Auth succeeded but the server session did not. */
+  sessionError: string | null;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   createAccount: (email: string, password: string, displayName?: string) => Promise<void>;
@@ -80,30 +84,47 @@ function adaptFirebaseUser(user: User | null): FirebaseUser | null {
 export function useFirebaseAuth(): FirebaseAuthState {
   const [isLoaded, setIsLoaded] = useState(false);
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
-  // Listen to Firebase auth state changes.
-  // Await session cookie before setting signed-in state so middleware sees the cookie
-  // and we don't show "already signed in" / redirect to dashboard before the cookie exists.
+  const establishSession = useCallback(async (user: User) => {
+    try {
+      await createSessionCookie(user);
+      setSessionError(null);
+      setSessionReady(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create session";
+      setSessionReady(false);
+      setSessionError(message);
+      logger.error(
+        "useFirebaseAuth",
+        "Failed to create session cookie",
+        formatFirebaseAuthErrorForLog(error)
+      );
+      throw error;
+    }
+  }, []);
+
+  // Refresh the server cookie whenever Firebase rotates the ID token.
+  // Do not navigate until establishSession resolves; a client-only sign-in
+  // bounces between /dashboard and /login.
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      // Update React auth state immediately; session cookie sync is a side effect.
+    const unsubscribe = onIdTokenChanged(auth, (user) => {
       setFirebaseUser(user);
       setIsLoaded(true);
       if (user) {
-        void createSessionCookie(user).catch((error) => {
-          logger.error(
-            "useFirebaseAuth",
-            "Failed to create session cookie in auth listener",
-            formatFirebaseAuthErrorForLog(error)
-          );
+        void establishSession(user).catch(() => {
+          // sessionError is already set for the login page.
         });
-      } else {
-        void clearSessionCookie();
+        return;
       }
+      setSessionReady(false);
+      setSessionError(null);
+      void clearSessionCookie();
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [establishSession]);
 
   // Adapt Firebase user to Clerk-compatible format
   const user = useMemo(() => adaptFirebaseUser(firebaseUser), [firebaseUser]);
@@ -153,16 +174,16 @@ export function useFirebaseAuth(): FirebaseAuthState {
   // Sign in with Google — errors propagate to LoginForm (map + UI; do not rethrow there).
   const signInWithGoogle = useCallback(async (): Promise<void> => {
     const result = await signInWithPopup(auth, googleProvider);
-    await createSessionCookie(result.user);
-  }, []);
+    await establishSession(result.user);
+  }, [establishSession]);
 
   // Sign in with email and password — errors propagate to LoginForm.
   const signInWithEmail = useCallback(
     async (email: string, password: string): Promise<void> => {
       const result = await signInWithEmailAndPassword(auth, email, password);
-      await createSessionCookie(result.user);
+      await establishSession(result.user);
     },
-    []
+    [establishSession]
   );
 
   // Create account with email and password — errors propagate to LoginForm.
@@ -174,9 +195,9 @@ export function useFirebaseAuth(): FirebaseAuthState {
       if (displayName) {
         await updateProfile(result.user, { displayName });
       }
-      await createSessionCookie(result.user);
+      await establishSession(result.user);
     },
-    []
+    [establishSession]
   );
 
   // Send password reset email — errors propagate to LoginForm.
@@ -204,12 +225,12 @@ export function useFirebaseAuth(): FirebaseAuthState {
 
     if (isSignInWithEmailLink(auth, window.location.href)) {
       const result = await signInWithEmailLink(auth, email, window.location.href);
-      await createSessionCookie(result.user);
+      await establishSession(result.user);
 
       // Clean up stored email
       localStorage.removeItem("emailForSignIn");
     }
-  }, []);
+  }, [establishSession]);
 
   return {
     isLoaded,
@@ -218,6 +239,8 @@ export function useFirebaseAuth(): FirebaseAuthState {
     firebaseUser,
     getToken,
     signOut,
+    sessionReady,
+    sessionError,
     signInWithGoogle,
     signInWithEmail,
     createAccount,

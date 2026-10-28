@@ -18,6 +18,7 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => ({ get: () => ({ value: "session-cookie" }) })),
 }));
 
+import { ADMIN_CREDENTIAL_MESSAGE } from "@/lib/admin-credential-error";
 import { adminAuth } from "@/firebase/firebaseAdmin";
 import { DELETE, POST } from "@/app/api/auth/session/route";
 
@@ -52,6 +53,40 @@ describe("session route", () => {
     const response = await POST(sessionRequest("https://docubox.ai"));
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: "Failed to create session" });
+    delete process.env.FIREBASE_PRIVATE_KEY;
+  });
+
+  it("keeps the verified ID token when the Admin service account is rejected", async () => {
+    process.env.FIREBASE_PRIVATE_KEY = "test-not-a-real-key";
+    vi.mocked(adminAuth.verifyIdToken).mockResolvedValue({
+      uid: "user_1",
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    } as never);
+    vi.mocked(adminAuth.createSessionCookie).mockRejectedValue(
+      Object.assign(new Error("invalid_grant: Invalid grant: account not found"), {
+        code: "app/invalid-credential",
+      })
+    );
+
+    const response = await POST(sessionRequest("https://docubox.ai"));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ success: true, userId: "user_1" });
+    expect(response.headers.get("set-cookie") ?? "").toContain("token");
+    delete process.env.FIREBASE_PRIVATE_KEY;
+  });
+
+  it("returns a clear error when the ID token cannot be verified because Admin credentials are rejected", async () => {
+    process.env.FIREBASE_PRIVATE_KEY = "test-not-a-real-key";
+    vi.mocked(adminAuth.verifyIdToken).mockRejectedValue(
+      Object.assign(new Error("invalid_grant: Invalid grant: account not found"), {
+        code: "app/invalid-credential",
+      })
+    );
+
+    const response = await POST(sessionRequest("https://docubox.ai"));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: ADMIN_CREDENTIAL_MESSAGE });
+    expect(adminAuth.createSessionCookie).not.toHaveBeenCalled();
     delete process.env.FIREBASE_PRIVATE_KEY;
   });
 

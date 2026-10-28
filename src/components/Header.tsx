@@ -1,6 +1,6 @@
 "use client";
 
-import { SignedIn, SignedOut, UserMenu, SignInButton } from "@/components/auth";
+import { SignedIn, SignedOut, UserMenu, SignInButton, useAuth } from "@/components/auth";
 import Link from "next/link";
 import { ThemeToggler } from "./ThemeToggler";
 import { FileBox, Menu, X } from "lucide-react";
@@ -12,6 +12,7 @@ import { useState } from "react";
  */
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { sessionReady } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 h-14 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -32,18 +33,22 @@ export default function Header() {
         {/* Desktop navigation */}
         <div className="hidden items-center gap-6 sm:flex">
           <SignedIn>
-            <Link
-              href="/dashboard"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/profile"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Profile
-            </Link>
+            {sessionReady ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/profile"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Profile
+                </Link>
+              </>
+            ) : null}
           </SignedIn>
           <div className="flex items-center gap-3">
             <ThemeToggler />
@@ -89,22 +94,26 @@ export default function Header() {
         >
           <div className="flex flex-col gap-3">
             <SignedIn>
-              <Link
-                href="/dashboard"
-                className="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                role="menuitem"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/profile"
-                className="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                role="menuitem"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Profile
-              </Link>
+              {sessionReady ? (
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                    role="menuitem"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/profile"
+                    className="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                    role="menuitem"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Profile
+                  </Link>
+                </>
+              ) : null}
               <div className="pt-2">
                 <UserMenu />
               </div>

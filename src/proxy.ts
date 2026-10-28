@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/firebase/firebaseAdmin";
+import { verifyAuthCookie } from "@/lib/verify-auth-cookie";
 
 /**
  * Protected routes configuration.
@@ -47,7 +47,7 @@ function isPublicOnlyRoute(pathname: string): boolean {
  */
 async function verifySessionCookie(cookieValue: string): Promise<boolean> {
   try {
-    await adminAuth.verifySessionCookie(cookieValue, true);
+    await verifyAuthCookie(cookieValue);
     return true;
   } catch {
     return false;

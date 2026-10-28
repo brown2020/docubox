@@ -4,6 +4,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import type { Firestore } from "firebase-admin/firestore";
 import type { Auth } from "firebase-admin/auth";
+import { readAdminCredential } from "@/lib/firebase-admin-credential";
 import { logger } from "@/lib/logger";
 
 /**
@@ -20,11 +21,8 @@ function initializeAdmin() {
     return;
   }
 
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-
-  if (!projectId || !privateKey || !clientEmail) {
+  const credential = readAdminCredential();
+  if (!credential) {
     logger.warn(
       "firebaseAdmin",
       "Missing required credentials. Need FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL"
@@ -32,11 +30,19 @@ function initializeAdmin() {
     return;
   }
 
+  const clientProject = process.env.NEXT_PUBLIC_FIREBASE_PROJECTID?.trim();
+  if (clientProject && clientProject !== credential.projectId) {
+    logger.error(
+      "firebaseAdmin",
+      "FIREBASE_PROJECT_ID does not match NEXT_PUBLIC_FIREBASE_PROJECTID"
+    );
+  }
+
   initializeApp({
     credential: cert({
-      projectId,
-      privateKey: privateKey.replace(/\\n/g, "\n"),
-      clientEmail,
+      projectId: credential.projectId,
+      privateKey: credential.privateKey,
+      clientEmail: credential.clientEmail,
     }),
     storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGEBUCKET,
   });

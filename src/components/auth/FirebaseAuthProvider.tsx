@@ -46,6 +46,8 @@ export function useAuth() {
     userId: context.user?.id ?? null,
     getToken: context.getToken,
     signOut: context.signOut,
+    sessionReady: context.sessionReady,
+    sessionError: context.sessionError,
   };
 }
 

@@ -42,7 +42,7 @@ function settleNavigate(path: string) {
 }
 
 export function LoginForm({ initialMode = "signin" }: LoginFormProps) {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded, sessionReady, sessionError, signOut } = useAuth();
   const {
     signInWithGoogle,
     signInWithEmail,
@@ -83,6 +83,11 @@ export function LoginForm({ initialMode = "signin" }: LoginFormProps) {
   };
 
   useEffect(() => {
+    if (!isLoaded || !isSignedIn || !sessionReady || sessionError) return;
+    redirectAfterSignIn();
+  }, [isLoaded, isSignedIn, sessionReady, sessionError, redirectAfterSignIn]);
+
+  useEffect(() => {
     if (!isMagicLinkCallback()) return;
     const storedEmail = getStoredEmailForSignIn();
     if (!storedEmail) return;
@@ -90,8 +95,8 @@ export function LoginForm({ initialMode = "signin" }: LoginFormProps) {
     let cancelled = false;
     setLoading(true);
     completeMagicLinkSignIn(storedEmail)
-      .then(() => {
-        if (!cancelled) redirectAfterSignIn();
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -111,10 +116,30 @@ export function LoginForm({ initialMode = "signin" }: LoginFormProps) {
     return () => {
       cancelled = true;
     };
-  }, [completeMagicLinkSignIn, redirectAfterSignIn]);
+  }, [completeMagicLinkSignIn]);
 
   if (!isLoaded) {
     return <LoadingState message="Loading..." />;
+  }
+
+  if (isSignedIn && sessionError) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardContent className="pt-6 text-center">
+          <p className="mb-4">You are signed in, but the server session was not created.</p>
+          <Alert className="mb-4 text-left">
+            <AlertDescription>{sessionError}</AlertDescription>
+          </Alert>
+          <Button variant="outline" onClick={() => void signOut()}>
+            Sign out
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isSignedIn && !sessionReady) {
+    return <LoadingState message="Finishing sign-in..." />;
   }
 
   if (isSignedIn) {
@@ -122,7 +147,7 @@ export function LoginForm({ initialMode = "signin" }: LoginFormProps) {
       <Card className="w-full max-w-md">
         <CardContent className="pt-6 text-center">
           <p className="mb-4">You are already signed in.</p>
-          <Button onClick={() => settleNavigate("/dashboard")}>
+          <Button onClick={() => redirectAfterSignIn()}>
             Go to Dashboard
           </Button>
         </CardContent>
@@ -135,7 +160,6 @@ export function LoginForm({ initialMode = "signin" }: LoginFormProps) {
     setError(null);
     try {
       await signInWithGoogle();
-      redirectAfterSignIn();
     } catch (err) {
       logger.warn(
         "LoginForm",
@@ -168,7 +192,6 @@ export function LoginForm({ initialMode = "signin" }: LoginFormProps) {
       } else {
         await signInWithEmail(email, password);
       }
-      redirectAfterSignIn();
     } catch (err: unknown) {
       logger.warn(
         "LoginForm",

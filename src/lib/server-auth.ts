@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { adminAuth } from "@/firebase/firebaseAdmin";
 import { logger } from "@/lib/logger";
+import { verifyAuthCookie } from "@/lib/verify-auth-cookie";
 
 /**
  * Session cookie name (must match the API route and middleware).
@@ -30,7 +31,7 @@ async function getDecodedToken() {
 
   if (sessionCookie?.value) {
     try {
-      return await adminAuth.verifySessionCookie(sessionCookie.value, true);
+      return await verifyAuthCookie(sessionCookie.value);
     } catch {
       logger.warn("server-auth", "Session cookie verification failed");
       // Cookie might be expired or invalid, continue to check header

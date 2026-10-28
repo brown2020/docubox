@@ -11,7 +11,7 @@ import { useIsMounted } from "@/hooks/useIsMounted";
  * - Signed out: Redirects to login page
  */
 export function GetStartedButton() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, sessionReady } = useAuth();
   const isMounted = useIsMounted();
 
   const buttonClasses =
@@ -27,8 +27,8 @@ export function GetStartedButton() {
     );
   }
 
-  // Signed in users get a direct link to dashboard
-  if (isSignedIn) {
+  // Only after the server accepted the session. Otherwise /dashboard bounces to /login.
+  if (isSignedIn && sessionReady) {
     return (
       <Link href="/dashboard" className={buttonClasses}>
         <div>Get Started</div>

@@ -1,5 +1,9 @@
-import admin from "firebase-admin";
-import { getApps } from "firebase-admin/app";
+import { initializeApp, getApps, cert } from "firebase-admin/app";
+import { getStorage } from "firebase-admin/storage";
+import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
+import type { Firestore } from "firebase-admin/firestore";
+import type { Auth } from "firebase-admin/auth";
 import { logger } from "@/lib/logger";
 
 /**
@@ -28,8 +32,8 @@ function initializeAdmin() {
     return;
   }
 
-  admin.initializeApp({
-    credential: admin.credential.cert({
+  initializeApp({
+    credential: cert({
       projectId,
       privateKey: privateKey.replace(/\\n/g, "\n"),
       clientEmail,
@@ -41,17 +45,17 @@ function initializeAdmin() {
 // Lazy getters to ensure initialization happens when needed
 function getAdminBucket() {
   initializeAdmin();
-  return admin.storage().bucket();
+  return getStorage().bucket();
 }
 
 function getAdminDb() {
   initializeAdmin();
-  return admin.firestore();
+  return getFirestore();
 }
 
 function getAdminAuth() {
   initializeAdmin();
-  return admin.auth();
+  return getAuth();
 }
 
 // Export lazy getters
@@ -70,20 +74,20 @@ const adminBucket = {
   },
 };
 
-const adminDb = new Proxy({} as admin.firestore.Firestore, {
+const adminDb = new Proxy({} as Firestore, {
   get: (_, prop) => {
     const db = getAdminDb();
-    const value = db[prop as keyof admin.firestore.Firestore];
+    const value = db[prop as keyof Firestore];
     return typeof value === "function" ? value.bind(db) : value;
   },
 });
 
-const adminAuth = new Proxy({} as admin.auth.Auth, {
+const adminAuth = new Proxy({} as Auth, {
   get: (_, prop) => {
     const auth = getAdminAuth();
-    const value = auth[prop as keyof admin.auth.Auth];
+    const value = auth[prop as keyof Auth];
     return typeof value === "function" ? value.bind(auth) : value;
   },
 });
 
-export { adminBucket, adminDb, adminAuth, admin };
+export { adminBucket, adminDb, adminAuth };

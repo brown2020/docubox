@@ -77,14 +77,14 @@ export function DataTable<TData, TValue>({
                 !isFolder(row.original as FileType) ? (
                   <FileRow
                     key={row.id}
-                    row={row as Row<FileType>}
+                    row={row as unknown as Row<FileType>}
                     fileData={row.original as FileType}
                     isTrashView={isTrashView}
                   />
                 ) : (
                   <FolderRow
                     key={row.id}
-                    row={row as Row<FileType>}
+                    row={row as unknown as Row<FileType>}
                     folderData={row.original as FileType}
                     isTrashView={isTrashView}
                     onDrop={onDrop}

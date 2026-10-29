@@ -1,99 +1,19 @@
 "use server";
 
-import { Element, Chunk } from "@/types/types";
-import { UnstructuredClient } from "unstructured-client";
-import { Strategy } from "unstructured-client/sdk/models/shared/index.js";
-import {
-  APIError,
-  extractErrorMessage,
-  getHttpErrorMessage,
-} from "@/lib/errors";
+import { Chunk } from "@/types/types";
+import { APIError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { loadOwnedFileBytes, withApiCredential } from "@/lib/api-access";
 import { requireAuth } from "@/lib/server-auth";
+import {
+  assertSupportedParseFile,
+  parseDocumentWithTransform,
+  resolveTransformBaseUrl,
+} from "@/lib/unstructured-transform";
 import type { ApiRequest } from "@/types/api-request";
 
-const SERVICE_NAME = "Unstructured API";
-
 /**
- * Parses the Unstructured API response into an array of Elements.
- */
-function parseResponseToElements(response: unknown): Element[] {
-  if (typeof response === "string") {
-    try {
-      const parsed = JSON.parse(response);
-      if (Array.isArray(parsed)) return parsed;
-      if (parsed?.elements && Array.isArray(parsed.elements))
-        return parsed.elements;
-    } catch {
-      logger.warn("parseFile", "Could not parse response as JSON string");
-    }
-    return [];
-  }
-
-  if (response && typeof response === "object") {
-    const obj = response as Record<string, unknown>;
-
-    // Check for error response
-    if (obj.statusCode && obj.statusCode !== 200) {
-      const statusCode = obj.statusCode as number;
-      const errorDetail =
-        (obj.body as string) ||
-        (obj.message as string) ||
-        (obj.detail as string) ||
-        "Unknown API error";
-      throw APIError.fromResponse(SERVICE_NAME, statusCode, errorDetail);
-    }
-
-    if (Array.isArray(obj.elements)) return obj.elements as Element[];
-    if (Array.isArray(response)) return response as Element[];
-  }
-
-  return [];
-}
-
-/**
- * Organizes elements into chunks based on headings.
- */
-function chunkElements(elements: Element[]): Chunk[] {
-  const chunks: Chunk[] = [];
-  let currentChunk: Element[] = [];
-  let currentHeading: string | null = null;
-
-  for (const element of elements) {
-    if (element.type === "Heading") {
-      if (currentChunk.length > 0) {
-        chunks.push({ heading: currentHeading, content: currentChunk });
-      }
-      currentChunk = [];
-      currentHeading = element.text || null;
-    } else {
-      currentChunk.push(element);
-    }
-  }
-
-  if (currentChunk.length > 0) {
-    chunks.push({ heading: currentHeading, content: currentChunk });
-  }
-
-  return chunks;
-}
-
-/**
- * Creates the Unstructured client with authentication.
- */
-function createUnstructuredClient(
-  apiKey: string,
-  apiURL: string
-): UnstructuredClient {
-  return new UnstructuredClient({
-    security: { apiKeyAuth: apiKey },
-    serverURL: apiURL,
-  });
-}
-
-/**
- * Parses a file the caller owns using the Unstructured API.
+ * Parses a file the caller owns with the Unstructured Transform API.
  * Bytes are read with the Admin SDK from that user's storage object.
  */
 export async function parseFile(
@@ -103,85 +23,26 @@ export async function parseFile(
 ): Promise<Chunk[]> {
   const { userId } = await requireAuth();
   const { file, buffer } = await loadOwnedFileBytes(userId, fileId);
-  const fileName = file.filename;
+  const fileName = assertSupportedParseFile(file.filename);
+  const baseUrl = resolveTransformBaseUrl(process.env.UNSTRUCTURED_API_URL);
 
-  const apiURL = process.env.UNSTRUCTURED_API_URL;
-  if (!apiURL) {
-    throw new Error(
-      "Unstructured API URL is not configured. Please set UNSTRUCTURED_API_URL in your environment."
-    );
-  }
-
-  logger.debug("parseFile", { fileName, isHighRes, apiURL });
+  logger.debug("parseFile", { fileName, isHighRes, baseUrl });
 
   return withApiCredential(userId, "unstructured", auth, async (apiKey) => {
-  const fileBuffer = buffer;
-  const client = createUnstructuredClient(apiKey, apiURL);
-
-  try {
-    logger.debug("parseFile", { action: "sendingToAPI" });
-
-    const response = await client.general.partition({
-      partitionParameters: {
-        files: {
-          content: fileBuffer,
-          fileName,
-        },
-        strategy: isHighRes ? Strategy.HiRes : Strategy.Auto,
-        splitPdfPage: true,
-        splitPdfAllowFailed: true,
-        splitPdfConcurrencyLevel: 10,
-      },
-    });
-
-    const elements = parseResponseToElements(response);
-
-    if (elements.length === 0) {
-      throw new Error(
-        "No content could be extracted from the file. The file may be empty or in an unsupported format."
-      );
-    }
-
-    const chunks = chunkElements(elements);
-
-    logger.debug("parseFile", {
-      action: "success",
-      elementCount: elements.length,
-      chunkCount: chunks.length,
-    });
-
-    return chunks;
-  } catch (error) {
-    // Re-throw APIError as-is (already user-friendly)
-    if (error instanceof APIError) {
-      throw error;
-    }
-
-    // Re-throw errors that are already user-facing
-    if (error instanceof Error) {
-      const msg = error.message;
-      // These are errors we or our dependencies throw with user-friendly messages
-      if (msg.includes(SERVICE_NAME) ||
-          msg.includes("No content") ||
-          msg.includes("empty") ||
-          msg.includes("Network error")) {
+    try {
+      return await parseDocumentWithTransform({
+        apiKey,
+        baseUrl,
+        fileName,
+        bytes: new Uint8Array(buffer),
+        isHighRes,
+      });
+    } catch (error) {
+      if (error instanceof APIError || error instanceof Error) {
         throw error;
       }
+      logger.error("parseFile", "Unexpected error during parsing");
+      throw new Error("Unstructured API could not parse this file. Please try again.");
     }
-
-    const errorMsg = extractErrorMessage(error);
-    logger.error("parseFile", "Unexpected error during parsing", {
-      error: errorMsg,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-
-    throw new Error(
-      `Error processing file: ${getHttpErrorMessage(
-        500,
-        SERVICE_NAME,
-        errorMsg
-      )}`
-    );
-  }
   });
 }

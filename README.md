@@ -95,7 +95,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `FIREBASE_CLIENT_EMAIL` | Admin SDK client email | Same |
 | `FIREBASE_PRIVATE_KEY` | Admin SDK private key (`\n` escaped) | Same |
 | `UNSTRUCTURED_API_KEY` | Unstructured API key (also overridable per profile) | [unstructured.io](https://unstructured.io) |
-| `UNSTRUCTURED_API_URL` | Unstructured API base URL | Unstructured docs / dashboard |
+| `UNSTRUCTURED_API_URL` | Transform API base. Unset or a legacy `general/v0` URL uses `https://transform.unstructured.io/api/v2` | [Transform docs](https://docs.unstructured.io/transform/parse) |
 | `OPENAI_API_KEY` | OpenAI API key (also BYOK on profile) | [platform.openai.com](https://platform.openai.com) |
 | `RAGIE_API_KEY` | Ragie API key (also BYOK on profile) | [ragie.ai](https://ragie.ai) |
 | `STRIPE_SECRET_KEY` | Stripe secret key | Stripe Dashboard |

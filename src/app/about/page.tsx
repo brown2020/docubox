@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SignedOut } from "@/components/auth";
 
 export const metadata: Metadata = {
   title: "About",
@@ -31,9 +32,11 @@ export default function AboutPage() {
         between those credits and your own API keys.
       </p>
       <p className="mt-8 flex flex-wrap gap-x-4 gap-y-2">
-        <Link href="/signup" className="text-primary underline hover:no-underline">
-          Create an account
-        </Link>
+        <SignedOut>
+          <Link href="/signup" className="text-primary underline hover:no-underline">
+            Create an account
+          </Link>
+        </SignedOut>
         <Link href="/" className="text-primary underline hover:no-underline">
           Home
         </Link>

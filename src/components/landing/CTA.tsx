@@ -2,9 +2,14 @@
 
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/components/auth";
 import { Button } from "@/components/ui/button";
 
 export function CTA() {
+  const { isLoaded, isSignedIn, sessionReady } = useAuth();
+  const showDashboard = isLoaded && isSignedIn && sessionReady;
+  const waitingForSession = !isLoaded || (isSignedIn && !sessionReady);
+
   return (
     <section className="py-24 sm:py-32">
       <div className="mx-auto max-w-6xl px-6">
@@ -21,17 +26,16 @@ export function CTA() {
               document management.
             </p>
             <div className="mt-10">
-              <Button
-                size="lg"
-                variant="secondary"
-                className="gap-2"
-                asChild
-              >
-                <Link href="/signup">
-                  Get started free
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
+              {waitingForSession ? (
+                <div className="mx-auto h-11 w-44" aria-hidden="true" />
+              ) : (
+                <Button size="lg" variant="secondary" className="gap-2" asChild>
+                  <Link href={showDashboard ? "/dashboard" : "/signup"}>
+                    {showDashboard ? "Go to dashboard" : "Get started free"}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { Check } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/components/auth";
 import { Button } from "@/components/ui/button";
 
 const tiers = [
@@ -96,6 +97,10 @@ function PricingCard({
   featured: boolean;
   comingSoon?: boolean;
 }) {
+  const { isLoaded, isSignedIn, sessionReady } = useAuth();
+  const showDashboard = isLoaded && isSignedIn && sessionReady;
+  const waitingForSession = !isLoaded || (isSignedIn && !sessionReady);
+
   return (
     <div
       className={`relative rounded-2xl border p-8 ${
@@ -128,14 +133,24 @@ function PricingCard({
         ))}
       </ul>
 
-      <Button
-        className="w-full"
-        variant={featured ? "default" : "outline"}
-        disabled={comingSoon}
-        asChild={!comingSoon}
-      >
-        {comingSoon ? <span>{cta}</span> : <Link href={href}>{cta}</Link>}
-      </Button>
+      {waitingForSession ? (
+        <div className="h-10" aria-hidden="true" />
+      ) : (
+        <Button
+          className="w-full"
+          variant={featured ? "default" : "outline"}
+          disabled={!showDashboard && comingSoon}
+          asChild={showDashboard || !comingSoon}
+        >
+          {showDashboard ? (
+            <Link href="/dashboard">Go to dashboard</Link>
+          ) : comingSoon ? (
+            <span>{cta}</span>
+          ) : (
+            <Link href={href}>{cta}</Link>
+          )}
+        </Button>
+      )}
     </div>
   );
 }

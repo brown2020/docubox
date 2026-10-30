@@ -29,7 +29,7 @@ import { logger } from "@/lib/logger";
 export function FilePreviewModal() {
   const isOpen = useIsModalOpen("preview");
   const close = useModalStore((s) => s.close);
-  const { filename, downloadUrl, type, size, summary } = usePreviewModalData();
+  const { fileId, filename, downloadUrl, type, size, summary } = usePreviewModalData();
 
   const previewType = filename ? getPreviewType(type, filename) : "unsupported";
 
@@ -75,6 +75,7 @@ export function FilePreviewModal() {
         <div className="flex-1 overflow-auto min-h-0">
           <PreviewContent
             previewType={previewType}
+            fileId={fileId}
             downloadUrl={downloadUrl}
             filename={filename}
             type={type}
@@ -105,24 +106,38 @@ export function FilePreviewModal() {
 
 interface PreviewContentProps {
   previewType: string;
+  fileId: string;
   downloadUrl: string;
   filename: string;
   type: string;
   size: number;
 }
 
-function PreviewContent({ previewType, downloadUrl, filename, type, size }: PreviewContentProps) {
+/** Same-origin bytes. Firebase Storage does not allow the preview origin to fetch the file. */
+function ownedContentUrl(fileId: string): string {
+  return `/api/files/${encodeURIComponent(fileId)}/content`;
+}
+
+function PreviewContent({
+  previewType,
+  fileId,
+  downloadUrl,
+  filename,
+  type,
+  size,
+}: PreviewContentProps) {
+  const contentUrl = fileId ? ownedContentUrl(fileId) : "";
   switch (previewType) {
     case "image":
-      return <ImagePreview url={downloadUrl} filename={filename} />;
+      return <ImagePreview url={contentUrl} filename={filename} />;
     case "pdf":
-      return <PdfPreview url={downloadUrl} />;
+      return <PdfPreview url={contentUrl} />;
     case "text":
-      return <TextPreview url={downloadUrl} filename={filename} />;
+      return <TextPreview url={contentUrl} filename={filename} />;
     case "video":
-      return <VideoPreview url={downloadUrl} type={type} />;
+      return <VideoPreview url={contentUrl} type={type} />;
     case "audio":
-      return <AudioPreview url={downloadUrl} type={type} filename={filename} />;
+      return <AudioPreview url={contentUrl} type={type} filename={filename} />;
     default:
       return <UnsupportedPreview filename={filename} type={type} size={size} downloadUrl={downloadUrl} />;
   }
@@ -167,8 +182,12 @@ function TextPreview({ url, filename }: { url: string; filename: string }) {
   const language = getLanguageFromFilename(filename);
 
   const fetchContent = useCallback(async () => {
+    if (!url) {
+      setError(true);
+      return;
+    }
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { credentials: "same-origin" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const text = await response.text();
       // Cap display at 500KB to avoid browser performance issues

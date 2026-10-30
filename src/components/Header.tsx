@@ -119,9 +119,16 @@ export default function Header() {
               </div>
             </SignedIn>
             <SignedOut>
-              <div className="pt-2">
-                <SignInButton />
-              </div>
+              <Button asChild variant="ghost" className="w-full justify-start">
+                <Link
+                  href="/signup"
+                  role="menuitem"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Create account
+                </Link>
+              </Button>
+              <SignInButton className="w-full" />
             </SignedOut>
           </div>
         </div>

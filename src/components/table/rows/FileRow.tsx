@@ -2,7 +2,8 @@
 
 import { memo } from "react";
 import { FileType, isParsed } from "@/types/filetype";
-import { Row } from "@tanstack/react-table";
+import { type Row } from "@tanstack/react-table";
+import { fileTableFeatures } from "../columns";
 import { Button } from "../../ui/button";
 import { File } from "../File";
 import { renderTableCell } from "../utils/renderCell";
@@ -13,7 +14,7 @@ import { SharePopover } from "@/components/SharePopover";
 import { EyeIcon, FileTerminal, MessageCircleQuestionIcon } from "lucide-react";
 
 interface FileRowProps {
-  row: Row<FileType>;
+  row: Row<typeof fileTableFeatures, FileType>;
   fileData: FileType;
   isTrashView?: boolean;
 }

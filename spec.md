@@ -25,6 +25,11 @@ below.
   sorts by timestamp, name, size, or type with folders first.
 - `src/components/Dropzone.tsx` and `TableWrapper.tsx` use a compact upload
   button plus drag overlay instead of a permanent large dropzone.
+- Dependency baseline (2026-11-02): Node 24, Next.js 16.4, React 19.3,
+  TanStack Table 9, Firebase 13, firebase-admin 14, AI SDK 7. Model ids stay
+  `gpt-4.1`, `gpt-4o`, and `gpt-4o-mini`. Typecheck uses the TypeScript 7.0
+  compiler; ESLint and Next.js still load the TypeScript 6.0 API because
+  TypeScript 7.0 does not ship a programmatic API.
 - `DeleteModal` closes in `finally`, `ShowParsedDataModal` includes
   `unstructuredFileData` in the summary callback dependencies, parsed chunks
   are stored as Firebase Storage paths in `unstructuredActions.ts`, and the

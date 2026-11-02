@@ -1,6 +1,7 @@
 "use client";
 
-import { Cell, flexRender } from "@tanstack/react-table";
+import { flexRender, type Cell } from "@tanstack/react-table";
+import { fileTableFeatures } from "../columns";
 import { TableCell } from "../../ui/table";
 import { TimestampCell, FilenameCell, DownloadCell } from "../cells";
 import { FileType } from "@/types/filetype";
@@ -23,7 +24,7 @@ interface RenderCellOptions {
  * @returns The rendered cell component
  */
 export function renderTableCell(
-  cell: Cell<FileType, unknown>,
+  cell: Cell<typeof fileTableFeatures, FileType, unknown>,
   options: RenderCellOptions = {}
 ): React.ReactNode {
   const { onEditFilename, onPreview, showDownload = true } = options;

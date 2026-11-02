@@ -24,16 +24,16 @@ Verified from the current codebase:
 | Area | Choice |
 |------|--------|
 | Framework | Next.js 16 (App Router, Server Actions) |
-| UI | React 19, Tailwind CSS 4, Radix UI, Lucide, CVA, TanStack Table |
-| Language | TypeScript 6 |
-| AI | Vercel AI SDK 6, `@ai-sdk/openai`, Unstructured client, Ragie API |
-| Backend | Firebase 12 + firebase-admin 13 |
+| UI | React 19, Tailwind CSS 4, Radix UI, Lucide, CVA, TanStack Table 9 |
+| Language | TypeScript 7.0 compiler (`@typescript/native`); TypeScript 6.0 API for ESLint and Next.js |
+| AI | Vercel AI SDK 7, `@ai-sdk/openai` 4, Unstructured Transform API, Ragie API |
+| Backend | Firebase 13 + firebase-admin 14 |
 | Payments | Stripe |
 | State | Zustand 5 |
 | Markdown | react-markdown, remark-gfm, remark-math, syntax highlighter |
 | Upload UX | react-dropzone, react-dnd |
-| Tests | Vitest 3 |
-| Node | `>=22` (`engines`) |
+| Tests | Vitest 5 |
+| Node | `>=24` (`engines`) |
 
 `.npmrc` sets `legacy-peer-deps=true`.
 
@@ -58,7 +58,7 @@ docubox/
 
 ### Prerequisites
 
-- Node.js 22+
+- Node.js 24+
 - npm
 - Firebase project (Auth, Firestore, Storage)
 - Unstructured API access
@@ -125,9 +125,9 @@ See `.env.example`. Server Actions body size limit is 4mb (`next.config.js`).
 
 ## Testing and CI
 
-Vitest covers server-auth, Firebase auth errors, and payment action auth.
+Vitest covers the dashboard file list (search, sort, folder sizes, storage totals), health probe, AI model ids, server-auth, Firebase auth errors, preview content, and payment action auth.
 
-GitHub Actions (`.github/workflows/ci.yml`) on `dev` / `main` and PRs: `npm ci` → lint → typecheck → test → build → smoke `GET /api/health` against `next start`. Node 22. Required secrets: the six `NEXT_PUBLIC_FIREBASE_*` client vars used at build time.
+GitHub Actions (`.github/workflows/ci.yml`) on `dev` / `main` and PRs: `npm ci` → lint → typecheck → test → build → smoke `GET /api/health` against `next start`. Node 24. `npm run typecheck` runs the TypeScript 7.0 compiler. Required secrets: the six `NEXT_PUBLIC_FIREBASE_*` client vars used at build time.
 
 ## Deployment
 

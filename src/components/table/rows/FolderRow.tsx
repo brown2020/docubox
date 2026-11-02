@@ -2,14 +2,15 @@
 
 import { memo } from "react";
 import { FileType } from "@/types/filetype";
-import { Row } from "@tanstack/react-table";
+import { type Row } from "@tanstack/react-table";
+import { fileTableFeatures } from "../columns";
 import { Folder } from "../Folder";
 import { renderTableCell } from "../utils/renderCell";
 import { ActionCell } from "../cells/ActionCell";
 import { useFileActions } from "../FileActionsContext";
 
 interface FolderRowProps {
-  row: Row<FileType>;
+  row: Row<typeof fileTableFeatures, FileType>;
   folderData: FileType;
   isTrashView?: boolean;
   onDrop: (docId: string, folderId: string) => void;

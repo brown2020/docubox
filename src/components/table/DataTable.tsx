@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  Row,
-} from "@tanstack/react-table";
+import { flexRender, useTable, type Row } from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -18,10 +12,13 @@ import {
 import { FileType, isFolder } from "@/types/filetype";
 import { useUser } from "@/components/auth";
 import { FileRow, FolderRow } from "./rows";
+import { columns as fileColumns, fileTableFeatures } from "./columns";
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[];
-  data: TData[];
+type FileTableRow = Row<typeof fileTableFeatures, FileType>;
+
+interface DataTableProps {
+  columns: typeof fileColumns;
+  data: FileType[];
   moveFileHandler: (userId: string, docId: string, folderId: string) => void;
   isTrashView?: boolean;
 }
@@ -30,17 +27,17 @@ interface DataTableProps<TData, TValue> {
  * Data table component for displaying files and folders.
  * Uses FileActionsContext for modal handlers (no prop drilling).
  */
-export function DataTable<TData, TValue>({
+export function DataTable({
   columns,
   data,
   moveFileHandler,
   isTrashView,
-}: DataTableProps<TData, TValue>) {
+}: DataTableProps) {
   const { user } = useUser();
-  const table = useReactTable({
+  const table = useTable({
+    features: fileTableFeatures,
     data,
     columns,
-    getCoreRowModel: getCoreRowModel(),
   });
 
   const onDrop = (docId: string, folderId: string) => {
@@ -74,18 +71,18 @@ export function DataTable<TData, TValue>({
             table
               .getRowModel()
               .rows.map((row) =>
-                !isFolder(row.original as FileType) ? (
+                !isFolder(row.original) ? (
                   <FileRow
                     key={row.id}
-                    row={row as unknown as Row<FileType>}
-                    fileData={row.original as FileType}
+                    row={row as FileTableRow}
+                    fileData={row.original}
                     isTrashView={isTrashView}
                   />
                 ) : (
                   <FolderRow
                     key={row.id}
-                    row={row as unknown as Row<FileType>}
-                    folderData={row.original as FileType}
+                    row={row as FileTableRow}
+                    folderData={row.original}
                     isTrashView={isTrashView}
                     onDrop={onDrop}
                   />

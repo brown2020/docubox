@@ -34,11 +34,9 @@ export async function GET(
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'",
+      ...(ranged.contentRange ? { "Content-Range": ranged.contentRange } : {}),
     });
-    if (ranged.contentRange) headers.set("Content-Range", ranged.contentRange);
-    const body = new ArrayBuffer(ranged.body.byteLength);
-    new Uint8Array(body).set(ranged.body);
-    return new Response(body, { status: ranged.status, headers });
+    return new Response(ranged.body.slice(), { status: ranged.status, headers });
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

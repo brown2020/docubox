@@ -22,8 +22,10 @@ export async function grantPackageCredits(
   const profileRef = adminDb.doc(`users/${userId}/profile/userData`);
 
   return adminDb.runTransaction(async (tx) => {
-    const paySnap = await tx.get(payRef);
-    const profileSnap = await tx.get(profileRef);
+    const [paySnap, profileSnap] = await Promise.all([
+      tx.get(payRef),
+      tx.get(profileRef),
+    ]);
     const current =
       profileSnap.exists && typeof profileSnap.get("credits") === "number"
         ? profileSnap.get("credits")

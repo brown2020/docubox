@@ -69,8 +69,15 @@ export function useFilesList({
 
   useEffect(() => {
     if (!docs) return;
+    let ignore = false;
     const files = mapDocsToFileTypes(docs.docs);
-    queueMicrotask(() => setAllFiles(files));
+    queueMicrotask(() => {
+      if (ignore) return;
+      setAllFiles(files);
+    });
+    return () => {
+      ignore = true;
+    };
   }, [docs]);
 
   const folderSizes = useMemo(() => calculateFolderSizes(allFiles), [allFiles]);

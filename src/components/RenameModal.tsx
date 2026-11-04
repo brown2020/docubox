@@ -26,13 +26,17 @@ export function RenameModal() {
   const { fileId, filename, tags } = useRenameModalData();
 
   useEffect(() => {
-    if (isOpen && fileId) {
-      // Defer updates to avoid synchronous setState inside effects (React Compiler rule).
-      queueMicrotask(() => {
-        setInput(filename || "");
-        setLocalTags(tags || []);
-      });
-    }
+    if (!isOpen || !fileId) return;
+    let ignore = false;
+    // Defer updates to avoid synchronous setState inside effects (React Compiler rule).
+    queueMicrotask(() => {
+      if (ignore) return;
+      setInput(filename || "");
+      setLocalTags(tags || []);
+    });
+    return () => {
+      ignore = true;
+    };
   }, [isOpen, fileId, filename, tags]);
 
   async function renameFile() {

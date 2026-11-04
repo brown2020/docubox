@@ -21,13 +21,18 @@ export default function ProfileComponent() {
 
   // Sync local state when profile changes
   useEffect(() => {
+    let ignore = false;
     // Defer updates to avoid synchronous setState inside effects (React Compiler rule).
     queueMicrotask(() => {
+      if (ignore) return;
       setUnstructuredApiKey(profile.unstructured_api_key);
       setOpenaiApiKey(profile.openai_api_key);
       setRagieApiKey(profile.ragie_api_key);
       setUseCredits(profile.useCredits);
     });
+    return () => {
+      ignore = true;
+    };
   }, [
     profile.unstructured_api_key,
     profile.openai_api_key,

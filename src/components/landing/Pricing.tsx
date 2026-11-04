@@ -76,6 +76,48 @@ export function Pricing() {
   );
 }
 
+function PricingCardCta({
+  featured,
+  cta,
+  href,
+  comingSoon,
+}: {
+  featured: boolean;
+  cta: string;
+  href: string;
+  comingSoon?: boolean;
+}) {
+  const { isLoaded, isSignedIn, sessionReady } = useAuth();
+  const showDashboard = isLoaded && isSignedIn && sessionReady;
+  const waitingForSession = !isLoaded || (isSignedIn && !sessionReady);
+
+  if (waitingForSession) {
+    return <div className="h-10" aria-hidden="true" />;
+  }
+
+  if (showDashboard) {
+    return (
+      <Button className="w-full" variant={featured ? "default" : "outline"} asChild>
+        <Link href="/dashboard">Go to dashboard</Link>
+      </Button>
+    );
+  }
+
+  if (comingSoon) {
+    return (
+      <Button className="w-full" variant={featured ? "default" : "outline"} disabled>
+        <span>{cta}</span>
+      </Button>
+    );
+  }
+
+  return (
+    <Button className="w-full" variant={featured ? "default" : "outline"} asChild>
+      <Link href={href}>{cta}</Link>
+    </Button>
+  );
+}
+
 function PricingCard({
   name,
   price,
@@ -97,10 +139,6 @@ function PricingCard({
   featured: boolean;
   comingSoon?: boolean;
 }) {
-  const { isLoaded, isSignedIn, sessionReady } = useAuth();
-  const showDashboard = isLoaded && isSignedIn && sessionReady;
-  const waitingForSession = !isLoaded || (isSignedIn && !sessionReady);
-
   return (
     <div
       className={`relative rounded-2xl border p-8 ${
@@ -133,24 +171,12 @@ function PricingCard({
         ))}
       </ul>
 
-      {waitingForSession ? (
-        <div className="h-10" aria-hidden="true" />
-      ) : (
-        <Button
-          className="w-full"
-          variant={featured ? "default" : "outline"}
-          disabled={!showDashboard && comingSoon}
-          asChild={showDashboard || !comingSoon}
-        >
-          {showDashboard ? (
-            <Link href="/dashboard">Go to dashboard</Link>
-          ) : comingSoon ? (
-            <span>{cta}</span>
-          ) : (
-            <Link href={href}>{cta}</Link>
-          )}
-        </Button>
-      )}
+      <PricingCardCta
+        featured={featured}
+        cta={cta}
+        href={href}
+        comingSoon={comingSoon}
+      />
     </div>
   );
 }

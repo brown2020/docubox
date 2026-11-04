@@ -249,18 +249,28 @@ function resolvePollUrl(baseUrl: string, location: string | null, body: unknown)
     );
   }
 
-  const absolute = /^https?:\/\//i.test(reference)
-    ? reference
-    : new URL(reference, new URL(baseUrl).origin).toString();
-
-  if (new URL(absolute).origin !== new URL(baseUrl).origin) {
+  let absoluteUrl: URL;
+  try {
+    const base = new URL(baseUrl);
+    absoluteUrl = /^https?:\/\//i.test(reference)
+      ? new URL(reference)
+      : new URL(reference, base);
+    if (absoluteUrl.origin !== base.origin) {
+      throw new APIError(
+        SERVICE_NAME,
+        502,
+        "Unstructured API returned an unexpected job location. Please try again."
+      );
+    }
+  } catch (error) {
+    if (error instanceof APIError) throw error;
     throw new APIError(
       SERVICE_NAME,
       502,
       "Unstructured API returned an unexpected job location. Please try again."
     );
   }
-  return absolute;
+  return absoluteUrl.toString();
 }
 
 function timeoutError(): APIError {

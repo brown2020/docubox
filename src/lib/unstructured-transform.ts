@@ -18,6 +18,29 @@ export const SUPPORTED_PARSE_EXTENSIONS = [
   ".tiff",
 ] as const;
 
+/** Extensions Transform accepts once the filename uses the canonical suffix. */
+const EXTENSION_ALIASES: Record<string, (typeof SUPPORTED_PARSE_EXTENSIONS)[number]> = {
+  ".heif": ".heic",
+  ".jfif": ".jpeg",
+  ".jpe": ".jpeg",
+  ".tif": ".tiff",
+};
+
+/** MIME types for the same documents when the stored filename has no usable suffix. */
+const MIME_TO_EXTENSION: Record<string, (typeof SUPPORTED_PARSE_EXTENSIONS)[number]> = {
+  "application/pdf": ".pdf",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+  "image/bmp": ".bmp",
+  "image/heic": ".heic",
+  "image/heif": ".heic",
+  "image/jpeg": ".jpg",
+  "image/jpg": ".jpg",
+  "image/png": ".png",
+  "image/tif": ".tiff",
+  "image/tiff": ".tiff",
+};
+
 const ELEMENT_TYPES = new Set<ElementType>([
   "Title",
   "NarrativeText",
@@ -49,14 +72,20 @@ export function resolveTransformBaseUrl(configured: string | undefined | null): 
   return value.replace(/\/+$/, "");
 }
 
-export function assertSupportedParseFile(fileName: string): string {
-  const base = fileName.split(/[/\\]/).pop()?.trim() || fileName.trim();
+export function assertSupportedParseFile(fileName: string, mimeType?: string | null): string {
+  const base = fileName.split(/[/\\]/).pop()?.trim() || fileName.trim() || "document";
   const dot = base.lastIndexOf(".");
-  const extension = dot >= 0 ? base.slice(dot).toLowerCase() : "";
-  if (!SUPPORTED_PARSE_EXTENSIONS.includes(extension as (typeof SUPPORTED_PARSE_EXTENSIONS)[number])) {
-    throw new Error(unsupportedParseMessage());
+  const extension = dot > 0 ? base.slice(dot).toLowerCase() : "";
+  const stem = (extension ? base.slice(0, dot) : base).trim() || "document";
+  if (SUPPORTED_PARSE_EXTENSIONS.includes(extension as (typeof SUPPORTED_PARSE_EXTENSIONS)[number])) {
+    return base;
   }
-  return base;
+  const alias = EXTENSION_ALIASES[extension];
+  if (alias) return `${stem}${alias}`;
+  const mime = mimeType?.split(";")[0]?.trim().toLowerCase() ?? "";
+  const fromMime = MIME_TO_EXTENSION[mime];
+  if (fromMime) return `${stem}${fromMime}`;
+  throw new Error(unsupportedParseMessage());
 }
 
 function filetypeFromName(fileName: string): string {
@@ -249,12 +278,14 @@ function resolvePollUrl(baseUrl: string, location: string | null, body: unknown)
     );
   }
 
-  let absoluteUrl: URL;
   try {
     const base = new URL(baseUrl);
-    absoluteUrl = /^https?:\/\//i.test(reference)
+    // Relative job paths are resolved against the host, not /api/v2.
+    // `api/v2/jobs/{id}` against the full base becomes `/api/api/v2/jobs/{id}`
+    // and the status poll never reaches the job.
+    const absoluteUrl = /^https?:\/\//i.test(reference)
       ? new URL(reference)
-      : new URL(reference, base);
+      : new URL(reference, `${base.origin}/`);
     if (absoluteUrl.origin !== base.origin) {
       throw new APIError(
         SERVICE_NAME,
@@ -262,6 +293,7 @@ function resolvePollUrl(baseUrl: string, location: string | null, body: unknown)
         "Unstructured API returned an unexpected job location. Please try again."
       );
     }
+    return absoluteUrl.toString();
   } catch (error) {
     if (error instanceof APIError) throw error;
     throw new APIError(
@@ -270,7 +302,6 @@ function resolvePollUrl(baseUrl: string, location: string | null, body: unknown)
       "Unstructured API returned an unexpected job location. Please try again."
     );
   }
-  return absoluteUrl.toString();
 }
 
 function timeoutError(): APIError {
@@ -285,6 +316,7 @@ export async function parseDocumentWithTransform(options: {
   apiKey: string;
   baseUrl: string;
   fileName: string;
+  mimeType?: string | null;
   bytes: Uint8Array;
   isHighRes?: boolean;
   fetchImpl?: typeof fetch;
@@ -292,7 +324,7 @@ export async function parseDocumentWithTransform(options: {
   now?: () => number;
   overallTimeoutMs?: number;
 }): Promise<Chunk[]> {
-  const fileName = assertSupportedParseFile(options.fileName);
+  const fileName = assertSupportedParseFile(options.fileName, options.mimeType);
   const fetchImpl = options.fetchImpl ?? fetch;
   const sleep = options.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
   const now = options.now ?? Date.now;

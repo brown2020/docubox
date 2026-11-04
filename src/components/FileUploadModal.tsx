@@ -47,10 +47,16 @@ export default function FileUploadModal() {
         let data: Chunk[] = [];
 
         const handleParseFile = async (auth: { useCredits: boolean; userApiKey?: string | null }) => {
-          data = await parseFile(newFile.fileId, auth);
+          const parsed = await parseFile(newFile.fileId, auth);
 
           // Check if still mounted before continuing
           if (!isMountedRef.current) return;
+          if (!parsed.ok) {
+            removeUploadingFile(newFile.fileId);
+            toast.error(parsed.message);
+            return;
+          }
+          data = parsed.chunks;
 
           await uploadUnstructuredFile(
             data,

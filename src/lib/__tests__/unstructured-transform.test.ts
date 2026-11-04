@@ -90,6 +90,67 @@ describe("parseDocumentWithTransform", () => {
     });
   });
 
+  it("polls a relative job path against the API host", async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(
+        jsonResponse(202, {
+          id: "job-rel",
+          status: "queued",
+          poll_url: "api/v2/jobs/job-rel",
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, {
+          id: "job-rel",
+          status: "completed",
+          result: completedElements,
+        })
+      );
+
+    await parseWith(fetchImpl);
+    const poll = fetchImpl.mock.calls[1] as unknown as [string];
+    expect(poll[0]).toBe("https://transform.unstructured.io/api/v2/jobs/job-rel");
+  });
+
+  it("sends a TIFF alias and a MIME-only PDF under a supported filename before polling", async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(
+        jsonResponse(202, { id: "job-tif", status: "processing", poll_url: "/api/v2/jobs/job-tif" })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, { id: "job-tif", status: "completed", result: completedElements })
+      );
+
+    await parseDocumentWithTransform({
+      apiKey: API_KEY,
+      baseUrl: TRANSFORM_DEFAULT_BASE,
+      fileName: "scan.tif",
+      bytes: new Uint8Array([1, 2, 3]),
+      fetchImpl,
+      sleep: async () => {},
+      now: () => 0,
+      overallTimeoutMs: 10_000,
+    });
+    const first = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect((first[1].body as FormData).get("input")).toMatchObject({ name: "scan.tiff" });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+
+    const pdfFetch = vi.fn(async () => jsonResponse(200, completedElements));
+    await parseDocumentWithTransform({
+      apiKey: API_KEY,
+      baseUrl: TRANSFORM_DEFAULT_BASE,
+      fileName: "file",
+      mimeType: "application/pdf",
+      bytes: new Uint8Array([1]),
+      fetchImpl: pdfFetch,
+      sleep: async () => {},
+      now: () => 0,
+      overallTimeoutMs: 10_000,
+    });
+    const posted = pdfFetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect((posted[1].body as FormData).get("input")).toMatchObject({ name: "file.pdf" });
+  });
+
   it("polls a 202 job and reads elements from the completed result", async () => {
     const fetchImpl = vi.fn()
       .mockResolvedValueOnce(
